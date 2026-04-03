@@ -1,0 +1,14 @@
+{
+  "name": "@git-plus/db",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate": "drizzle-kit generate --config=drizzle.config.ts"
+  },
+  "dependencies": {
+    "drizzle-orm": "1.0.0-beta.9-e89174b"
+  },
+  "devDependencies": {
+    "drizzle-kit": "1.0.0-beta.9-e89174b"
+  }
+}

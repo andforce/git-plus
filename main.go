@@ -1,12 +1,16 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 
+	appdb "github.com/ImSingee/git-plus/db"
 	"github.com/spf13/cobra"
 )
 
@@ -22,23 +26,81 @@ func main() {
 
 func newRootCommand() *cobra.Command {
 	var listenAddr string
+	var dataDir string
+	var autoMigrate bool
 
 	cmd := &cobra.Command{
 		Use:     "git-plus",
 		Short:   "Run the git-plus server",
 		Version: version,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			return run(resolveListenAddr(listenAddr, cmd.Flags().Changed("listen")))
+			cfg, err := newServerConfig(listenAddr, cmd.Flags().Changed("listen"), dataDir, autoMigrate)
+			if err != nil {
+				return err
+			}
+
+			return run(cmd.Context(), cfg)
 		},
 		SilenceUsage: true,
 	}
 
 	cmd.Flags().StringVarP(&listenAddr, "listen", "l", defaultListenAddr, "listen address")
+	cmd.Flags().BoolVar(&autoMigrate, "auto-migrate", true, "run embedded database migrations before startup")
+	cmd.PersistentFlags().StringVar(&dataDir, "data-dir", "", "directory for runtime data")
+	cmd.AddCommand(newDBCommand(&dataDir))
 
 	return cmd
 }
 
-func run(listenAddr string) error {
+type serverConfig struct {
+	ListenAddr  string
+	DataDir     string
+	AutoMigrate bool
+}
+
+func newServerConfig(listenAddr string, flagChanged bool, dataDir string, autoMigrate bool) (serverConfig, error) {
+	normalizedDataDir, err := normalizeDataDir(dataDir)
+	if err != nil {
+		return serverConfig{}, err
+	}
+
+	return serverConfig{
+		ListenAddr:  resolveListenAddr(listenAddr, flagChanged),
+		DataDir:     normalizedDataDir,
+		AutoMigrate: autoMigrate,
+	}, nil
+}
+
+func newDBCommand(dataDir *string) *cobra.Command {
+	dbCommand := &cobra.Command{
+		Use:   "db",
+		Short: "Database utilities",
+	}
+
+	dbCommand.AddCommand(&cobra.Command{
+		Use:          "migrate",
+		Short:        "Run embedded database migrations",
+		SilenceUsage: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			normalizedDataDir, err := normalizeDataDir(*dataDir)
+			if err != nil {
+				return err
+			}
+
+			return appdb.Migrate(cmd.Context(), normalizedDataDir)
+		},
+	})
+
+	return dbCommand
+}
+
+func run(ctx context.Context, cfg serverConfig) error {
+	if cfg.AutoMigrate {
+		if err := appdb.Migrate(ctx, cfg.DataDir); err != nil {
+			return fmt.Errorf("run database migrations: %w", err)
+		}
+	}
+
 	frontendHandler, err := newFrontendHandler()
 	if err != nil {
 		return err
@@ -52,9 +114,9 @@ func run(listenAddr string) error {
 	mux.HandleFunc("/ready", healthzHandler)
 	mux.Handle("/", frontendHandler)
 
-	log.Printf("listening on http://localhost%s", listenAddr)
+	log.Printf("listening on http://localhost%s", cfg.ListenAddr)
 
-	return http.ListenAndServe(listenAddr, mux)
+	return http.ListenAndServe(cfg.ListenAddr, mux)
 }
 
 func resolveListenAddr(flagValue string, flagChanged bool) string {
@@ -83,6 +145,15 @@ func envOrDefault(key, fallback string) string {
 	}
 
 	return fallback
+}
+
+func normalizeDataDir(value string) (string, error) {
+	normalizedValue := strings.TrimSpace(value)
+	if normalizedValue == "" {
+		return "", errors.New("--data-dir is required")
+	}
+
+	return normalizedValue, nil
 }
 
 func notFoundAPIHandler(w http.ResponseWriter, r *http.Request) {

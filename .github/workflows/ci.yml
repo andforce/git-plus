@@ -10,6 +10,8 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    env:
+      CGO_ENABLED: 0
     strategy:
       matrix:
         node-version: [22.x, 24.x, 25.x]
