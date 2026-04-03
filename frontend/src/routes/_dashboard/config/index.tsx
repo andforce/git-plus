@@ -123,20 +123,24 @@ function ConfigOverview() {
 
         <Divider />
 
-        <Group gap="xl">
-          <Box>
-            <Text size="xs" fw={500} c="dimmed" tt="uppercase" mb={4}>
+        <Stack gap="xs" maw={280}>
+          <Group justify="space-between">
+            <Text size="sm" c="dimmed">
               Sources
             </Text>
-            <Text fw={600}>{sourceCount} configured</Text>
-          </Box>
-          <Box>
-            <Text size="xs" fw={500} c="dimmed" tt="uppercase" mb={4}>
+            <Text size="sm" fw={600}>
+              {sourceCount} configured
+            </Text>
+          </Group>
+          <Group justify="space-between">
+            <Text size="sm" c="dimmed">
               Concurrency
             </Text>
-            <Text fw={600}>{concurrency} parallel</Text>
-          </Box>
-        </Group>
+            <Text size="sm" fw={600}>
+              {concurrency} parallel
+            </Text>
+          </Group>
+        </Stack>
 
         <Divider />
 

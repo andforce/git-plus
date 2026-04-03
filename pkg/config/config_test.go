@@ -72,7 +72,7 @@ sources: []
 
 	issues := ValidateConfig(loaded)
 	assertHasIssue(t, issues, "empty_sources", "sources")
-	assertIssueMessage(t, issues, "empty_sources", "sources", "sources is empty")
+	assertIssueMessage(t, issues, "empty_sources", "sources", "no source configured")
 }
 
 func TestValidateConfigWarnsWhenSourcesIsMissing(t *testing.T) {
@@ -87,7 +87,7 @@ concurrency: 3
 
 	issues := ValidateConfig(loaded)
 	assertHasIssue(t, issues, "empty_sources", "sources")
-	assertIssueMessage(t, issues, "empty_sources", "sources", "sources is empty")
+	assertIssueMessage(t, issues, "empty_sources", "sources", "no source configured")
 }
 
 func TestValidateConfigWarnsWhenSourcesHasNoValue(t *testing.T) {
@@ -102,7 +102,7 @@ sources:
 
 	issues := ValidateConfig(loaded)
 	assertHasIssue(t, issues, "empty_sources", "sources")
-	assertIssueMessage(t, issues, "empty_sources", "sources", "sources is empty")
+	assertIssueMessage(t, issues, "empty_sources", "sources", "no source configured")
 }
 
 func TestCheckFileReturnsInvalidYAMLIssue(t *testing.T) {

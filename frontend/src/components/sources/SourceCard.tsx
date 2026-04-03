@@ -12,7 +12,6 @@ import {
   IconDotsVertical,
   IconKey,
   IconPencil,
-  IconShieldCheck,
   IconTrash,
 } from '@tabler/icons-react';
 import type { Source } from '~rpc/gitplus/config/v1/config_pb';
@@ -74,23 +73,9 @@ export function SourceCard({
       </Group>
 
       <Stack gap={6}>
-        <Group gap="xs">
-          <Text size="sm" c="dimmed">
-            @{source.username}
-          </Text>
-          <Text size="sm" c="dimmed">
-            ·
-          </Text>
-          <Group gap={4}>
-            <IconShieldCheck
-              size={13}
-              style={{ color: 'var(--mantine-color-teal-6)' }}
-            />
-            <Text size="sm" c="teal">
-              Token active
-            </Text>
-          </Group>
-        </Group>
+        <Text size="sm" c="dimmed">
+          @{source.username}
+        </Text>
 
         <Group gap={6} wrap="wrap">
           <Text size="xs" c="dimmed">

@@ -154,7 +154,7 @@ func validateSourceCollection(sources []SourceConfig, root *yaml.Node, opts Secr
 		issues = append(issues, ValidationIssue{
 			Severity: SeverityWarning,
 			Code:     "empty_sources",
-			Message:  "sources is empty",
+			Message:  "no source configured",
 			Path:     "sources",
 			Line:     line,
 		})
