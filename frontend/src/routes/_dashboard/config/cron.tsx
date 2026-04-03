@@ -100,8 +100,8 @@ function buildCronExpression(unit: string, value: number): string {
 
 function CronBuilder({ onApply }: { onApply: (expr: string) => void }) {
   const [opened, { toggle, close }] = useDisclosure(false);
-  const [unit, setUnit] = useState<string>('minute');
-  const [value, setValue] = useState<number>(30);
+  const [unit, setUnit] = useState<string>('day');
+  const [value, setValue] = useState<number>(1);
 
   const currentUnit = CRON_UNITS.find((u) => u.value === unit) ?? CRON_UNITS[0];
   const clampedValue = Math.min(
@@ -255,14 +255,6 @@ function CronPage() {
                 {runtime?.cron || 'Not set'}
               </Text>
             </Group>
-            {runtime?.updatedAt && (
-              <Group justify="space-between">
-                <Text size="sm" c="dimmed">
-                  Updated
-                </Text>
-                <Text size="sm">{formatRelative(runtime.updatedAt)}</Text>
-              </Group>
-            )}
             {runtime?.lastError && (
               <Group justify="space-between" align="flex-start">
                 <Text size="sm" c="dimmed">
@@ -291,7 +283,9 @@ function CronPage() {
                       size={14}
                       style={{ color: 'var(--mantine-color-dimmed)' }}
                     />
-                    <Text size="sm">{formatTimestamp(ts)}</Text>
+                    <Text size="sm" ff="monospace">
+                      {formatTimestamp(ts)}
+                    </Text>
                     <Text size="xs" c="dimmed">
                       {formatRelative(ts)}
                     </Text>
@@ -342,7 +336,7 @@ function CronPage() {
                         size={14}
                         style={{ color: 'var(--mantine-color-blue-5)' }}
                       />
-                      <Text size="sm">
+                      <Text size="sm" ff="monospace">
                         {dayjs(date).format('YYYY-MM-DD HH:mm:ss')}
                       </Text>
                       <Text size="xs" c="dimmed">

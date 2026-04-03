@@ -27,7 +27,6 @@ type CronRuntime struct {
 	state         protoimpl.MessageState   `protogen:"open.v1"`
 	Enabled       *bool                    `protobuf:"varint,1,opt,name=enabled" json:"enabled,omitempty"`
 	Cron          *string                  `protobuf:"bytes,2,opt,name=cron" json:"cron,omitempty"`
-	UpdatedAt     *timestamppb.Timestamp   `protobuf:"bytes,3,opt,name=updated_at,json=updatedAt" json:"updated_at,omitempty"`
 	NextRuns      []*timestamppb.Timestamp `protobuf:"bytes,4,rep,name=next_runs,json=nextRuns" json:"next_runs,omitempty"`
 	LastError     *string                  `protobuf:"bytes,5,opt,name=last_error,json=lastError" json:"last_error,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -76,13 +75,6 @@ func (x *CronRuntime) GetCron() string {
 		return *x.Cron
 	}
 	return ""
-}
-
-func (x *CronRuntime) GetUpdatedAt() *timestamppb.Timestamp {
-	if x != nil {
-		return x.UpdatedAt
-	}
-	return nil
 }
 
 func (x *CronRuntime) GetNextRuns() []*timestamppb.Timestamp {
@@ -351,15 +343,13 @@ var File_gitplus_cron_v1_cron_proto protoreflect.FileDescriptor
 
 const file_gitplus_cron_v1_cron_proto_rawDesc = "" +
 	"\n" +
-	"\x1agitplus/cron/v1/cron.proto\x12\x0fgitplus.cron.v1\x1a!google/protobuf/go_features.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xce\x01\n" +
+	"\x1agitplus/cron/v1/cron.proto\x12\x0fgitplus.cron.v1\x1a!google/protobuf/go_features.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x99\x01\n" +
 	"\vCronRuntime\x12\x18\n" +
 	"\aenabled\x18\x01 \x01(\bR\aenabled\x12\x12\n" +
-	"\x04cron\x18\x02 \x01(\tR\x04cron\x129\n" +
-	"\n" +
-	"updated_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x127\n" +
+	"\x04cron\x18\x02 \x01(\tR\x04cron\x127\n" +
 	"\tnext_runs\x18\x04 \x03(\v2\x1a.google.protobuf.TimestampR\bnextRuns\x12\x1d\n" +
 	"\n" +
-	"last_error\x18\x05 \x01(\tR\tlastError\"\x17\n" +
+	"last_error\x18\x05 \x01(\tR\tlastErrorJ\x04\b\x03\x10\x04\"\x17\n" +
 	"\x15GetCronRuntimeRequest\"P\n" +
 	"\x16GetCronRuntimeResponse\x126\n" +
 	"\aruntime\x18\x01 \x01(\v2\x1c.gitplus.cron.v1.CronRuntimeR\aruntime\"'\n" +
@@ -402,22 +392,21 @@ var file_gitplus_cron_v1_cron_proto_goTypes = []any{
 	(*timestamppb.Timestamp)(nil),  // 7: google.protobuf.Timestamp
 }
 var file_gitplus_cron_v1_cron_proto_depIdxs = []int32{
-	7, // 0: gitplus.cron.v1.CronRuntime.updated_at:type_name -> google.protobuf.Timestamp
-	7, // 1: gitplus.cron.v1.CronRuntime.next_runs:type_name -> google.protobuf.Timestamp
-	0, // 2: gitplus.cron.v1.GetCronRuntimeResponse.runtime:type_name -> gitplus.cron.v1.CronRuntime
-	0, // 3: gitplus.cron.v1.UpdateCronResponse.runtime:type_name -> gitplus.cron.v1.CronRuntime
-	0, // 4: gitplus.cron.v1.ReloadCronResponse.runtime:type_name -> gitplus.cron.v1.CronRuntime
-	1, // 5: gitplus.cron.v1.CronService.GetCronRuntime:input_type -> gitplus.cron.v1.GetCronRuntimeRequest
-	3, // 6: gitplus.cron.v1.CronService.UpdateCron:input_type -> gitplus.cron.v1.UpdateCronRequest
-	5, // 7: gitplus.cron.v1.CronService.ReloadCron:input_type -> gitplus.cron.v1.ReloadCronRequest
-	2, // 8: gitplus.cron.v1.CronService.GetCronRuntime:output_type -> gitplus.cron.v1.GetCronRuntimeResponse
-	4, // 9: gitplus.cron.v1.CronService.UpdateCron:output_type -> gitplus.cron.v1.UpdateCronResponse
-	6, // 10: gitplus.cron.v1.CronService.ReloadCron:output_type -> gitplus.cron.v1.ReloadCronResponse
-	8, // [8:11] is the sub-list for method output_type
-	5, // [5:8] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	7, // 0: gitplus.cron.v1.CronRuntime.next_runs:type_name -> google.protobuf.Timestamp
+	0, // 1: gitplus.cron.v1.GetCronRuntimeResponse.runtime:type_name -> gitplus.cron.v1.CronRuntime
+	0, // 2: gitplus.cron.v1.UpdateCronResponse.runtime:type_name -> gitplus.cron.v1.CronRuntime
+	0, // 3: gitplus.cron.v1.ReloadCronResponse.runtime:type_name -> gitplus.cron.v1.CronRuntime
+	1, // 4: gitplus.cron.v1.CronService.GetCronRuntime:input_type -> gitplus.cron.v1.GetCronRuntimeRequest
+	3, // 5: gitplus.cron.v1.CronService.UpdateCron:input_type -> gitplus.cron.v1.UpdateCronRequest
+	5, // 6: gitplus.cron.v1.CronService.ReloadCron:input_type -> gitplus.cron.v1.ReloadCronRequest
+	2, // 7: gitplus.cron.v1.CronService.GetCronRuntime:output_type -> gitplus.cron.v1.GetCronRuntimeResponse
+	4, // 8: gitplus.cron.v1.CronService.UpdateCron:output_type -> gitplus.cron.v1.UpdateCronResponse
+	6, // 9: gitplus.cron.v1.CronService.ReloadCron:output_type -> gitplus.cron.v1.ReloadCronResponse
+	7, // [7:10] is the sub-list for method output_type
+	4, // [4:7] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_gitplus_cron_v1_cron_proto_init() }

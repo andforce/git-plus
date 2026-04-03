@@ -113,9 +113,6 @@ func toProtoRuntime(snapshot cronruntime.Snapshot) *cronv1.CronRuntime {
 		Cron:      stringPtr(snapshot.Cron),
 		LastError: stringPtr(snapshot.LastError),
 	}
-	if !snapshot.UpdatedAt.IsZero() {
-		protoRuntime.UpdatedAt = timestamppb.New(snapshot.UpdatedAt)
-	}
 	if len(snapshot.NextRuns) > 0 {
 		protoRuntime.NextRuns = make([]*timestamppb.Timestamp, 0, len(snapshot.NextRuns))
 		for _, nextRun := range snapshot.NextRuns {

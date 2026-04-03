@@ -11,7 +11,7 @@ option features.field_presence = EXPLICIT;
 message CronRuntime {
   bool enabled = 1;
   string cron = 2;
-  google.protobuf.Timestamp updated_at = 3;
+  reserved 3;
   repeated google.protobuf.Timestamp next_runs = 4;
   string last_error = 5;
 }

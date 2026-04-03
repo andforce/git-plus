@@ -13,14 +13,13 @@ import (
 	"github.com/go-co-op/gocron/v2"
 )
 
-const DefaultNextRunsLimit = 10
+const DefaultNextRunsLimit = 5
 
 var ErrInvalidCronConfig = errors.New("invalid cron config")
 
 type Snapshot struct {
 	Enabled   bool
 	Cron      string
-	UpdatedAt time.Time
 	NextRuns  []time.Time
 	LastError string
 }
@@ -33,11 +32,9 @@ type Runtime struct {
 	manager    *task.Manager
 	scheduler  gocron.Scheduler
 	job        gocron.Job
-	now        func() time.Time
 	logger     *log.Logger
 	syncAllRun func(*task.ExecutionContext)
 	cron       string
-	updatedAt  time.Time
 	lastError  string
 }
 
@@ -51,7 +48,6 @@ func New(path string, manager *task.Manager, options ...Option) (*Runtime, error
 		path:       path,
 		manager:    manager,
 		scheduler:  scheduler,
-		now:        time.Now,
 		syncAllRun: defaultSyncAllRun,
 	}
 	for _, option := range options {
@@ -66,14 +62,6 @@ func New(path string, manager *task.Manager, options ...Option) (*Runtime, error
 func WithLogger(logger *log.Logger) Option {
 	return func(runtime *Runtime) {
 		runtime.logger = logger
-	}
-}
-
-func WithNow(now func() time.Time) Option {
-	return func(runtime *Runtime) {
-		if now != nil {
-			runtime.now = now
-		}
 	}
 }
 
@@ -129,7 +117,6 @@ func (runtime *Runtime) Snapshot(limit int) (Snapshot, error) {
 	snapshot := Snapshot{
 		Enabled:   runtime.job != nil && runtime.cron != "",
 		Cron:      runtime.cron,
-		UpdatedAt: runtime.updatedAt,
 		LastError: runtime.lastError,
 	}
 	if limit <= 0 || runtime.job == nil {
@@ -156,24 +143,24 @@ func (runtime *Runtime) applyCronLocked(expr string) error {
 	if expr == "" {
 		if err := runtime.removeJobLocked(); err != nil {
 			runtime.lastError = err.Error()
-			runtime.updatedAt = runtime.now()
+
 			return fmt.Errorf("disable cron: %w", err)
 		}
 		runtime.cron = ""
 		runtime.lastError = ""
-		runtime.updatedAt = runtime.now()
+
 		return nil
 	}
 
 	if runtime.job != nil && runtime.cron == expr {
 		runtime.lastError = ""
-		runtime.updatedAt = runtime.now()
+
 		return nil
 	}
 
 	if err := runtime.removeJobLocked(); err != nil {
 		runtime.lastError = err.Error()
-		runtime.updatedAt = runtime.now()
+
 		return fmt.Errorf("replace cron: %w", err)
 	}
 
@@ -185,14 +172,13 @@ func (runtime *Runtime) applyCronLocked(expr string) error {
 	if err != nil {
 		runtime.cron = ""
 		runtime.lastError = err.Error()
-		runtime.updatedAt = runtime.now()
+
 		return fmt.Errorf("create cron job: %w", err)
 	}
 
 	runtime.job = job
 	runtime.cron = expr
 	runtime.lastError = ""
-	runtime.updatedAt = runtime.now()
 
 	return nil
 }
@@ -218,13 +204,12 @@ func (runtime *Runtime) disableWithError(err error) error {
 
 	if removeErr := runtime.removeJobLocked(); removeErr != nil {
 		runtime.lastError = removeErr.Error()
-		runtime.updatedAt = runtime.now()
+
 		return fmt.Errorf("disable cron after reload error: %w", removeErr)
 	}
 
 	runtime.cron = ""
 	runtime.lastError = err.Error()
-	runtime.updatedAt = runtime.now()
 
 	return err
 }
