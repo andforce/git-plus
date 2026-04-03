@@ -19,6 +19,11 @@ jobs:
 
       - uses: pnpm/action-setup@v4
 
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v6
         with:
@@ -33,6 +38,9 @@ jobs:
 
       - name: Run linter
         run: pnpm lint
+
+      - name: Run tests
+        run: pnpm test
 
       - name: Build
         run: pnpm build

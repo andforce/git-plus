@@ -1,0 +1,17 @@
+# syntax=docker/dockerfile:1.7
+
+ARG TARGETOS=linux
+ARG TARGETARCH
+
+FROM gcr.io/distroless/static-debian12:nonroot
+
+ARG TARGETOS
+ARG TARGETARCH
+
+COPY dist/${TARGETOS}-${TARGETARCH}/git-plus /git-plus
+
+ENV PORT=8080
+
+EXPOSE 8080
+
+ENTRYPOINT ["/git-plus"]

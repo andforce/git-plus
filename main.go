@@ -10,6 +10,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var version = "dev"
+
 const defaultListenAddr = ":8080"
 
 func main() {
@@ -22,8 +24,9 @@ func newRootCommand() *cobra.Command {
 	var listenAddr string
 
 	cmd := &cobra.Command{
-		Use:   "git-plus",
-		Short: "Run the git-plus server",
+		Use:     "git-plus",
+		Short:   "Run the git-plus server",
+		Version: version,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return run(resolveListenAddr(listenAddr, cmd.Flags().Changed("listen")))
 		},
