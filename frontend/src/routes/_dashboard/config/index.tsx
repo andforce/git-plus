@@ -41,6 +41,7 @@ function ConfigOverview() {
   const sourceCount = config?.sources.length ?? 0;
   const concurrency = config?.concurrency ?? 0;
   const maxRetryTimes = config?.maxRetryTimes ?? 0;
+  const cron = config?.cron?.trim() ? config.cron : null;
   const errorCount = checkData.summary?.error ?? 0;
   const warningCount = checkData.summary?.warning ?? 0;
   const hasIssues = checkData.issues.length > 0;
@@ -147,6 +148,14 @@ function ConfigOverview() {
             </Text>
             <Text size="sm" fw={600}>
               {maxRetryTimes}
+            </Text>
+          </Group>
+          <Group justify="space-between" align="flex-start">
+            <Text size="sm" c="dimmed">
+              Cron
+            </Text>
+            <Text size="sm" fw={600} ta="right">
+              {cron ?? 'Not set'}
             </Text>
           </Group>
         </Stack>

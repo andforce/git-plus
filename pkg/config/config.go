@@ -20,6 +20,7 @@ type Config struct {
 	Sources       []SourceConfig `yaml:"sources"`
 	Concurrency   int            `yaml:"concurrency"`
 	MaxRetryTimes int            `yaml:"max_retry_times"`
+	Cron          string         `yaml:"cron,omitempty"`
 }
 
 type SourceConfig struct {

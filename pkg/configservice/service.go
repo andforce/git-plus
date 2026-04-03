@@ -289,6 +289,7 @@ func toProtoConfigSnapshot(cfg appconfig.Config) *configv1.ConfigSnapshot {
 		Concurrency:   int32Ptr(int32(cfg.Concurrency)),
 		Sources:       sources,
 		MaxRetryTimes: int32Ptr(int32(cfg.MaxRetryTimes)),
+		Cron:          stringPtr(cfg.Cron),
 	}
 }
 

@@ -189,8 +189,38 @@ func TestConfigServiceGetConfigReturnsDefaultSnapshotWhenMissing(t *testing.T) {
 	if configSnapshot.GetMaxRetryTimes() != int32(appconfig.DefaultMaxRetryTimes) {
 		t.Fatalf("unexpected max_retry_times: %d", configSnapshot.GetMaxRetryTimes())
 	}
+	if configSnapshot.GetCron() != "" {
+		t.Fatalf("unexpected cron: %q", configSnapshot.GetCron())
+	}
 	if len(configSnapshot.GetSources()) != 0 {
 		t.Fatalf("expected no sources, got %#v", configSnapshot.GetSources())
+	}
+}
+
+func TestConfigServiceGetConfigReturnsCronFromConfig(t *testing.T) {
+	t.Setenv(appconfig.TokenPassphraseEnvVar, serverTestPassphrase)
+	encryptedToken := mustEncryptServerToken(t, "secret")
+	dataDir := t.TempDir()
+	writeConfigFile(t, dataDir, `
+sources:
+  - id: github
+    platform: github
+    username: octocat
+    token: `+encryptedToken+`
+cron: '0 * * * *'
+`)
+	server := newTestServer(t, dataDir)
+
+	response, err := newConfigServiceClient(server.URL).GetConfig(
+		context.Background(),
+		connect.NewRequest(&configv1.GetConfigRequest{}),
+	)
+	if err != nil {
+		t.Fatalf("get config: %v", err)
+	}
+
+	if response.Msg.GetConfig().GetCron() != "0 * * * *" {
+		t.Fatalf("unexpected cron: %q", response.Msg.GetConfig().GetCron())
 	}
 }
 

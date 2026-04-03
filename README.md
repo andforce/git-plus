@@ -78,6 +78,6 @@ The runtime config file lives at:
 <data-dir>/config.yaml
 ```
 
-The top-level config includes `concurrency` and `max_retry_times` (default retry count: `2`), and each source can include default accessible repositories, starred repositories, and watching repositories in addition to explicit include/exclude repo filters.
+The top-level config includes `concurrency`, `max_retry_times` (default retry count: `2`), and an optional 5-field `cron` schedule. Each source can include default accessible repositories, starred repositories, and watching repositories in addition to explicit include/exclude repo filters.
 
 In most cases, you do not need to edit this file manually; just open the page in your browser.

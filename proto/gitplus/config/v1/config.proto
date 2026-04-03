@@ -71,6 +71,7 @@ message ConfigSnapshot {
   int32 concurrency = 1 [(buf.validate.field).int32.gt = 0];
   repeated Source sources = 2;
   int32 max_retry_times = 3 [(buf.validate.field).int32.gte = 0];
+  string cron = 4;
 }
 
 message StringListValue {

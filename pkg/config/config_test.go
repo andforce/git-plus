@@ -29,6 +29,9 @@ sources:
 	if loaded.Data.MaxRetryTimes != DefaultMaxRetryTimes {
 		t.Fatalf("expected default max_retry_times %d, got %d", DefaultMaxRetryTimes, loaded.Data.MaxRetryTimes)
 	}
+	if loaded.Data.Cron != "" {
+		t.Fatalf("expected default cron to be empty, got %q", loaded.Data.Cron)
+	}
 	if !loaded.Data.Sources[0].IncludeDefaults {
 		t.Fatal("expected include_defaults to default to true")
 	}
@@ -147,6 +150,46 @@ sources:
 	issues := ValidateConfig(loaded)
 	assertHasIssue(t, issues, "empty_sources", "sources")
 	assertIssueMessage(t, issues, "empty_sources", "sources", "no source configured")
+}
+
+func TestValidateConfigAcceptsValidCron(t *testing.T) {
+	encryptedToken := mustEncryptToken(t, "secret", testPassphrase)
+	configPath := writeConfigFile(t, `
+sources:
+  - id: github
+    platform: github
+    username: octocat
+    token: `+encryptedToken+`
+cron: '0 * * * *'
+`)
+
+	loaded, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("unexpected load error: %v", err)
+	}
+
+	issues := ValidateConfig(loaded, SecretOptions{Passphrase: testPassphrase})
+	assertNoIssue(t, issues, "invalid_cron", "cron")
+}
+
+func TestValidateConfigRejectsInvalidCron(t *testing.T) {
+	encryptedToken := mustEncryptToken(t, "secret", testPassphrase)
+	configPath := writeConfigFile(t, `
+sources:
+  - id: github
+    platform: github
+    username: octocat
+    token: `+encryptedToken+`
+cron: '0 * 0 0 0'
+`)
+
+	loaded, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("unexpected load error: %v", err)
+	}
+
+	issues := ValidateConfig(loaded, SecretOptions{Passphrase: testPassphrase})
+	assertHasIssue(t, issues, "invalid_cron", "cron")
 }
 
 func TestCheckFileReturnsInvalidYAMLIssue(t *testing.T) {

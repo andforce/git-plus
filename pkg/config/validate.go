@@ -8,7 +8,9 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
+	"github.com/go-co-op/gocron/v2"
 	"gopkg.in/yaml.v3"
 )
 
@@ -88,6 +90,7 @@ func ValidateConfig(loaded LoadedConfig, opts ...SecretOptions) []ValidationIssu
 	issues = append(issues, validateSourceCollection(loaded.Data.Sources, root, secretOptions)...)
 	issues = append(issues, validateConcurrency(loaded.Data, root)...)
 	issues = append(issues, validateMaxRetryTimes(loaded.Data, root)...)
+	issues = append(issues, validateCron(loaded.Data, root)...)
 
 	return issues
 }
@@ -129,6 +132,7 @@ var topLevelFields = []string{
 	"sources",
 	"concurrency",
 	"max_retry_times",
+	"cron",
 }
 
 var sourceFields = []string{
@@ -174,6 +178,44 @@ func validateSourceCollection(sources []SourceConfig, root *yaml.Node, opts Secr
 	issues = append(issues, validateDuplicateSourceIDs(sources, sourceNodes, "")...)
 
 	return issues
+}
+
+func validateCron(cfg Config, root *yaml.Node) []ValidationIssue {
+	cronNode, _, exists := mappingValue(root, "cron")
+	if !exists {
+		return nil
+	}
+	line := 0
+	if cronNode != nil {
+		line = cronNode.Line
+	}
+
+	cronValue := strings.TrimSpace(cfg.Cron)
+	if cronValue == "" {
+		return []ValidationIssue{
+			{
+				Severity: SeverityError,
+				Code:     "invalid_cron",
+				Message:  "cron must be a valid 5-field cron expression",
+				Path:     "cron",
+				Line:     line,
+			},
+		}
+	}
+
+	if err := gocron.NewDefaultCron(false).IsValid(cronValue, time.Local, time.Now()); err != nil {
+		return []ValidationIssue{
+			{
+				Severity: SeverityError,
+				Code:     "invalid_cron",
+				Message:  "cron must be a valid 5-field cron expression",
+				Path:     "cron",
+				Line:     line,
+			},
+		}
+	}
+
+	return nil
 }
 
 func validateSourceFields(source SourceConfig, node *yaml.Node, index int, opts SecretOptions) []ValidationIssue {

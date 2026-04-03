@@ -16,6 +16,7 @@ func DefaultConfig() Config {
 		Sources:       []SourceConfig{},
 		Concurrency:   DefaultConcurrency,
 		MaxRetryTimes: DefaultMaxRetryTimes,
+		Cron:          "",
 	}
 }
 
