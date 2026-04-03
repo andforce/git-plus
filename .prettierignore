@@ -7,5 +7,5 @@ frontend/test-results
 frontend/playwright-report
 frontend/__screenshots__
 frontend/.vitest
-rpc
+pkg/rpc
 frontend/src/rpc

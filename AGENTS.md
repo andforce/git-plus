@@ -7,12 +7,18 @@ This file provides guidance to AI Code Agent when working with code in this repo
 This repository is a Go backend plus a Vite/TanStack Router frontend workspace.
 
 - Go entrypoints live at the repository root:
-  - `main.go` wires the HTTP server and reserved routes (`/api`, `/ready`, `/healthz`)
-  - `frontend_dev.go` handles development-mode proxying to the frontend dev server
-  - `frontend_embed.go` serves the embedded production frontend when building with `-tags embed`
+  - `main.go` is the thin CLI entrypoint
+  - `frontend_dev.go` provides the development-mode frontend handler wrapper
+  - `frontend_embed.go` provides the embedded production frontend handler wrapper for `-tags embed`
+- Core Go packages live under `pkg/`:
+  - `pkg/app/` for CLI setup and startup config
+  - `pkg/server/` for server startup and HTTP route composition
+  - `pkg/configservice/` for ConnectRPC handlers
+  - `pkg/config/` for config loading and validation
+  - `pkg/frontend/` for shared frontend handler implementations
 - Protobuf and RPC sources live under:
   - `proto/` for `.proto` contracts managed by Buf
-  - `rpc/` for generated Go protobuf and Connect stubs
+  - `pkg/rpc/` for generated Go protobuf and Connect stubs
 - Frontend source lives in `frontend/`:
   - Vite entry: `frontend/src/main.tsx`
   - Router setup: `frontend/src/router.tsx`
@@ -31,14 +37,14 @@ Colocate new frontend feature assets with the component or route that consumes t
 - UI: Mantine v8. Use the context7 MCP tool with the library id `/mantine/mantine` to load docs.
 - Routing: TanStack Router. Use context7 with `/websites/tanstack_router` for Router docs.
 - Generated files like `routeTree.gen.ts` are auto-created by `@tanstack/router-plugin`; do not edit.
-- Generated files under `rpc/` and `frontend/src/rpc/` are auto-created by Buf plugins; do not edit them by hand. Update `proto/` files and re-run code generation instead.
+- Generated files under `pkg/rpc/` and `frontend/src/rpc/` are auto-created by Buf plugins; do not edit them by hand. Update `proto/` files and re-run code generation instead.
 
 ## Build & Development Commands
 
 Use pnpm for workspace tasks and Go tooling for backend compilation/tests.
 
 - `pnpm dev` starts both the frontend dev server and the Go server. The Go server proxies every non-`/api` request to the frontend dev server.
-- `pnpm buf:generate` regenerates Go and TypeScript RPC code from `proto/` into `rpc/` and `frontend/src/rpc/`.
+- `pnpm buf:generate` regenerates Go and TypeScript RPC code from `proto/` into `pkg/rpc/` and `frontend/src/rpc/`.
 - `pnpm buf:lint` validates `.proto` files with Buf lint rules.
 - `pnpm build` first builds the frontend into `frontend/dist/`, then builds `dist/git-plus` with `go build -tags embed`, embedding the frontend assets into the binary.
 - `pnpm test` runs `go test ./...` and then frontend Vitest.
@@ -123,7 +129,7 @@ Secrets belong at the repository root in local env files such as `.env` / `.env.
 The backend API under `/api` is implemented with ConnectRPC and generated from protobuf definitions.
 
 - Define API contracts in `proto/`.
-- Generate Go server/client stubs into `rpc/` and TypeScript definitions into `frontend/src/rpc/`.
+- Generate Go server/client stubs into `pkg/rpc/` and TypeScript definitions into `frontend/src/rpc/`.
 - Use Buf for schema linting and code generation via `pnpm buf:generate` and `pnpm buf:lint`.
 - Mount Connect handlers under the `/api` base path. Frontend transports should use `createConnectTransport({ baseUrl: '/api' })`.
 - Prefer changing schemas and regenerating code over editing generated RPC files directly.

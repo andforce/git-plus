@@ -8,7 +8,7 @@ import (
 	connect "connectrpc.com/connect"
 	context "context"
 	errors "errors"
-	v1 "github.com/ImSingee/git-plus/rpc/gitplus/config/v1"
+	v1 "github.com/ImSingee/git-plus/pkg/rpc/gitplus/config/v1"
 	http "net/http"
 	strings "strings"
 )

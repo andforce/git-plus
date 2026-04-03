@@ -1,7 +1,8 @@
-package main
+package app
 
 import (
 	"io"
+	"net/http"
 	"strings"
 	"testing"
 )
@@ -36,7 +37,9 @@ func TestNewServerConfigAcceptsExplicitDataDir(t *testing.T) {
 }
 
 func TestDBMigrateDoesNotAcceptAutoMigrateFlag(t *testing.T) {
-	cmd := newRootCommand()
+	cmd := NewRootCommand("test", func() (http.Handler, error) {
+		return http.NotFoundHandler(), nil
+	})
 	cmd.SetOut(io.Discard)
 	cmd.SetErr(io.Discard)
 	cmd.SetArgs([]string{"db", "migrate", "--auto-migrate=false"})

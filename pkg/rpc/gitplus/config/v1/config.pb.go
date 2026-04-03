@@ -478,8 +478,8 @@ const file_gitplus_config_v1_config_proto_rawDesc = "" +
 	"\asummary\x18\x05 \x01(\v2\x1f.gitplus.config.v1.IssueSummaryR\asummary2\xdd\x01\n" +
 	"\rConfigService\x12\\\n" +
 	"\vCheckConfig\x12%.gitplus.config.v1.CheckConfigRequest\x1a&.gitplus.config.v1.CheckConfigResponse\x12n\n" +
-	"\x11CheckSourceConfig\x12+.gitplus.config.v1.CheckSourceConfigRequest\x1a,.gitplus.config.v1.CheckSourceConfigResponseB\xc7\x01\n" +
-	"\x15com.gitplus.config.v1B\vConfigProtoP\x01Z;github.com/ImSingee/git-plus/rpc/gitplus/config/v1;configv1\xa2\x02\x03GCX\xaa\x02\x11Gitplus.Config.V1\xca\x02\x11Gitplus\\Config\\V1\xe2\x02\x1dGitplus\\Config\\V1\\GPBMetadata\xea\x02\x13Gitplus::Config::V1b\x06proto3"
+	"\x11CheckSourceConfig\x12+.gitplus.config.v1.CheckSourceConfigRequest\x1a,.gitplus.config.v1.CheckSourceConfigResponseB\xcb\x01\n" +
+	"\x15com.gitplus.config.v1B\vConfigProtoP\x01Z?github.com/ImSingee/git-plus/pkg/rpc/gitplus/config/v1;configv1\xa2\x02\x03GCX\xaa\x02\x11Gitplus.Config.V1\xca\x02\x11Gitplus\\Config\\V1\xe2\x02\x1dGitplus\\Config\\V1\\GPBMetadata\xea\x02\x13Gitplus::Config::V1b\x06proto3"
 
 var (
 	file_gitplus_config_v1_config_proto_rawDescOnce sync.Once

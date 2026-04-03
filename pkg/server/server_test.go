@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"context"
@@ -10,9 +10,9 @@ import (
 	"testing"
 
 	"connectrpc.com/connect"
-	appconfig "github.com/ImSingee/git-plus/config"
-	configv1 "github.com/ImSingee/git-plus/rpc/gitplus/config/v1"
-	"github.com/ImSingee/git-plus/rpc/gitplus/config/v1/configv1connect"
+	appconfig "github.com/ImSingee/git-plus/pkg/config"
+	configv1 "github.com/ImSingee/git-plus/pkg/rpc/gitplus/config/v1"
+	"github.com/ImSingee/git-plus/pkg/rpc/gitplus/config/v1/configv1connect"
 )
 
 func TestConfigServiceCheckConfigReturnsExistsFalseWhenConfigMissing(t *testing.T) {
@@ -174,7 +174,7 @@ func TestServerHandlerRoutesConnectAPIAndKeepsLegacyRoutesGone(t *testing.T) {
 
 func TestServerHandlerKeepsHealthzReadyAndFrontendRoutes(t *testing.T) {
 	dataDir := t.TempDir()
-	server := httptest.NewServer(newServerHandler(dataDir, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(NewHandler(dataDir, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("frontend-ok"))
 	})))
@@ -220,7 +220,7 @@ func TestServerHandlerKeepsHealthzReadyAndFrontendRoutes(t *testing.T) {
 func newTestServer(t *testing.T, dataDir string) *httptest.Server {
 	t.Helper()
 
-	server := httptest.NewServer(newServerHandler(dataDir, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(NewHandler(dataDir, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 	})))
 	t.Cleanup(server.Close)

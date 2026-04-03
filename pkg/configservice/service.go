@@ -1,4 +1,4 @@
-package main
+package configservice
 
 import (
 	"context"
@@ -7,18 +7,18 @@ import (
 	"strconv"
 
 	"connectrpc.com/connect"
-	appconfig "github.com/ImSingee/git-plus/config"
-	configv1 "github.com/ImSingee/git-plus/rpc/gitplus/config/v1"
-	"github.com/ImSingee/git-plus/rpc/gitplus/config/v1/configv1connect"
+	appconfig "github.com/ImSingee/git-plus/pkg/config"
+	configv1 "github.com/ImSingee/git-plus/pkg/rpc/gitplus/config/v1"
+	"github.com/ImSingee/git-plus/pkg/rpc/gitplus/config/v1/configv1connect"
 )
 
-type configServiceServer struct {
+type serviceServer struct {
 	dataDir string
 }
 
-func newAPIHandler(dataDir string) http.Handler {
+func NewHandler(dataDir string) http.Handler {
 	rpcMux := http.NewServeMux()
-	path, handler := configv1connect.NewConfigServiceHandler(&configServiceServer{
+	path, handler := configv1connect.NewConfigServiceHandler(&serviceServer{
 		dataDir: dataDir,
 	})
 	rpcMux.Handle(path, handler)
@@ -26,7 +26,7 @@ func newAPIHandler(dataDir string) http.Handler {
 	return http.StripPrefix("/api", rpcMux)
 }
 
-func (s *configServiceServer) CheckConfig(
+func (s *serviceServer) CheckConfig(
 	_ context.Context,
 	_ *connect.Request[configv1.CheckConfigRequest],
 ) (*connect.Response[configv1.CheckConfigResponse], error) {
@@ -41,7 +41,7 @@ func (s *configServiceServer) CheckConfig(
 	}), nil
 }
 
-func (s *configServiceServer) CheckSourceConfig(
+func (s *serviceServer) CheckSourceConfig(
 	_ context.Context,
 	req *connect.Request[configv1.CheckSourceConfigRequest],
 ) (*connect.Response[configv1.CheckSourceConfigResponse], error) {
@@ -56,6 +56,26 @@ func (s *configServiceServer) CheckSourceConfig(
 		Issues:   toProtoIssues(result.Issues),
 		Summary:  summarizeProtoIssues(result.Issues),
 	}), nil
+}
+
+func LogIssuesOnStartup(dataDir string, logger *log.Logger) {
+	result := appconfig.CheckFile(appconfig.PathForDataDir(dataDir))
+	if !result.Exists {
+		return
+	}
+
+	appconfig.SortIssues(result.Issues)
+	for _, issue := range result.Issues {
+		message := "config check " + string(issue.Severity) + " [" + issue.Code + "] " + issue.Message
+		if issue.Path != "" {
+			message += " (path: " + issue.Path + ")"
+		}
+		if issue.Line > 0 {
+			message += " (line: " + strconv.Itoa(issue.Line) + ")"
+		}
+
+		logger.Print(message)
+	}
 }
 
 func summarizeProtoIssues(issues []appconfig.ValidationIssue) *configv1.IssueSummary {
@@ -95,25 +115,5 @@ func toProtoSeverity(severity appconfig.Severity) configv1.ValidationIssue_Sever
 		return configv1.ValidationIssue_SEVERITY_INFO
 	default:
 		return configv1.ValidationIssue_SEVERITY_UNSPECIFIED
-	}
-}
-
-func logConfigIssuesOnStartup(dataDir string, logger *log.Logger) {
-	result := appconfig.CheckFile(appconfig.PathForDataDir(dataDir))
-	if !result.Exists {
-		return
-	}
-
-	appconfig.SortIssues(result.Issues)
-	for _, issue := range result.Issues {
-		message := "config check " + string(issue.Severity) + " [" + issue.Code + "] " + issue.Message
-		if issue.Path != "" {
-			message += " (path: " + issue.Path + ")"
-		}
-		if issue.Line > 0 {
-			message += " (line: " + strconv.Itoa(issue.Line) + ")"
-		}
-
-		logger.Print(message)
 	}
 }

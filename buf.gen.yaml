@@ -3,14 +3,14 @@ managed:
   enabled: true
   override:
     - file_option: go_package_prefix
-      value: github.com/ImSingee/git-plus/rpc
+      value: github.com/ImSingee/git-plus/pkg/rpc
 plugins:
   - remote: buf.build/protocolbuffers/go
-    out: rpc
+    out: pkg/rpc
     opt:
       - paths=source_relative
   - remote: buf.build/connectrpc/go
-    out: rpc
+    out: pkg/rpc
     opt:
       - paths=source_relative
   - remote: buf.build/bufbuild/es
