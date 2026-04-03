@@ -15,6 +15,8 @@ import (
 	"github.com/ImSingee/git-plus/pkg/rpc/gitplus/config/v1/configv1connect"
 )
 
+const serverTestPassphrase = "correct horse battery staple"
+
 func TestConfigServiceCheckConfigReturnsExistsFalseWhenConfigMissing(t *testing.T) {
 	dataDir := t.TempDir()
 	server := newTestServer(t, dataDir)
@@ -82,6 +84,8 @@ concurrency: 0
 }
 
 func TestConfigServiceCheckSourceScopesIssuesToRequestedSource(t *testing.T) {
+	t.Setenv(appconfig.TokenPassphraseEnvVar, serverTestPassphrase)
+	encryptedToken := mustEncryptServerToken(t, "secret")
 	dataDir := t.TempDir()
 	writeConfigFile(t, dataDir, `
 unknown_top_level: true
@@ -89,12 +93,12 @@ sources:
   - id: github
     platform: github
     username: octocat
-    token: secret
+    token: `+encryptedToken+`
     unknown_source_field: true
   - id: github
     platform: github
     username: hubot
-    token: secret
+    token: `+encryptedToken+`
 concurrency: 0
 `)
 	server := newTestServer(t, dataDir)
@@ -116,13 +120,15 @@ concurrency: 0
 }
 
 func TestConfigServiceCheckSourceReturnsNotFoundIssue(t *testing.T) {
+	t.Setenv(appconfig.TokenPassphraseEnvVar, serverTestPassphrase)
+	encryptedToken := mustEncryptServerToken(t, "secret")
 	dataDir := t.TempDir()
 	writeConfigFile(t, dataDir, `
 sources:
   - id: github
     platform: github
     username: octocat
-    token: secret
+    token: `+encryptedToken+`
 `)
 	server := newTestServer(t, dataDir)
 
@@ -135,6 +141,31 @@ sources:
 	}
 
 	assertHasIssue(t, response.Msg.GetIssues(), "source_not_found", "sources")
+	assertSummaryCounts(t, response.Msg.GetSummary(), 1, 0, 0)
+}
+
+func TestConfigServiceCheckConfigReportsDecryptionFailure(t *testing.T) {
+	t.Setenv(appconfig.TokenPassphraseEnvVar, "wrong passphrase")
+	encryptedToken := mustEncryptServerTokenWithPassphrase(t, "secret", serverTestPassphrase)
+	dataDir := t.TempDir()
+	writeConfigFile(t, dataDir, `
+sources:
+  - id: github
+    platform: github
+    username: octocat
+    token: `+encryptedToken+`
+`)
+	server := newTestServer(t, dataDir)
+
+	response, err := newConfigServiceClient(server.URL).CheckConfig(
+		context.Background(),
+		connect.NewRequest(&configv1.CheckConfigRequest{}),
+	)
+	if err != nil {
+		t.Fatalf("check config: %v", err)
+	}
+
+	assertHasIssue(t, response.Msg.GetIssues(), "token_decryption_failed", "sources[0].token")
 	assertSummaryCounts(t, response.Msg.GetSummary(), 1, 0, 0)
 }
 
@@ -242,6 +273,23 @@ func writeConfigFile(t *testing.T, dataDir string, content string) {
 	if err := os.WriteFile(configPath, []byte(content), 0o644); err != nil {
 		t.Fatalf("write config file: %v", err)
 	}
+}
+
+func mustEncryptServerToken(t *testing.T, plaintext string) string {
+	t.Helper()
+
+	return mustEncryptServerTokenWithPassphrase(t, plaintext, serverTestPassphrase)
+}
+
+func mustEncryptServerTokenWithPassphrase(t *testing.T, plaintext string, passphrase string) string {
+	t.Helper()
+
+	encryptedToken, err := appconfig.EncryptToken(plaintext, passphrase)
+	if err != nil {
+		t.Fatalf("encrypt token: %v", err)
+	}
+
+	return encryptedToken
 }
 
 func assertSummaryCounts(t *testing.T, summary *configv1.IssueSummary, errors int32, warnings int32, info int32) {

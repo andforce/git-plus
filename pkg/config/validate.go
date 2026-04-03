@@ -37,7 +37,7 @@ type CheckResult struct {
 
 var linePattern = regexp.MustCompile(`line ([0-9]+)`)
 
-func CheckFile(path string) CheckResult {
+func CheckFile(path string, opts ...SecretOptions) CheckResult {
 	result := CheckResult{
 		Path: path,
 	}
@@ -54,11 +54,11 @@ func CheckFile(path string) CheckResult {
 	}
 
 	result.Exists = true
-	result.Issues = ValidateConfig(loaded)
+	result.Issues = ValidateConfig(loaded, opts...)
 	return result
 }
 
-func CheckSource(path string, sourceID string) CheckResult {
+func CheckSource(path string, sourceID string, opts ...SecretOptions) CheckResult {
 	result := CheckResult{
 		Path: path,
 	}
@@ -75,27 +75,29 @@ func CheckSource(path string, sourceID string) CheckResult {
 	}
 
 	result.Exists = true
-	result.Issues = ValidateSource(loaded, sourceID)
+	result.Issues = ValidateSource(loaded, sourceID, opts...)
 	return result
 }
 
-func ValidateConfig(loaded LoadedConfig) []ValidationIssue {
+func ValidateConfig(loaded LoadedConfig, opts ...SecretOptions) []ValidationIssue {
 	root := documentRoot(loaded.Node)
 	issues := make([]ValidationIssue, 0)
+	secretOptions := firstSecretOptions(opts)
 
 	issues = append(issues, validateUnknownFields(root, "", topLevelFields)...)
-	issues = append(issues, validateSourceCollection(loaded.Data.Sources, root)...)
+	issues = append(issues, validateSourceCollection(loaded.Data.Sources, root, secretOptions)...)
 	issues = append(issues, validateConcurrency(loaded.Data, root)...)
 
 	return issues
 }
 
-func ValidateSource(loaded LoadedConfig, sourceID string) []ValidationIssue {
+func ValidateSource(loaded LoadedConfig, sourceID string, opts ...SecretOptions) []ValidationIssue {
 	root := documentRoot(loaded.Node)
 	sourcesNode, _, _ := mappingValue(root, "sources")
 	sourceNodes := sequenceItems(sourcesNode)
 	issues := make([]ValidationIssue, 0)
 	matchCount := 0
+	secretOptions := firstSecretOptions(opts)
 
 	for index, source := range loaded.Data.Sources {
 		if source.ID != sourceID {
@@ -104,7 +106,7 @@ func ValidateSource(loaded LoadedConfig, sourceID string) []ValidationIssue {
 
 		matchCount++
 		issues = append(issues, validateUnknownFields(sourceNodeAt(sourceNodes, index), fmt.Sprintf("sources[%d].", index), sourceFields)...)
-		issues = append(issues, validateSourceFields(source, sourceNodeAt(sourceNodes, index), index)...)
+		issues = append(issues, validateSourceFields(source, sourceNodeAt(sourceNodes, index), index, secretOptions)...)
 	}
 
 	issues = append(issues, validateDuplicateSourceIDs(loaded.Data.Sources, sourceNodes, sourceID)...)
@@ -136,7 +138,7 @@ var sourceFields = []string{
 	"exclude_repos",
 }
 
-func validateSourceCollection(sources []SourceConfig, root *yaml.Node) []ValidationIssue {
+func validateSourceCollection(sources []SourceConfig, root *yaml.Node, opts SecretOptions) []ValidationIssue {
 	issues := make([]ValidationIssue, 0)
 	sourcesNode, sourcesKeyNode, sourcesExists := mappingValue(root, "sources")
 	sourceNodes := sequenceItems(sourcesNode)
@@ -161,7 +163,7 @@ func validateSourceCollection(sources []SourceConfig, root *yaml.Node) []Validat
 	for index, source := range sources {
 		node := sourceNodeAt(sourceNodes, index)
 		issues = append(issues, validateUnknownFields(node, fmt.Sprintf("sources[%d].", index), sourceFields)...)
-		issues = append(issues, validateSourceFields(source, node, index)...)
+		issues = append(issues, validateSourceFields(source, node, index, opts)...)
 	}
 
 	issues = append(issues, validateDuplicateSourceIDs(sources, sourceNodes, "")...)
@@ -169,7 +171,7 @@ func validateSourceCollection(sources []SourceConfig, root *yaml.Node) []Validat
 	return issues
 }
 
-func validateSourceFields(source SourceConfig, node *yaml.Node, index int) []ValidationIssue {
+func validateSourceFields(source SourceConfig, node *yaml.Node, index int, opts SecretOptions) []ValidationIssue {
 	issues := make([]ValidationIssue, 0)
 
 	requiredFields := []struct {
@@ -218,7 +220,67 @@ func validateSourceFields(source SourceConfig, node *yaml.Node, index int) []Val
 		})
 	}
 
+	issues = append(issues, validateToken(source, node, index, opts)...)
+
 	return issues
+}
+
+func validateToken(source SourceConfig, node *yaml.Node, index int, opts SecretOptions) []ValidationIssue {
+	tokenValue := strings.TrimSpace(source.Token)
+	if tokenValue == "" {
+		return nil
+	}
+
+	line := nodeLineForField(node, "token")
+	path := fmt.Sprintf("sources[%d].token", index)
+
+	if !IsEncryptedToken(tokenValue) {
+		return []ValidationIssue{
+			{
+				Severity: SeverityError,
+				Code:     "unencrypted_token",
+				Message:  fmt.Sprintf("token must use %s format", encryptedTokenPrefix+"..."),
+				Path:     path,
+				SourceID: source.ID,
+				Line:     line,
+			},
+		}
+	}
+
+	if _, err := parseEncryptedTokenPayload(tokenValue); err != nil {
+		return []ValidationIssue{
+			{
+				Severity: SeverityError,
+				Code:     "invalid_encrypted_token",
+				Message:  "token has an invalid encrypted payload",
+				Path:     path,
+				SourceID: source.ID,
+				Line:     line,
+			},
+		}
+	}
+
+	if _, err := DecryptToken(tokenValue, opts.Passphrase); err != nil {
+		code := "token_decryption_failed"
+		message := "token could not be decrypted with the configured passphrase"
+		if errors.Is(err, errInvalidEncryptedToken) {
+			code = "invalid_encrypted_token"
+			message = "token has an invalid encrypted payload"
+		}
+
+		return []ValidationIssue{
+			{
+				Severity: SeverityError,
+				Code:     code,
+				Message:  message,
+				Path:     path,
+				SourceID: source.ID,
+				Line:     line,
+			},
+		}
+	}
+
+	return nil
 }
 
 func validateDuplicateSourceIDs(sources []SourceConfig, sourceNodes []*yaml.Node, sourceID string) []ValidationIssue {
@@ -394,6 +456,26 @@ func sourceNodeAt(nodes []*yaml.Node, index int) *yaml.Node {
 	}
 
 	return nodes[index]
+}
+
+func nodeLineForField(node *yaml.Node, field string) int {
+	line := 0
+	if node != nil {
+		line = node.Line
+	}
+	if valueNode, _, ok := mappingValue(node, field); ok && valueNode != nil {
+		line = valueNode.Line
+	}
+
+	return line
+}
+
+func firstSecretOptions(opts []SecretOptions) SecretOptions {
+	if len(opts) == 0 {
+		return SecretOptions{}
+	}
+
+	return opts[0]
 }
 
 func Summary(issues []ValidationIssue) map[Severity]int {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"os"
 	"strconv"
 
 	"connectrpc.com/connect"
@@ -30,7 +31,7 @@ func (s *serviceServer) CheckConfig(
 	_ context.Context,
 	_ *connect.Request[configv1.CheckConfigRequest],
 ) (*connect.Response[configv1.CheckConfigResponse], error) {
-	result := appconfig.CheckFile(appconfig.PathForDataDir(s.dataDir))
+	result := appconfig.CheckFile(appconfig.PathForDataDir(s.dataDir), secretOptionsFromEnv())
 	appconfig.SortIssues(result.Issues)
 
 	return connect.NewResponse(&configv1.CheckConfigResponse{
@@ -46,7 +47,7 @@ func (s *serviceServer) CheckSourceConfig(
 	req *connect.Request[configv1.CheckSourceConfigRequest],
 ) (*connect.Response[configv1.CheckSourceConfigResponse], error) {
 	sourceID := req.Msg.GetSourceId()
-	result := appconfig.CheckSource(appconfig.PathForDataDir(s.dataDir), sourceID)
+	result := appconfig.CheckSource(appconfig.PathForDataDir(s.dataDir), sourceID, secretOptionsFromEnv())
 	appconfig.SortIssues(result.Issues)
 
 	return connect.NewResponse(&configv1.CheckSourceConfigResponse{
@@ -59,7 +60,7 @@ func (s *serviceServer) CheckSourceConfig(
 }
 
 func LogIssuesOnStartup(dataDir string, logger *log.Logger) {
-	result := appconfig.CheckFile(appconfig.PathForDataDir(dataDir))
+	result := appconfig.CheckFile(appconfig.PathForDataDir(dataDir), secretOptionsFromEnv())
 	if !result.Exists {
 		return
 	}
@@ -115,5 +116,11 @@ func toProtoSeverity(severity appconfig.Severity) configv1.ValidationIssue_Sever
 		return configv1.ValidationIssue_SEVERITY_INFO
 	default:
 		return configv1.ValidationIssue_SEVERITY_UNSPECIFIED
+	}
+}
+
+func secretOptionsFromEnv() appconfig.SecretOptions {
+	return appconfig.SecretOptions{
+		Passphrase: os.Getenv(appconfig.TokenPassphraseEnvVar),
 	}
 }

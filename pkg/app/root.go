@@ -2,10 +2,13 @@ package app
 
 import (
 	"errors"
+	"fmt"
+	"io"
 	"os"
 	"strings"
 
 	appdb "github.com/ImSingee/git-plus/db"
+	appconfig "github.com/ImSingee/git-plus/pkg/config"
 	"github.com/ImSingee/git-plus/pkg/server"
 	"github.com/spf13/cobra"
 )
@@ -26,6 +29,9 @@ func NewRootCommand(version string, frontendHandlerFactory server.FrontendHandle
 			if err != nil {
 				return err
 			}
+			if err := validateStartupEnvironment(); err != nil {
+				return err
+			}
 
 			return server.Run(cmd.Context(), cfg, frontendHandlerFactory)
 		},
@@ -36,6 +42,7 @@ func NewRootCommand(version string, frontendHandlerFactory server.FrontendHandle
 	cmd.Flags().BoolVar(&autoMigrate, "auto-migrate", true, "run embedded database migrations before startup")
 	cmd.PersistentFlags().StringVar(&dataDir, "data-dir", "", "directory for runtime data")
 	cmd.AddCommand(newDBCommand(&dataDir))
+	cmd.AddCommand(newConfigCommand())
 
 	return cmd
 }
@@ -76,6 +83,48 @@ func newDBCommand(dataDir *string) *cobra.Command {
 	return dbCommand
 }
 
+func newConfigCommand() *cobra.Command {
+	configCommand := &cobra.Command{
+		Use:   "config",
+		Short: "Configuration utilities",
+	}
+
+	configCommand.AddCommand(&cobra.Command{
+		Use:          "encrypt-token",
+		Short:        "Encrypt a token for use in config.yaml",
+		SilenceUsage: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			passphrase := os.Getenv(appconfig.TokenPassphraseEnvVar)
+			if passphrase == "" {
+				return fmt.Errorf("%s is required", appconfig.TokenPassphraseEnvVar)
+			}
+
+			input, err := io.ReadAll(cmd.InOrStdin())
+			if err != nil {
+				return fmt.Errorf("read token from stdin: %w", err)
+			}
+
+			token := strings.TrimRight(string(input), "\r\n")
+			if token == "" {
+				return errors.New("token is required on stdin")
+			}
+
+			encryptedToken, err := appconfig.EncryptToken(token, passphrase)
+			if err != nil {
+				return fmt.Errorf("encrypt token: %w", err)
+			}
+
+			if _, err := fmt.Fprintln(cmd.OutOrStdout(), encryptedToken); err != nil {
+				return fmt.Errorf("write encrypted token: %w", err)
+			}
+
+			return nil
+		},
+	})
+
+	return configCommand
+}
+
 func resolveListenAddr(flagValue string, flagChanged bool) string {
 	if flagChanged {
 		return normalizeListenAddr(flagValue)
@@ -103,4 +152,12 @@ func normalizeDataDir(value string) (string, error) {
 	}
 
 	return normalizedValue, nil
+}
+
+func validateStartupEnvironment() error {
+	if os.Getenv(appconfig.TokenPassphraseEnvVar) == "" {
+		return fmt.Errorf("%s is required", appconfig.TokenPassphraseEnvVar)
+	}
+
+	return nil
 }

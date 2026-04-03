@@ -15,7 +15,7 @@ sources:
   - id: github
     platform: github
     username: octocat
-    token: secret
+    token: $encrypted$1$REPLACE_WITH_ENCRYPTED_VALUE
     only_include_repos:
       - hello-world
     exclude_repos:
@@ -32,14 +32,14 @@ concurrency: 5
 
 Each source supports the following fields:
 
-| Field                | Type     | Required | Notes                             |
-| -------------------- | -------- | -------- | --------------------------------- |
-| `id`                 | string   | yes      | Must be unique across all sources |
-| `platform`           | string   | yes      | v1 only supports `github`         |
-| `username`           | string   | yes      | Git provider username             |
-| `token`              | string   | yes      | Stored as plain text in v1        |
-| `only_include_repos` | string[] | no       | Optional allowlist                |
-| `exclude_repos`      | string[] | no       | Optional blocklist                |
+| Field                | Type     | Required | Notes                              |
+| -------------------- | -------- | -------- | ---------------------------------- |
+| `id`                 | string   | yes      | Must be unique across all sources  |
+| `platform`           | string   | yes      | v1 only supports `github`          |
+| `username`           | string   | yes      | Git provider username              |
+| `token`              | string   | yes      | Must use `$encrypted$1$...` format |
+| `only_include_repos` | string[] | no       | Optional allowlist                 |
+| `exclude_repos`      | string[] | no       | Optional blocklist                 |
 
 ### `concurrency`
 
@@ -64,6 +64,9 @@ Validation issues have three severity levels:
 - Duplicate source `id`
 - `concurrency <= 0`
 - Source-specific check requested for a non-existent source ID
+- `token` is plain text instead of `$encrypted$1$...`
+- Encrypted `token` payload is malformed
+- Encrypted `token` cannot be decrypted with the configured passphrase
 
 ### Current `warning` rules
 
@@ -138,6 +141,41 @@ Response fields:
 The frontend should call this service through the generated Connect client and the shared transport in [transport.ts](/Users/wangxuan/Documents/PProjects/git-plus/frontend/src/lib/connect/transport.ts).
 
 Legacy REST-style paths such as `/api/config/check` and `/api/config/sources/{id}/check` are no longer supported.
+
+## Token encryption
+
+`token` values must not be stored as plain text. The config only accepts values in this format:
+
+```text
+$encrypted$1$<payload>
+```
+
+Set the passphrase with:
+
+```text
+ENCRYPT_PASSPHRASE
+```
+
+Generate a random passphrase with OpenSSL:
+
+```bash
+openssl rand -base64 32
+```
+
+Generate an encrypted token with the CLI:
+
+```bash
+printf '%s' 'ghp_xxx' | ENCRYPT_PASSPHRASE='your passphrase' git-plus config encrypt-token
+```
+
+The command reads the plain token from standard input and prints an encrypted token that can be pasted into `config.yaml`.
+The `git-plus` server command also requires `ENCRYPT_PASSPHRASE` to be present before startup begins; if it is missing, the Cobra command exits immediately.
+
+### Token-related error codes
+
+- `unencrypted_token`
+- `invalid_encrypted_token`
+- `token_decryption_failed`
 
 ## Notes
 

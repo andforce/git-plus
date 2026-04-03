@@ -6,13 +6,16 @@ import (
 	"testing"
 )
 
+const testPassphrase = "correct horse battery staple"
+
 func TestLoadDefaultsConcurrency(t *testing.T) {
+	encryptedToken := mustEncryptToken(t, "secret", testPassphrase)
 	configPath := writeConfigFile(t, `
 sources:
   - id: github
     platform: github
     username: octocat
-    token: secret
+    token: `+encryptedToken+`
 `)
 
 	loaded, err := Load(configPath)
@@ -26,6 +29,7 @@ sources:
 }
 
 func TestValidateConfigReportsExpectedIssues(t *testing.T) {
+	encryptedToken := mustEncryptToken(t, "secret", testPassphrase)
 	configPath := writeConfigFile(t, `
 unknown_top_level: true
 sources:
@@ -36,7 +40,7 @@ sources:
   - id: github
     platform: github
     username: octocat
-    token: secret
+    token: `+encryptedToken+`
 concurrency: 0
 `)
 
@@ -45,7 +49,7 @@ concurrency: 0
 		t.Fatalf("unexpected load error: %v", err)
 	}
 
-	issues := ValidateConfig(loaded)
+	issues := ValidateConfig(loaded, SecretOptions{Passphrase: testPassphrase})
 
 	assertHasIssue(t, issues, "unknown_field", "unknown_top_level")
 	assertHasIssue(t, issues, "unknown_field", "sources[0].unknown_source_field")
@@ -88,18 +92,19 @@ sources:
 }
 
 func TestValidateSourceScopesIssuesToTargetSource(t *testing.T) {
+	encryptedToken := mustEncryptToken(t, "secret", testPassphrase)
 	configPath := writeConfigFile(t, `
 unknown_top_level: true
 sources:
   - id: github
     platform: github
     username: octocat
-    token: secret
+    token: `+encryptedToken+`
     unknown_source_field: true
   - id: github
     platform: github
     username: hubot
-    token: secret
+    token: `+encryptedToken+`
 concurrency: 0
 `)
 
@@ -108,7 +113,7 @@ concurrency: 0
 		t.Fatalf("unexpected load error: %v", err)
 	}
 
-	issues := ValidateSource(loaded, "github")
+	issues := ValidateSource(loaded, "github", SecretOptions{Passphrase: testPassphrase})
 
 	assertHasIssue(t, issues, "unknown_field", "sources[0].unknown_source_field")
 	assertHasIssue(t, issues, "duplicate_source_id", "sources[0].id")
@@ -118,6 +123,25 @@ concurrency: 0
 }
 
 func TestValidateSourceReturnsNotFoundWhenIDDoesNotExist(t *testing.T) {
+	encryptedToken := mustEncryptToken(t, "secret", testPassphrase)
+	configPath := writeConfigFile(t, `
+sources:
+  - id: github
+    platform: github
+    username: octocat
+    token: `+encryptedToken+`
+`)
+
+	loaded, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("unexpected load error: %v", err)
+	}
+
+	issues := ValidateSource(loaded, "missing", SecretOptions{Passphrase: testPassphrase})
+	assertHasIssue(t, issues, "source_not_found", "sources")
+}
+
+func TestValidateConfigRejectsPlaintextToken(t *testing.T) {
 	configPath := writeConfigFile(t, `
 sources:
   - id: github
@@ -131,8 +155,68 @@ sources:
 		t.Fatalf("unexpected load error: %v", err)
 	}
 
-	issues := ValidateSource(loaded, "missing")
-	assertHasIssue(t, issues, "source_not_found", "sources")
+	issues := ValidateConfig(loaded, SecretOptions{Passphrase: testPassphrase})
+	assertHasIssue(t, issues, "unencrypted_token", "sources[0].token")
+}
+
+func TestValidateConfigRejectsInvalidEncryptedToken(t *testing.T) {
+	configPath := writeConfigFile(t, `
+sources:
+  - id: github
+    platform: github
+    username: octocat
+    token: $encrypted$1$!!!
+`)
+
+	loaded, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("unexpected load error: %v", err)
+	}
+
+	issues := ValidateConfig(loaded, SecretOptions{Passphrase: testPassphrase})
+	assertHasIssue(t, issues, "invalid_encrypted_token", "sources[0].token")
+}
+
+func TestValidateConfigRejectsWrongPassphrase(t *testing.T) {
+	encryptedToken := mustEncryptToken(t, "secret", testPassphrase)
+	configPath := writeConfigFile(t, `
+sources:
+  - id: github
+    platform: github
+    username: octocat
+    token: `+encryptedToken+`
+`)
+
+	loaded, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("unexpected load error: %v", err)
+	}
+
+	issues := ValidateConfig(loaded, SecretOptions{Passphrase: "wrong passphrase"})
+	assertHasIssue(t, issues, "token_decryption_failed", "sources[0].token")
+}
+
+func TestLoadResolvedDecryptsTokens(t *testing.T) {
+	encryptedToken := mustEncryptToken(t, "secret", testPassphrase)
+	configPath := writeConfigFile(t, `
+sources:
+  - id: github
+    platform: github
+    username: octocat
+    token: `+encryptedToken+`
+`)
+
+	loaded, err := LoadResolved(configPath, SecretOptions{Passphrase: testPassphrase})
+	if err != nil {
+		t.Fatalf("unexpected resolved load error: %v", err)
+	}
+
+	if len(loaded.Data.Sources) != 1 {
+		t.Fatalf("expected 1 source, got %d", len(loaded.Data.Sources))
+	}
+	if loaded.Data.Sources[0].Token != "secret" {
+		t.Fatalf("expected decrypted token, got %q", loaded.Data.Sources[0].Token)
+	}
 }
 
 func writeConfigFile(t *testing.T, content string) string {
@@ -145,6 +229,17 @@ func writeConfigFile(t *testing.T, content string) string {
 	}
 
 	return configPath
+}
+
+func mustEncryptToken(t *testing.T, plaintext string, passphrase string) string {
+	t.Helper()
+
+	encryptedToken, err := EncryptToken(plaintext, passphrase)
+	if err != nil {
+		t.Fatalf("encrypt token: %v", err)
+	}
+
+	return encryptedToken
 }
 
 func assertHasIssue(t *testing.T, issues []ValidationIssue, code string, path string) {

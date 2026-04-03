@@ -1,10 +1,13 @@
 package app
 
 import (
+	"bytes"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
+
+	appconfig "github.com/ImSingee/git-plus/pkg/config"
 )
 
 func TestNewServerConfigRequiresDataDir(t *testing.T) {
@@ -50,5 +53,83 @@ func TestDBMigrateDoesNotAcceptAutoMigrateFlag(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "unknown flag: --auto-migrate") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestEncryptTokenCommandWritesEncryptedToken(t *testing.T) {
+	t.Setenv(appconfig.TokenPassphraseEnvVar, "correct horse battery staple")
+
+	cmd := NewRootCommand("test", func() (http.Handler, error) {
+		return http.NotFoundHandler(), nil
+	})
+	var stdout bytes.Buffer
+	cmd.SetOut(&stdout)
+	cmd.SetErr(io.Discard)
+	cmd.SetIn(strings.NewReader("secret-token\n"))
+	cmd.SetArgs([]string{"config", "encrypt-token"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("execute encrypt-token: %v", err)
+	}
+
+	output := strings.TrimSpace(stdout.String())
+	if !strings.HasPrefix(output, "$encrypted$1$") {
+		t.Fatalf("expected encrypted token output, got %q", output)
+	}
+}
+
+func TestEncryptTokenCommandRequiresPassphrase(t *testing.T) {
+	cmd := NewRootCommand("test", func() (http.Handler, error) {
+		return http.NotFoundHandler(), nil
+	})
+	cmd.SetOut(io.Discard)
+	cmd.SetErr(io.Discard)
+	cmd.SetIn(strings.NewReader("secret-token\n"))
+	cmd.SetArgs([]string{"config", "encrypt-token"})
+
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected missing passphrase to fail")
+	}
+	if !strings.Contains(err.Error(), appconfig.TokenPassphraseEnvVar) {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestEncryptTokenCommandRequiresTokenOnStdin(t *testing.T) {
+	t.Setenv(appconfig.TokenPassphraseEnvVar, "correct horse battery staple")
+
+	cmd := NewRootCommand("test", func() (http.Handler, error) {
+		return http.NotFoundHandler(), nil
+	})
+	cmd.SetOut(io.Discard)
+	cmd.SetErr(io.Discard)
+	cmd.SetIn(strings.NewReader("\n"))
+	cmd.SetArgs([]string{"config", "encrypt-token"})
+
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected empty stdin to fail")
+	}
+	if !strings.Contains(err.Error(), "token is required on stdin") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestValidateStartupEnvironmentRequiresEncryptionEnv(t *testing.T) {
+	err := validateStartupEnvironment()
+	if err == nil {
+		t.Fatal("expected missing encryption env to fail")
+	}
+	if !strings.Contains(err.Error(), appconfig.TokenPassphraseEnvVar) {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestValidateStartupEnvironmentAcceptsConfiguredEncryptionEnv(t *testing.T) {
+	t.Setenv(appconfig.TokenPassphraseEnvVar, "correct horse battery staple")
+
+	if err := validateStartupEnvironment(); err != nil {
+		t.Fatalf("unexpected startup env error: %v", err)
 	}
 }

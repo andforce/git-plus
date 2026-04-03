@@ -9,8 +9,9 @@ import (
 )
 
 const (
-	ConfigFilename     = "config.yaml"
-	DefaultConcurrency = 5
+	ConfigFilename        = "config.yaml"
+	DefaultConcurrency    = 5
+	TokenPassphraseEnvVar = "ENCRYPT_PASSPHRASE"
 )
 
 type Config struct {
@@ -31,6 +32,10 @@ type LoadedConfig struct {
 	Path string
 	Node *yaml.Node
 	Data Config
+}
+
+type SecretOptions struct {
+	Passphrase string
 }
 
 func PathForDataDir(dataDir string) string {
@@ -64,4 +69,20 @@ func Load(path string) (LoadedConfig, error) {
 
 func LoadFromDataDir(dataDir string) (LoadedConfig, error) {
 	return Load(PathForDataDir(dataDir))
+}
+
+func LoadResolved(path string, opts SecretOptions) (LoadedConfig, error) {
+	loaded, err := Load(path)
+	if err != nil {
+		return LoadedConfig{}, err
+	}
+
+	resolvedData, err := resolveConfigSecrets(loaded.Data, opts)
+	if err != nil {
+		return LoadedConfig{}, fmt.Errorf("resolve config secrets: %w", err)
+	}
+
+	loaded.Data = resolvedData
+
+	return loaded, nil
 }
