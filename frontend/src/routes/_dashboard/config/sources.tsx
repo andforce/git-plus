@@ -22,7 +22,7 @@ import type { Source } from '~rpc/gitplus/config/v1/config_pb';
 import { configClient } from '~lib/connect/client';
 import { configQueryOptions } from '~lib/config-queries';
 import { SourceCard } from '~components/sources/SourceCard';
-import { SourceFormModal } from '~components/sources/SourceFormModal';
+import { SourceFormDrawer } from '~components/sources/SourceFormDrawer';
 import { ReplaceTokenModal } from '~components/sources/ReplaceTokenModal';
 
 export const Route = createFileRoute('/_dashboard/config/sources')({
@@ -159,8 +159,9 @@ function SourcesPage() {
         </SimpleGrid>
       )}
 
-      <SourceFormModal
+      <SourceFormDrawer
         mode="create"
+        existingSources={sources}
         opened={createOpened}
         onClose={() => setCreateOpened(false)}
         onSubmit={(formData) =>
@@ -171,7 +172,7 @@ function SourcesPage() {
         loading={createMutation.isPending}
       />
 
-      <SourceFormModal
+      <SourceFormDrawer
         mode="edit"
         source={editingSource}
         opened={!!editingSource}
