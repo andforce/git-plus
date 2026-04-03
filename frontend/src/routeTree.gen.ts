@@ -9,48 +9,94 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as DashboardRouteImport } from './routes/_dashboard'
 import { Route as R404RouteImport } from './routes/404'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as DashboardIndexRouteImport } from './routes/_dashboard/index'
+import { Route as DashboardConfigRouteImport } from './routes/_dashboard/config'
+import { Route as DashboardConfigIndexRouteImport } from './routes/_dashboard/config/index'
+import { Route as DashboardConfigSourcesRouteImport } from './routes/_dashboard/config/sources'
 
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/_dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const R404Route = R404RouteImport.update({
   id: '/404',
   path: '/404',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
+const DashboardIndexRoute = DashboardIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardConfigRoute = DashboardConfigRouteImport.update({
+  id: '/config',
+  path: '/config',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardConfigIndexRoute = DashboardConfigIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardConfigRoute,
+} as any)
+const DashboardConfigSourcesRoute = DashboardConfigSourcesRouteImport.update({
+  id: '/sources',
+  path: '/sources',
+  getParentRoute: () => DashboardConfigRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
   '/404': typeof R404Route
+  '/': typeof DashboardIndexRoute
+  '/config': typeof DashboardConfigRouteWithChildren
+  '/config/sources': typeof DashboardConfigSourcesRoute
+  '/config/': typeof DashboardConfigIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
   '/404': typeof R404Route
+  '/': typeof DashboardIndexRoute
+  '/config/sources': typeof DashboardConfigSourcesRoute
+  '/config': typeof DashboardConfigIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
   '/404': typeof R404Route
+  '/_dashboard': typeof DashboardRouteWithChildren
+  '/_dashboard/config': typeof DashboardConfigRouteWithChildren
+  '/_dashboard/': typeof DashboardIndexRoute
+  '/_dashboard/config/sources': typeof DashboardConfigSourcesRoute
+  '/_dashboard/config/': typeof DashboardConfigIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/404'
+  fullPaths: '/404' | '/' | '/config' | '/config/sources' | '/config/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/404'
-  id: '__root__' | '/' | '/404'
+  to: '/404' | '/' | '/config/sources' | '/config'
+  id:
+    | '__root__'
+    | '/404'
+    | '/_dashboard'
+    | '/_dashboard/config'
+    | '/_dashboard/'
+    | '/_dashboard/config/sources'
+    | '/_dashboard/config/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
   R404Route: typeof R404Route
+  DashboardRoute: typeof DashboardRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/_dashboard': {
+      id: '/_dashboard'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/404': {
       id: '/404'
       path: '/404'
@@ -58,19 +104,68 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof R404RouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
+    '/_dashboard/': {
+      id: '/_dashboard/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/_dashboard/config': {
+      id: '/_dashboard/config'
+      path: '/config'
+      fullPath: '/config'
+      preLoaderRoute: typeof DashboardConfigRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/_dashboard/config/': {
+      id: '/_dashboard/config/'
+      path: '/'
+      fullPath: '/config/'
+      preLoaderRoute: typeof DashboardConfigIndexRouteImport
+      parentRoute: typeof DashboardConfigRoute
+    }
+    '/_dashboard/config/sources': {
+      id: '/_dashboard/config/sources'
+      path: '/sources'
+      fullPath: '/config/sources'
+      preLoaderRoute: typeof DashboardConfigSourcesRouteImport
+      parentRoute: typeof DashboardConfigRoute
     }
   }
 }
 
+interface DashboardConfigRouteChildren {
+  DashboardConfigSourcesRoute: typeof DashboardConfigSourcesRoute
+  DashboardConfigIndexRoute: typeof DashboardConfigIndexRoute
+}
+
+const DashboardConfigRouteChildren: DashboardConfigRouteChildren = {
+  DashboardConfigSourcesRoute: DashboardConfigSourcesRoute,
+  DashboardConfigIndexRoute: DashboardConfigIndexRoute,
+}
+
+const DashboardConfigRouteWithChildren = DashboardConfigRoute._addFileChildren(
+  DashboardConfigRouteChildren,
+)
+
+interface DashboardRouteChildren {
+  DashboardConfigRoute: typeof DashboardConfigRouteWithChildren
+  DashboardIndexRoute: typeof DashboardIndexRoute
+}
+
+const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardConfigRoute: DashboardConfigRouteWithChildren,
+  DashboardIndexRoute: DashboardIndexRoute,
+}
+
+const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
+  DashboardRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
   R404Route: R404Route,
+  DashboardRoute: DashboardRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

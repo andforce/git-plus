@@ -19,7 +19,7 @@ export const Route = createRootRouteWithContext<{
   head: () => ({
     meta: [
       {
-        title: 'Frontend SPA Template',
+        title: 'Git Plus',
       },
     ],
   }),
