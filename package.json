@@ -1,0 +1,38 @@
+{
+  "name": "git-plus",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "pnpm@10.12.2",
+  "workspaces": [
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "pnpm --filter ./frontend dev",
+    "build": "pnpm --filter ./frontend build",
+    "preview": "pnpm --filter ./frontend preview",
+    "test": "pnpm --filter ./frontend test",
+    "test:unit": "pnpm --filter ./frontend test:unit",
+    "test:browser": "pnpm --filter ./frontend test:browser",
+    "lint": "eslint .",
+    "format": "prettier --write . && eslint --fix . && eslint .",
+    "check:types": "pnpm --filter ./frontend check:types"
+  },
+  "devDependencies": {
+    "@tanstack/eslint-config": "^0.4.0",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react": "^7.37.5",
+    "lefthook": "^2.1.4",
+    "prettier": "^3.8.1"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "eslint",
+      "lefthook",
+      "playwright"
+    ]
+  }
+}

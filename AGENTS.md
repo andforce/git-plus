@@ -1,0 +1,164 @@
+# Repository Guidelines for AI
+
+This file provides guidance to AI Code Agent when working with code in this repository.
+
+## Project Structure & Module Organization
+
+Source lives in `src/`. The Vite entry is `src/main.tsx`, global routing is defined in `src/router.tsx`, and route modules live in `src/routes` (`__root.tsx` for layout, `index.tsx` for the landing page). Shared UI composites belong in `src/components`, design primitives in `src/ui`, and styling overrides sit in `src/styles.css`. Static files stay in `public/`, while the deployable static build is written to `dist/`. Colocate new feature assets with the component or route that consumes them to keep dependencies obvious.
+
+- UI: Mantine v8. Use the context7 MCP tool with the library id `/mantine/mantine` to load docs.
+- Routing: TanStack Router. Use context7 with `/websites/tanstack_router` for Router docs.
+- Generated files like `routeTree.gen.ts` are auto-created by `@tanstack/router-plugin`; do not edit.
+
+## Build & Development Commands
+
+Use pnpm for everything. `pnpm dev` starts the Vite dev server on port 3000 with hot reload. `pnpm build` emits the optimized static site into `dist/`, while `pnpm preview` serves `dist/` through Vite Preview to sanity-check the production bundle. `pnpm check:types` runs `tsc --noEmit`. `pnpm lint` applies the TanStack + React ESLint rules, and `pnpm format` runs Prettier then auto-fixes lint errors.
+
+Dependency upgrade policy:
+
+- Keep `@types/node` and `eslint` at their current versions.
+- Do not upgrade them unless explicitly requested.
+
+Testing uses Vitest:
+
+- Vitest is configured via `vitest.config.ts` using `test.projects` (separate `unit` + `browser` projects).
+- `pnpm test` runs all projects.
+- `pnpm test:unit` runs the `unit` project (Node environment).
+- `pnpm test:browser` runs the `browser` project (Browser Mode with Playwright provider).
+- The default test environment is `node`. For React component tests, prefer Browser Mode (`pnpm test:browser`) and name files `*.browser.test.tsx` / `*.browser.spec.tsx`.
+
+Browser Mode notes:
+
+- Test file pattern: `src/**/*.browser.{test,spec}.{ts,tsx}`
+- Setup file: `vitest.browser.setup.ts`
+- If Chromium is missing locally, install it with `pnpm exec playwright install chromium`
+
+Before declaring any Agent task complete, re-run `pnpm check:types` and `pnpm format` and ensure both commands pass cleanly.
+
+## ESLint
+
+ESLint 9 flat config is used (`eslint.config.js`). The configuration extends `@tanstack/eslint-config` and adds React-specific rules via `eslint-plugin-react`.
+
+Key React rules enforced (errors):
+
+- `react/button-has-type` - buttons must have an explicit `type` attribute
+- `react/self-closing-comp` - components without children must self-close
+- `react/jsx-curly-brace-presence` - no unnecessary curly braces in JSX
+- `react/jsx-boolean-value` - omit `={true}` for boolean props
+- `react/jsx-fragments` - use `<>` syntax for fragments
+- `react/no-children-prop` - don't pass children as a prop
+
+Run `pnpm lint` to check for errors. ESLint errors are blocking and must be fixed before committing.
+
+## Prettier
+
+Prettier config lives in `prettier.config.js`:
+
+- `semi: true` - always use semicolons
+- `singleQuote: true` - use single quotes for strings
+- `trailingComma: 'all'` - trailing commas everywhere
+
+Run `pnpm format` to format and fix lint errors in one step (runs Prettier then ESLint --fix).
+
+## Coding Style & Naming Conventions
+
+Write TypeScript React function components. Prettier enforces semicolons, single quotes, and trailing commas—never hand-format around it.
+
+Use PascalCase for components (`DashboardCard.tsx`), camelCase for hooks/utilities. Mantine styles should live beside their component, leveraging Mantine's theming utilities before reaching for raw CSS.
+
+## Commit & Pull Request Guidelines
+
+Commits should mirror the existing short, imperative pattern (`use mantine components for index page`). Keep changes scoped and meaningful. PRs must include: a concise summary, linked issue/ticket, before/after screenshots for UI work, and confirmation that `pnpm lint` and `pnpm check:types` passed. Mention any config or env changes up front so reviewers can reproduce.
+
+## Security & Configuration Tips
+
+Secrets belong in `.env.local` (gitignored); reference them through Vite's `import.meta.env`. Run `lefthook install` once so git hooks catch lint regressions pre-push. Document any third-party scripts or analytics additions in the PR, including CSP or token requirements.
+
+## Notes
+
+1. Prefer Mantine components and styles; avoid unnecessary custom CSS.
+2. Extract custom components into the `src/components/` directory (and then you can import them with `~components/`); use CSS Modules for each component's styles.
+3. Always use English when writing code, comments, and documentation.
+
+## Dependencies / Tools
+
+### Mantine
+
+The project uses [Mantine](https://mantine.dev/) v8 for UI components. Use the context7 MCP tool with the library id `/mantine/mantine` to load (or search) docs.
+
+### Tanstack Router
+
+The project uses [TanStack Router](https://tanstack.com/router/latest) with the Vite plugin for file-based routing. Use the context7 MCP tool with the library id `/websites/tanstack_router` to load (or search) docs.
+
+### @mantine/hooks
+
+Use [@mantine/hooks](https://mantine.dev/hooks/getting-started/) for common React hooks. Prefer these over writing custom hooks when available.
+
+**Note:** Do NOT use `useClipboard` from @mantine/hooks. Use `copy-to-clipboard` instead (see below).
+
+### copy-to-clipboard
+
+Use [copy-to-clipboard](https://www.npmjs.com/package/copy-to-clipboard) for clipboard operations:
+
+```tsx
+import copy from 'copy-to-clipboard';
+
+copy('Text to copy');
+copy(text, { format: 'text/plain' });
+```
+
+### @mantine/modals
+
+Use [@mantine/modals](https://mantine.dev/x/modals/) for declarative modal management. The ModalsProvider is already configured in `__root.tsx`.
+
+### TanStack Query (React Query)
+
+Use [TanStack Query](https://tanstack.com/query/latest) for server state management and data fetching. Use the context7 MCP tool with the library id `/tanstack/query` to load (or search) docs.
+
+Prefer `useQuery` / `useMutation` / `useSuspenseQuery` / `useSuspenseInfiniteQuery` for data fetching. **Do NOT use `useEffect` + `useState` to fetch data.** TanStack Query provides built-in caching, background refetching, error handling, and loading states.
+
+#### Integrating with Route Loaders
+
+TanStack Query can be combined with TanStack Router's `loader` / `beforeLoad` for optimal data fetching:
+
+1. **Define query options** using `queryOptions()` for reuse between loader and component
+2. **Preload in loader** using `queryClient.ensureQueryData(options)` (awaits data) or `queryClient.prefetchQuery(options)` (non-blocking)
+3. **Consume in component** using `useSuspenseQuery(options)` to automatically use cached data
+
+Recommended patterns:
+
+- Use `ensureQueryData` in loader for critical data that must be available before render
+- Use `prefetchQuery` (without await) for slower/non-critical data, then wrap component in `<Suspense>` to handle loading
+- Access `queryClient` from route context: `loader: ({ context: { queryClient } }) => ...`
+- Always reuse the same `queryOptions` in both loader and component to ensure cache hits
+
+### dayjs
+
+Use [dayjs](https://day.js.org/) for date manipulation. It's a lightweight alternative to moment.js.
+
+### Zod
+
+Use [Zod](https://zod.dev/) v4 for schema validation. Prefer Zod for form validation and API response parsing.
+
+### Sonner
+
+The project uses [Sonner](https://sonner.emilkowal.ski/) for toast notifications instead of @mantine/notifications. Import `toast` from `sonner` to show notifications:
+
+```tsx
+import { toast } from 'sonner';
+
+toast.success('Success message');
+toast.error('Error message');
+toast.info('Info message');
+toast.warning('Warning message');
+toast.loading('Loading...');
+toast.promise(promise, {
+  loading: 'Loading...',
+  success: 'Done!',
+  error: 'Error!',
+});
+```
+
+### Context7
+
+If you need to get some other documentations that you don't know exactly, you can use the context7 mcp tool.
