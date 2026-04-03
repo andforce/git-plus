@@ -13,11 +13,15 @@ import (
 
 	"connectrpc.com/connect"
 	appconfig "github.com/ImSingee/git-plus/pkg/config"
+	"github.com/ImSingee/git-plus/pkg/eventbus"
 	configv1 "github.com/ImSingee/git-plus/pkg/rpc/gitplus/config/v1"
 	"github.com/ImSingee/git-plus/pkg/rpc/gitplus/config/v1/configv1connect"
+	eventv1 "github.com/ImSingee/git-plus/pkg/rpc/gitplus/event/v1"
+	"github.com/ImSingee/git-plus/pkg/rpc/gitplus/event/v1/eventv1connect"
 	taskv1 "github.com/ImSingee/git-plus/pkg/rpc/gitplus/task/v1"
 	"github.com/ImSingee/git-plus/pkg/rpc/gitplus/task/v1/taskv1connect"
 	"github.com/ImSingee/git-plus/pkg/task"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 const serverTestPassphrase = "correct horse battery staple"
@@ -791,6 +795,101 @@ func TestTaskServiceCancelQueuedTaskRejectsRunningTask(t *testing.T) {
 	}
 }
 
+func TestEventServiceSubscribeStreamsTaskEvents(t *testing.T) {
+	dataDir := t.TempDir()
+	server := newTestServer(t, dataDir)
+	eventClient := newEventServiceClient(server.URL)
+	taskClient := newTaskServiceClient(server.URL)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	streamResult := make(chan *connect.ServerStreamForClient[eventv1.SubscribeResponse], 1)
+	streamError := make(chan error, 1)
+	go func() {
+		stream, err := eventClient.Subscribe(
+			ctx,
+			connect.NewRequest(&eventv1.SubscribeRequest{Channel: testStringPtr("task")}),
+		)
+		if err != nil {
+			streamError <- err
+			return
+		}
+		streamResult <- stream
+	}()
+
+	if _, err := taskClient.EnqueueFullSync(
+		context.Background(),
+		connect.NewRequest(&taskv1.EnqueueFullSyncRequest{}),
+	); err != nil {
+		t.Fatalf("enqueue full sync: %v", err)
+	}
+
+	var stream *connect.ServerStreamForClient[eventv1.SubscribeResponse]
+	select {
+	case err := <-streamError:
+		t.Fatalf("subscribe to task events: %v", err)
+	case stream = <-streamResult:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for event stream")
+	}
+
+	firstEvent := receiveStreamEvent(t, stream)
+	if got := firstEvent.Fields["channel"].GetStringValue(); got != "task" {
+		t.Fatalf("unexpected event channel: %q", got)
+	}
+	if got := firstEvent.Fields["job_type"].GetStringValue(); got != task.JobTypeSyncAll {
+		t.Fatalf("unexpected event job_type: %q", got)
+	}
+	if got := firstEvent.Fields["task_id"].GetStringValue(); got == "" {
+		t.Fatal("expected event task_id")
+	}
+
+	eventNames := map[string]bool{
+		firstEvent.Fields["event_name"].GetStringValue(): true,
+	}
+	for len(eventNames) < 2 {
+		nextEvent := receiveStreamEvent(t, stream)
+		eventNames[nextEvent.Fields["event_name"].GetStringValue()] = true
+	}
+	for eventName := range eventNames {
+		switch eventName {
+		case "task.enqueued", "task.started", "task.progress", "task.finished":
+		default:
+			t.Fatalf("unexpected event name set: %v", eventNames)
+		}
+	}
+
+	cancel()
+}
+
+func TestEventServiceRejectsUnknownChannel(t *testing.T) {
+	dataDir := t.TempDir()
+	server := newTestServer(t, dataDir)
+
+	stream, err := newEventServiceClient(server.URL).Subscribe(
+		context.Background(),
+		connect.NewRequest(&eventv1.SubscribeRequest{Channel: testStringPtr("unknown")}),
+	)
+	if err != nil {
+		t.Fatalf("subscribe should return a stream handle, got %v", err)
+	}
+	if stream.Receive() {
+		t.Fatal("expected invalid channel stream to fail")
+	}
+
+	err = stream.Err()
+	if err == nil {
+		t.Fatal("expected subscribe to fail")
+	}
+	connectErr := new(connect.Error)
+	if !errors.As(err, &connectErr) {
+		t.Fatalf("expected connect error, got %v", err)
+	}
+	if connectErr.Code() != connect.CodeInvalidArgument {
+		t.Fatalf("expected invalid argument, got %s", connectErr.Code())
+	}
+}
+
 func TestServerHandlerRoutesConnectAPIAndKeepsLegacyRoutesGone(t *testing.T) {
 	dataDir := t.TempDir()
 	server := newTestServer(t, dataDir)
@@ -823,7 +922,7 @@ func TestServerHandlerRoutesConnectAPIAndKeepsLegacyRoutesGone(t *testing.T) {
 
 func TestServerHandlerKeepsHealthzReadyAndFrontendRoutes(t *testing.T) {
 	dataDir := t.TempDir()
-	server := httptest.NewServer(NewHandler(dataDir, task.NewManager(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(NewHandler(dataDir, task.NewManager(), eventbus.New(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("frontend-ok"))
 	})))
@@ -869,7 +968,7 @@ func TestServerHandlerKeepsHealthzReadyAndFrontendRoutes(t *testing.T) {
 func newTestServer(t *testing.T, dataDir string) *httptest.Server {
 	t.Helper()
 
-	server := httptest.NewServer(NewHandler(dataDir, task.NewManager(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(NewHandler(dataDir, task.NewManager(), eventbus.New(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 	})))
 	t.Cleanup(server.Close)
@@ -886,6 +985,13 @@ func newConfigServiceClient(serverURL string) configv1connect.ConfigServiceClien
 
 func newTaskServiceClient(serverURL string) taskv1connect.TaskServiceClient {
 	return taskv1connect.NewTaskServiceClient(
+		http.DefaultClient,
+		serverURL+"/api",
+	)
+}
+
+func newEventServiceClient(serverURL string) eventv1connect.EventServiceClient {
+	return eventv1connect.NewEventServiceClient(
 		http.DefaultClient,
 		serverURL+"/api",
 	)
@@ -987,6 +1093,29 @@ func waitUntil(t *testing.T, condition func() bool, description string) {
 	}
 
 	t.Fatalf("timed out waiting for %s", description)
+}
+
+func receiveStreamEvent(
+	t *testing.T,
+	stream *connect.ServerStreamForClient[eventv1.SubscribeResponse],
+) *structpb.Struct {
+	t.Helper()
+
+	deadline := time.After(2 * time.Second)
+	for {
+		select {
+		case <-deadline:
+			t.Fatal("timed out waiting for stream event")
+		default:
+		}
+
+		if stream.Receive() {
+			return stream.Msg().GetEvent()
+		}
+		if err := stream.Err(); err != nil {
+			t.Fatalf("stream receive failed: %v", err)
+		}
+	}
 }
 
 func assertNoIssue(t *testing.T, issues []*configv1.ValidationIssue, code string, path string) {

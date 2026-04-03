@@ -364,3 +364,93 @@ func TestRuntimeQueuedOrderIsFIFO(t *testing.T) {
 		t.Fatalf("unexpected queued order: got=%v want=%v", got, jobIDs)
 	}
 }
+
+func TestManagerEmitsTaskLifecycleEvents(t *testing.T) {
+	release := make(chan struct{})
+	events := make(chan Event, 8)
+	manager := NewManager(
+		WithIDGenerator(func() string { return "task-1" }),
+		WithObserver(func(event Event) {
+			events <- event
+		}),
+	)
+
+	if _, _, err := manager.Enqueue(Spec{
+		JobID:   JobIDSyncAll,
+		JobType: JobTypeSyncAll,
+		Name:    "Sync all sources",
+		Run: func(ctx *ExecutionContext) {
+			ctx.SetProgress("Running", map[string]any{"phase": "sync"})
+			<-release
+		},
+	}); err != nil {
+		t.Fatalf("enqueue task: %v", err)
+	}
+
+	assertEventName(t, receiveTaskEvent(t, events), EventTaskEnqueued)
+	assertEventName(t, receiveTaskEvent(t, events), EventTaskStarted)
+	assertEventName(t, receiveTaskEvent(t, events), EventTaskProgress)
+	close(release)
+	finishedEvent := receiveTaskEvent(t, events)
+	assertEventName(t, finishedEvent, EventTaskFinished)
+	if finishedEvent.Task.State != StateFinished {
+		t.Fatalf("expected finished event state %q, got %q", StateFinished, finishedEvent.Task.State)
+	}
+}
+
+func TestManagerEmitsCanceledEvent(t *testing.T) {
+	events := make(chan Event, 4)
+	counter := 0
+	manager := NewManager(
+		WithIDGenerator(func() string {
+			counter++
+			return fmt.Sprintf("task-%d", counter)
+		}),
+		WithObserver(func(event Event) {
+			events <- event
+		}),
+	)
+	runningBlock := make(chan struct{})
+	defer close(runningBlock)
+
+	if _, _, err := manager.Enqueue(blockingSpec(JobIDSyncAll, JobTypeSyncAll, "Sync all sources", runningBlock)); err != nil {
+		t.Fatalf("enqueue running task: %v", err)
+	}
+	_, queuedSnapshot, err := manager.Enqueue(blockingSpec(BuildSourceSyncJobID("github"), JobTypeSyncSource, "Sync source github", runningBlock))
+	if err != nil {
+		t.Fatalf("enqueue queued task: %v", err)
+	}
+
+	if _, err := manager.CancelQueuedTask(queuedSnapshot.TaskID); err != nil {
+		t.Fatalf("cancel queued task: %v", err)
+	}
+
+	received := make([]EventName, 0, 3)
+	for len(received) < 3 {
+		received = append(received, receiveTaskEvent(t, events).Name)
+	}
+	if !slices.Equal(received, []EventName{EventTaskEnqueued, EventTaskStarted, EventTaskEnqueued}) {
+		t.Fatalf("unexpected leading events: %v", received)
+	}
+	assertEventName(t, receiveTaskEvent(t, events), EventTaskCanceled)
+}
+
+func receiveTaskEvent(t *testing.T, events <-chan Event) Event {
+	t.Helper()
+
+	select {
+	case event := <-events:
+		return event
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for task event")
+		return Event{}
+	}
+}
+
+func assertEventName(t *testing.T, event Event, expected EventName) {
+	t.Helper()
+
+	if event.Name != expected {
+		t.Fatalf("unexpected event name: got=%q want=%q", event.Name, expected)
+	}
+}

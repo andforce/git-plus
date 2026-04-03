@@ -1,0 +1,22 @@
+edition = "2023";
+
+package gitplus.event.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/go_features.proto";
+import "google/protobuf/struct.proto";
+
+option features.(pb.go).api_level = API_OPEN;
+option features.field_presence = EXPLICIT;
+
+message SubscribeRequest {
+  string channel = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+message SubscribeResponse {
+  google.protobuf.Struct event = 1;
+}
+
+service EventService {
+  rpc Subscribe(SubscribeRequest) returns (stream SubscribeResponse);
+}

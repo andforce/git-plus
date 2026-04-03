@@ -8,6 +8,8 @@ import (
 
 	appdb "github.com/ImSingee/git-plus/db"
 	"github.com/ImSingee/git-plus/pkg/configservice"
+	"github.com/ImSingee/git-plus/pkg/eventbus"
+	"github.com/ImSingee/git-plus/pkg/eventservice"
 	"github.com/ImSingee/git-plus/pkg/task"
 	"github.com/ImSingee/git-plus/pkg/taskservice"
 )
@@ -21,7 +23,12 @@ type Config struct {
 type FrontendHandlerFactory func() (http.Handler, error)
 
 func Run(ctx context.Context, cfg Config, frontendHandlerFactory FrontendHandlerFactory) error {
-	taskManager := task.NewManager(task.WithLogger(log.Default()))
+	bus := eventbus.New()
+	defer bus.Close()
+	taskManager := task.NewManager(
+		task.WithLogger(log.Default()),
+		task.WithEventBus(bus),
+	)
 	defer taskManager.Close()
 
 	if cfg.AutoMigrate {
@@ -39,18 +46,27 @@ func Run(ctx context.Context, cfg Config, frontendHandlerFactory FrontendHandler
 
 	log.Printf("listening on http://localhost%s", cfg.ListenAddr)
 
-	return http.ListenAndServe(cfg.ListenAddr, NewHandler(cfg.DataDir, taskManager, frontendHandler))
+	return http.ListenAndServe(cfg.ListenAddr, NewHandler(cfg.DataDir, taskManager, bus, frontendHandler))
 }
 
-func NewHandler(dataDir string, taskManager *task.Manager, frontendHandler http.Handler) http.Handler {
+func NewHandler(dataDir string, taskManager *task.Manager, bus *eventbus.Bus, frontendHandler http.Handler) http.Handler {
+	if bus == nil {
+		bus = eventbus.New()
+	}
 	if taskManager == nil {
-		taskManager = task.NewManager(task.WithLogger(log.Default()))
+		taskManager = task.NewManager(
+			task.WithLogger(log.Default()),
+			task.WithEventBus(bus),
+		)
+	} else {
+		taskManager.SetEventBus(bus)
 	}
 
 	mux := http.NewServeMux()
 	apiMux := http.NewServeMux()
 	configservice.RegisterHandlers(apiMux, dataDir)
 	taskservice.RegisterHandlers(apiMux, dataDir, taskManager)
+	eventservice.RegisterHandlers(apiMux, bus)
 	mux.Handle("/api/", http.StripPrefix("/api", apiMux))
 	mux.HandleFunc("/api", notFoundAPIHandler)
 	mux.HandleFunc("/ready", healthzHandler)
