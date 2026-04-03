@@ -1,0 +1,43 @@
+edition = "2023";
+
+package gitplus.cron.v1;
+
+import "google/protobuf/go_features.proto";
+import "google/protobuf/timestamp.proto";
+
+option features.(pb.go).api_level = API_OPEN;
+option features.field_presence = EXPLICIT;
+
+message CronRuntime {
+  bool enabled = 1;
+  string cron = 2;
+  google.protobuf.Timestamp updated_at = 3;
+  repeated google.protobuf.Timestamp next_runs = 4;
+  string last_error = 5;
+}
+
+message GetCronRuntimeRequest {}
+
+message GetCronRuntimeResponse {
+  CronRuntime runtime = 1;
+}
+
+message UpdateCronRequest {
+  string cron = 1;
+}
+
+message UpdateCronResponse {
+  CronRuntime runtime = 1;
+}
+
+message ReloadCronRequest {}
+
+message ReloadCronResponse {
+  CronRuntime runtime = 1;
+}
+
+service CronService {
+  rpc GetCronRuntime(GetCronRuntimeRequest) returns (GetCronRuntimeResponse);
+  rpc UpdateCron(UpdateCronRequest) returns (UpdateCronResponse);
+  rpc ReloadCron(ReloadCronRequest) returns (ReloadCronResponse);
+}

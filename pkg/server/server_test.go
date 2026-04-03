@@ -13,9 +13,12 @@ import (
 
 	"connectrpc.com/connect"
 	appconfig "github.com/ImSingee/git-plus/pkg/config"
+	"github.com/ImSingee/git-plus/pkg/cronruntime"
 	"github.com/ImSingee/git-plus/pkg/eventbus"
 	configv1 "github.com/ImSingee/git-plus/pkg/rpc/gitplus/config/v1"
 	"github.com/ImSingee/git-plus/pkg/rpc/gitplus/config/v1/configv1connect"
+	cronv1 "github.com/ImSingee/git-plus/pkg/rpc/gitplus/cron/v1"
+	"github.com/ImSingee/git-plus/pkg/rpc/gitplus/cron/v1/cronv1connect"
 	eventv1 "github.com/ImSingee/git-plus/pkg/rpc/gitplus/event/v1"
 	"github.com/ImSingee/git-plus/pkg/rpc/gitplus/event/v1/eventv1connect"
 	taskv1 "github.com/ImSingee/git-plus/pkg/rpc/gitplus/task/v1"
@@ -229,6 +232,205 @@ cron: '0 * * * *'
 
 	if response.Msg.GetConfig().GetCron() != "0 * * * *" {
 		t.Fatalf("unexpected cron: %q", response.Msg.GetConfig().GetCron())
+	}
+}
+
+func TestCronServiceGetCronRuntimeReturnsStartupAppliedCron(t *testing.T) {
+	dataDir := t.TempDir()
+	writeConfigFile(t, dataDir, "cron: '0 * * * *'\n")
+	server := newTestServer(t, dataDir)
+
+	response, err := newCronServiceClient(server.URL).GetCronRuntime(
+		context.Background(),
+		connect.NewRequest(&cronv1.GetCronRuntimeRequest{}),
+	)
+	if err != nil {
+		t.Fatalf("get cron runtime: %v", err)
+	}
+
+	runtime := response.Msg.GetRuntime()
+	if runtime == nil {
+		t.Fatal("expected cron runtime")
+	}
+	if !runtime.GetEnabled() {
+		t.Fatal("expected cron to be enabled")
+	}
+	if runtime.GetCron() != "0 * * * *" {
+		t.Fatalf("unexpected cron: %q", runtime.GetCron())
+	}
+	if len(runtime.GetNextRuns()) != cronruntime.DefaultNextRunsLimit {
+		t.Fatalf("expected %d next runs, got %d", cronruntime.DefaultNextRunsLimit, len(runtime.GetNextRuns()))
+	}
+}
+
+func TestCronServiceGetCronRuntimeReflectsInMemoryState(t *testing.T) {
+	dataDir := t.TempDir()
+	server := newTestServer(t, dataDir)
+	client := newCronServiceClient(server.URL)
+
+	if _, err := client.UpdateCron(
+		context.Background(),
+		connect.NewRequest(&cronv1.UpdateCronRequest{Cron: testStringPtr("0 * * * *")}),
+	); err != nil {
+		t.Fatalf("update cron: %v", err)
+	}
+
+	writeConfigFile(t, dataDir, "cron: '15 * * * *'\n")
+
+	response, err := client.GetCronRuntime(
+		context.Background(),
+		connect.NewRequest(&cronv1.GetCronRuntimeRequest{}),
+	)
+	if err != nil {
+		t.Fatalf("get cron runtime: %v", err)
+	}
+	if response.Msg.GetRuntime().GetCron() != "0 * * * *" {
+		t.Fatalf("expected in-memory cron to remain unchanged, got %q", response.Msg.GetRuntime().GetCron())
+	}
+}
+
+func TestCronServiceUpdateCronPersistsAndCanDisable(t *testing.T) {
+	dataDir := t.TempDir()
+	server := newTestServer(t, dataDir)
+	client := newCronServiceClient(server.URL)
+
+	enableResponse, err := client.UpdateCron(
+		context.Background(),
+		connect.NewRequest(&cronv1.UpdateCronRequest{Cron: testStringPtr("0 * * * *")}),
+	)
+	if err != nil {
+		t.Fatalf("enable cron: %v", err)
+	}
+	if !enableResponse.Msg.GetRuntime().GetEnabled() {
+		t.Fatal("expected cron to be enabled")
+	}
+
+	loaded, err := appconfig.Load(filepath.Join(dataDir, appconfig.ConfigFilename))
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	if loaded.Data.Cron != "0 * * * *" {
+		t.Fatalf("unexpected persisted cron: %q", loaded.Data.Cron)
+	}
+
+	disableResponse, err := client.UpdateCron(
+		context.Background(),
+		connect.NewRequest(&cronv1.UpdateCronRequest{Cron: testStringPtr("")}),
+	)
+	if err != nil {
+		t.Fatalf("disable cron: %v", err)
+	}
+	if disableResponse.Msg.GetRuntime().GetEnabled() {
+		t.Fatal("expected cron to be disabled")
+	}
+
+	loaded, err = appconfig.Load(filepath.Join(dataDir, appconfig.ConfigFilename))
+	if err != nil {
+		t.Fatalf("load config after disable: %v", err)
+	}
+	if loaded.Data.Cron != "" {
+		t.Fatalf("expected persisted cron to be empty, got %q", loaded.Data.Cron)
+	}
+}
+
+func TestCronServiceUpdateCronRejectsInvalidExpression(t *testing.T) {
+	dataDir := t.TempDir()
+	server := newTestServer(t, dataDir)
+
+	_, err := newCronServiceClient(server.URL).UpdateCron(
+		context.Background(),
+		connect.NewRequest(&cronv1.UpdateCronRequest{Cron: testStringPtr("0 * 0 0 0")}),
+	)
+	if err == nil {
+		t.Fatal("expected invalid cron to fail")
+	}
+
+	connectErr := new(connect.Error)
+	if !errors.As(err, &connectErr) {
+		t.Fatalf("expected connect error, got %v", err)
+	}
+	if connectErr.Code() != connect.CodeInvalidArgument {
+		t.Fatalf("expected invalid argument, got %s", connectErr.Code())
+	}
+}
+
+func TestCronServiceReloadCronAppliesEditedConfig(t *testing.T) {
+	dataDir := t.TempDir()
+	server := newTestServer(t, dataDir)
+	client := newCronServiceClient(server.URL)
+
+	writeConfigFile(t, dataDir, "cron: '15 * * * *'\n")
+
+	response, err := client.ReloadCron(
+		context.Background(),
+		connect.NewRequest(&cronv1.ReloadCronRequest{}),
+	)
+	if err != nil {
+		t.Fatalf("reload cron: %v", err)
+	}
+	if !response.Msg.GetRuntime().GetEnabled() {
+		t.Fatal("expected cron to be enabled after reload")
+	}
+	if response.Msg.GetRuntime().GetCron() != "15 * * * *" {
+		t.Fatalf("unexpected cron after reload: %q", response.Msg.GetRuntime().GetCron())
+	}
+}
+
+func TestCronServiceReloadCronTreatsMissingConfigAsDisabled(t *testing.T) {
+	dataDir := t.TempDir()
+	server := newTestServer(t, dataDir)
+
+	response, err := newCronServiceClient(server.URL).ReloadCron(
+		context.Background(),
+		connect.NewRequest(&cronv1.ReloadCronRequest{}),
+	)
+	if err != nil {
+		t.Fatalf("reload cron: %v", err)
+	}
+	if response.Msg.GetRuntime().GetEnabled() {
+		t.Fatal("expected missing config to disable cron")
+	}
+	if response.Msg.GetRuntime().GetCron() != "" {
+		t.Fatalf("unexpected cron for missing config: %q", response.Msg.GetRuntime().GetCron())
+	}
+}
+
+func TestCronServiceReloadCronDisablesRuntimeWhenConfigIsInvalid(t *testing.T) {
+	dataDir := t.TempDir()
+	writeConfigFile(t, dataDir, "cron: '0 * * * *'\n")
+	server := newTestServer(t, dataDir)
+	client := newCronServiceClient(server.URL)
+
+	writeConfigFile(t, dataDir, "cron: '0 * 0 0 0'\n")
+
+	_, err := client.ReloadCron(
+		context.Background(),
+		connect.NewRequest(&cronv1.ReloadCronRequest{}),
+	)
+	if err == nil {
+		t.Fatal("expected invalid config reload to fail")
+	}
+
+	connectErr := new(connect.Error)
+	if !errors.As(err, &connectErr) {
+		t.Fatalf("expected connect error, got %v", err)
+	}
+	if connectErr.Code() != connect.CodeFailedPrecondition {
+		t.Fatalf("expected failed precondition, got %s", connectErr.Code())
+	}
+
+	runtimeResponse, runtimeErr := client.GetCronRuntime(
+		context.Background(),
+		connect.NewRequest(&cronv1.GetCronRuntimeRequest{}),
+	)
+	if runtimeErr != nil {
+		t.Fatalf("get cron runtime: %v", runtimeErr)
+	}
+	if runtimeResponse.Msg.GetRuntime().GetEnabled() {
+		t.Fatal("expected invalid reload to disable cron runtime")
+	}
+	if runtimeResponse.Msg.GetRuntime().GetLastError() == "" {
+		t.Fatal("expected invalid reload to record last_error")
 	}
 }
 
@@ -922,7 +1124,12 @@ func TestServerHandlerRoutesConnectAPIAndKeepsLegacyRoutesGone(t *testing.T) {
 
 func TestServerHandlerKeepsHealthzReadyAndFrontendRoutes(t *testing.T) {
 	dataDir := t.TempDir()
-	server := httptest.NewServer(NewHandler(dataDir, task.NewManager(), eventbus.New(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	taskManager := task.NewManager()
+	t.Cleanup(taskManager.Close)
+	bus := eventbus.New()
+	t.Cleanup(bus.Close)
+	cron := mustNewTestCronRuntime(t, dataDir, taskManager)
+	server := httptest.NewServer(NewHandler(dataDir, taskManager, bus, cron, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("frontend-ok"))
 	})))
@@ -968,7 +1175,13 @@ func TestServerHandlerKeepsHealthzReadyAndFrontendRoutes(t *testing.T) {
 func newTestServer(t *testing.T, dataDir string) *httptest.Server {
 	t.Helper()
 
-	server := httptest.NewServer(NewHandler(dataDir, task.NewManager(), eventbus.New(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	taskManager := task.NewManager()
+	t.Cleanup(taskManager.Close)
+	bus := eventbus.New()
+	t.Cleanup(bus.Close)
+	cron := mustNewTestCronRuntime(t, dataDir, taskManager)
+
+	server := httptest.NewServer(NewHandler(dataDir, taskManager, bus, cron, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 	})))
 	t.Cleanup(server.Close)
@@ -985,6 +1198,13 @@ func newConfigServiceClient(serverURL string) configv1connect.ConfigServiceClien
 
 func newTaskServiceClient(serverURL string) taskv1connect.TaskServiceClient {
 	return taskv1connect.NewTaskServiceClient(
+		http.DefaultClient,
+		serverURL+"/api",
+	)
+}
+
+func newCronServiceClient(serverURL string) cronv1connect.CronServiceClient {
+	return cronv1connect.NewCronServiceClient(
 		http.DefaultClient,
 		serverURL+"/api",
 	)
@@ -1021,6 +1241,23 @@ func mustEncryptServerTokenWithPassphrase(t *testing.T, plaintext string, passph
 	}
 
 	return encryptedToken
+}
+
+func mustNewTestCronRuntime(t *testing.T, dataDir string, taskManager *task.Manager) *cronruntime.Runtime {
+	t.Helper()
+
+	cron, err := newCronRuntime(dataDir, taskManager)
+	if err != nil {
+		t.Fatalf("new cron runtime: %v", err)
+	}
+	if err := cron.LoadFromFileAndApply(); err != nil {
+		t.Logf("load cron runtime: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = cron.Close()
+	})
+
+	return cron
 }
 
 func assertSummaryCounts(t *testing.T, summary *configv1.IssueSummary, errors int32, warnings int32, info int32) {

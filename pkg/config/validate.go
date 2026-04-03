@@ -192,18 +192,10 @@ func validateCron(cfg Config, root *yaml.Node) []ValidationIssue {
 
 	cronValue := strings.TrimSpace(cfg.Cron)
 	if cronValue == "" {
-		return []ValidationIssue{
-			{
-				Severity: SeverityError,
-				Code:     "invalid_cron",
-				Message:  "cron must be a valid 5-field cron expression",
-				Path:     "cron",
-				Line:     line,
-			},
-		}
+		return nil
 	}
 
-	if err := gocron.NewDefaultCron(false).IsValid(cronValue, time.Local, time.Now()); err != nil {
+	if err := ValidateCronExpression(cronValue); err != nil {
 		return []ValidationIssue{
 			{
 				Severity: SeverityError,
@@ -216,6 +208,15 @@ func validateCron(cfg Config, root *yaml.Node) []ValidationIssue {
 	}
 
 	return nil
+}
+
+func ValidateCronExpression(value string) error {
+	cronValue := strings.TrimSpace(value)
+	if cronValue == "" {
+		return nil
+	}
+
+	return gocron.NewDefaultCron(false).IsValid(cronValue, time.Local, time.Now())
 }
 
 func validateSourceFields(source SourceConfig, node *yaml.Node, index int, opts SecretOptions) []ValidationIssue {

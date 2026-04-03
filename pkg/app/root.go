@@ -4,16 +4,23 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
+	"net/http"
 	"os"
 	"strings"
 
+	"connectrpc.com/connect"
 	appdb "github.com/ImSingee/git-plus/db"
 	appconfig "github.com/ImSingee/git-plus/pkg/config"
+	cronv1 "github.com/ImSingee/git-plus/pkg/rpc/gitplus/cron/v1"
+	"github.com/ImSingee/git-plus/pkg/rpc/gitplus/cron/v1/cronv1connect"
 	"github.com/ImSingee/git-plus/pkg/server"
 	"github.com/spf13/cobra"
 )
 
-const defaultListenAddr = ":8080"
+const (
+	defaultListenAddr = ":8080"
+)
 
 func NewRootCommand(version string, frontendHandlerFactory server.FrontendHandlerFactory) *cobra.Command {
 	var listenAddr string
@@ -43,6 +50,7 @@ func NewRootCommand(version string, frontendHandlerFactory server.FrontendHandle
 	cmd.PersistentFlags().StringVar(&dataDir, "data-dir", "", "directory for runtime data")
 	cmd.AddCommand(newDBCommand(&dataDir))
 	cmd.AddCommand(newConfigCommand())
+	cmd.AddCommand(newCronCommand())
 
 	return cmd
 }
@@ -123,6 +131,77 @@ func newConfigCommand() *cobra.Command {
 	})
 
 	return configCommand
+}
+
+func newCronCommand() *cobra.Command {
+	cronCommand := &cobra.Command{
+		Use:   "cron",
+		Short: "Cron utilities",
+	}
+
+	var serverURL string
+	var listenAddr string
+	reloadCommand := &cobra.Command{
+		Use:          "reload",
+		Short:        "Reload cron configuration from config.yaml",
+		SilenceUsage: true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			targetServerURL := resolveServerURL(serverURL, listenAddr, cmd.Flags().Changed("listen"))
+			client := cronv1connect.NewCronServiceClient(http.DefaultClient, strings.TrimRight(targetServerURL, "/")+"/api")
+			response, err := client.ReloadCron(cmd.Context(), connect.NewRequest(&cronv1.ReloadCronRequest{}))
+			if err != nil {
+				return fmt.Errorf("reload cron: %w", err)
+			}
+
+			runtime := response.Msg.GetRuntime()
+			if runtime == nil {
+				_, err = fmt.Fprintln(cmd.OutOrStdout(), "cron reloaded")
+				return err
+			}
+
+			if runtime.GetEnabled() {
+				_, err = fmt.Fprintf(cmd.OutOrStdout(), "cron reloaded: enabled (%s)\n", runtime.GetCron())
+			} else {
+				_, err = fmt.Fprintln(cmd.OutOrStdout(), "cron reloaded: disabled")
+			}
+
+			return err
+		},
+	}
+	reloadCommand.Flags().StringVar(&serverURL, "server", "", "git-plus server base URL")
+	reloadCommand.Flags().StringVarP(&listenAddr, "listen", "l", defaultListenAddr, "git-plus server listen address")
+	cronCommand.AddCommand(reloadCommand)
+
+	return cronCommand
+}
+
+func resolveServerURL(serverURL string, listenAddr string, flagChanged bool) string {
+	trimmedServerURL := strings.TrimSpace(serverURL)
+	if trimmedServerURL != "" {
+		return trimmedServerURL
+	}
+
+	return serverURLForListenAddr(resolveListenAddr(listenAddr, flagChanged))
+}
+
+func serverURLForListenAddr(listenAddr string) string {
+	normalizedListenAddr := normalizeListenAddr(listenAddr)
+	if strings.HasPrefix(normalizedListenAddr, ":") {
+		return "http://127.0.0.1" + normalizedListenAddr
+	}
+
+	host, port, err := net.SplitHostPort(normalizedListenAddr)
+	if err != nil {
+		return "http://127.0.0.1" + defaultListenAddr
+	}
+
+	normalizedHost := host
+	switch host {
+	case "", "0.0.0.0", "::":
+		normalizedHost = "127.0.0.1"
+	}
+
+	return "http://" + net.JoinHostPort(normalizedHost, port)
 }
 
 func resolveListenAddr(flagValue string, flagChanged bool) string {

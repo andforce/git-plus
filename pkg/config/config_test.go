@@ -192,6 +192,26 @@ cron: '0 * 0 0 0'
 	assertHasIssue(t, issues, "invalid_cron", "cron")
 }
 
+func TestValidateConfigAllowsEmptyCronToDisableScheduling(t *testing.T) {
+	encryptedToken := mustEncryptToken(t, "secret", testPassphrase)
+	configPath := writeConfigFile(t, `
+sources:
+  - id: github
+    platform: github
+    username: octocat
+    token: `+encryptedToken+`
+cron: ''
+`)
+
+	loaded, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("unexpected load error: %v", err)
+	}
+
+	issues := ValidateConfig(loaded, SecretOptions{Passphrase: testPassphrase})
+	assertNoIssue(t, issues, "invalid_cron", "cron")
+}
+
 func TestCheckFileReturnsInvalidYAMLIssue(t *testing.T) {
 	configPath := writeConfigFile(t, `
 sources:

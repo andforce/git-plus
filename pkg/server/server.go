@@ -7,7 +7,10 @@ import (
 	"net/http"
 
 	appdb "github.com/ImSingee/git-plus/db"
+	appconfig "github.com/ImSingee/git-plus/pkg/config"
 	"github.com/ImSingee/git-plus/pkg/configservice"
+	"github.com/ImSingee/git-plus/pkg/cronruntime"
+	"github.com/ImSingee/git-plus/pkg/cronservice"
 	"github.com/ImSingee/git-plus/pkg/eventbus"
 	"github.com/ImSingee/git-plus/pkg/eventservice"
 	"github.com/ImSingee/git-plus/pkg/task"
@@ -30,6 +33,11 @@ func Run(ctx context.Context, cfg Config, frontendHandlerFactory FrontendHandler
 		task.WithEventBus(bus),
 	)
 	defer taskManager.Close()
+	cronRuntime, err := newCronRuntime(cfg.DataDir, taskManager)
+	if err != nil {
+		return fmt.Errorf("create cron runtime: %w", err)
+	}
+	defer func() { _ = cronRuntime.Close() }()
 
 	if cfg.AutoMigrate {
 		if err := appdb.Migrate(ctx, cfg.DataDir); err != nil {
@@ -38,6 +46,9 @@ func Run(ctx context.Context, cfg Config, frontendHandlerFactory FrontendHandler
 	}
 
 	configservice.LogIssuesOnStartup(cfg.DataDir, log.Default())
+	if err := cronRuntime.LoadFromFileAndApply(); err != nil {
+		log.Printf("cron reload failed on startup: %v", err)
+	}
 
 	frontendHandler, err := frontendHandlerFactory()
 	if err != nil {
@@ -46,10 +57,10 @@ func Run(ctx context.Context, cfg Config, frontendHandlerFactory FrontendHandler
 
 	log.Printf("listening on http://localhost%s", cfg.ListenAddr)
 
-	return http.ListenAndServe(cfg.ListenAddr, NewHandler(cfg.DataDir, taskManager, bus, frontendHandler))
+	return http.ListenAndServe(cfg.ListenAddr, NewHandler(cfg.DataDir, taskManager, bus, cronRuntime, frontendHandler))
 }
 
-func NewHandler(dataDir string, taskManager *task.Manager, bus *eventbus.Bus, frontendHandler http.Handler) http.Handler {
+func NewHandler(dataDir string, taskManager *task.Manager, bus *eventbus.Bus, cronRuntime *cronruntime.Runtime, frontendHandler http.Handler) http.Handler {
 	if bus == nil {
 		bus = eventbus.New()
 	}
@@ -61,10 +72,23 @@ func NewHandler(dataDir string, taskManager *task.Manager, bus *eventbus.Bus, fr
 	} else {
 		taskManager.SetEventBus(bus)
 	}
+	if cronRuntime == nil {
+		var err error
+		cronRuntime, err = newCronRuntime(dataDir, taskManager)
+		if err != nil {
+			panic(fmt.Sprintf("create cron runtime: %v", err))
+		}
+		if err := cronRuntime.LoadFromFileAndApply(); err != nil {
+			log.Printf("cron reload failed on handler setup: %v", err)
+		}
+	} else {
+		cronRuntime.SetTaskManager(taskManager)
+	}
 
 	mux := http.NewServeMux()
 	apiMux := http.NewServeMux()
 	configservice.RegisterHandlers(apiMux, dataDir)
+	cronservice.RegisterHandlers(apiMux, dataDir, cronRuntime)
 	taskservice.RegisterHandlers(apiMux, dataDir, taskManager)
 	eventservice.RegisterHandlers(apiMux, bus)
 	mux.Handle("/api/", http.StripPrefix("/api", apiMux))
@@ -74,6 +98,14 @@ func NewHandler(dataDir string, taskManager *task.Manager, bus *eventbus.Bus, fr
 	mux.Handle("/", frontendHandler)
 
 	return mux
+}
+
+func newCronRuntime(dataDir string, taskManager *task.Manager) (*cronruntime.Runtime, error) {
+	return cronruntime.New(
+		appconfig.PathForDataDir(dataDir),
+		taskManager,
+		cronruntime.WithLogger(log.Default()),
+	)
 }
 
 func notFoundAPIHandler(w http.ResponseWriter, r *http.Request) {
