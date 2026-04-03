@@ -84,6 +84,12 @@ function DashboardLayout() {
               onClick={() => navTo('/config/sources')}
               styles={childNavStyles}
             />
+            <NavLink
+              label="Cron"
+              active={location.pathname === '/config/cron'}
+              onClick={() => navTo('/config/cron')}
+              styles={childNavStyles}
+            />
           </NavLink>
           <NavLink
             label="Maintenance"

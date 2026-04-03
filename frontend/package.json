@@ -35,6 +35,7 @@
     "@tanstack/react-table": "^8.21.3",
     "@tanstack/router-plugin": "^1.167.12",
     "copy-to-clipboard": "^3.3.3",
+    "cron-schedule": "^6.0.0",
     "dayjs": "^1.11.20",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",

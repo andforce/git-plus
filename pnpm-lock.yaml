@@ -95,6 +95,9 @@ importers:
       copy-to-clipboard:
         specifier: ^3.3.3
         version: 3.3.3
+      cron-schedule:
+        specifier: ^6.0.0
+        version: 6.0.0
       dayjs:
         specifier: ^1.11.20
         version: 1.11.20
@@ -2679,6 +2682,13 @@ packages:
       {
         integrity: sha512-2KV8NhB5JqC3ky0r9PMCAZKbUHSwtEo4CwCs0KXgruG43gX5PMqDEBbVU4OUzw2MuAWUfsuFmWvEKG5QRfSnJA==,
       }
+
+  cron-schedule@6.0.0:
+    resolution:
+      {
+        integrity: sha512-BoZaseYGXOo5j5HUwTaegIog3JJbuH4BbrY9A1ArLjXpy+RWb3mV28F/9Gv1dDA7E2L8kngWva4NWisnLTyfgQ==,
+      }
+    engines: { node: '>=20' }
 
   cross-spawn@7.0.6:
     resolution:
@@ -7282,6 +7292,8 @@ snapshots:
   copy-to-clipboard@3.3.3:
     dependencies:
       toggle-selection: 1.0.6
+
+  cron-schedule@6.0.0: {}
 
   cross-spawn@7.0.6:
     dependencies:
