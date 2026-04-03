@@ -38,7 +38,6 @@ interface CreateData {
 interface UpdateData {
   sourceId: string;
   patch: {
-    id: string;
     platform: Platform;
     username: string;
     onlyIncludeRepos: { values: Array<string> };
@@ -162,7 +161,6 @@ export function SourceFormDrawer({
       onSubmit({
         sourceId: source!.id,
         patch: {
-          id: values.id.trim(),
           platform,
           username: values.username.trim(),
           onlyIncludeRepos: { values: values.onlyIncludeRepos },
@@ -226,6 +224,7 @@ export function SourceFormDrawer({
                   description="A unique identifier for this source"
                   placeholder="my-github"
                   required
+                  disabled={mode === 'edit'}
                   {...form.getInputProps('id')}
                 />
                 <TextInput

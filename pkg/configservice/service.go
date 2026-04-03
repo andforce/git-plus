@@ -134,10 +134,6 @@ func (s *serviceServer) UpdateSource(
 		return nil, err
 	}
 
-	if duplicateIndex := findSourceIndex(loaded.Data.Sources, updatedSource.ID); duplicateIndex >= 0 && duplicateIndex != index {
-		return nil, connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("source %q already exists", updatedSource.ID))
-	}
-
 	loaded.Data.Sources[index] = updatedSource
 	s.sortSources(&loaded.Data)
 
@@ -375,14 +371,6 @@ func applySourcePatch(input *configv1.UpdateSourcePatch, existingSource appconfi
 
 	updatedSource := existingSource
 
-	if input.Id != nil {
-		id, err := normalizeRequiredString("patch.id", input.GetId())
-		if err != nil {
-			return appconfig.SourceConfig{}, err
-		}
-		updatedSource.ID = id
-	}
-
 	if input.Platform != nil {
 		platform, err := fromProtoPlatform(input.GetPlatform())
 		if err != nil {
@@ -484,8 +472,7 @@ func findSourceIndex(sources []appconfig.SourceConfig, sourceID string) int {
 }
 
 func isEmptySourcePatch(input *configv1.UpdateSourcePatch) bool {
-	return input.Id == nil &&
-		input.Platform == nil &&
+	return input.Platform == nil &&
 		input.Username == nil &&
 		input.OnlyIncludeRepos == nil &&
 		input.ExcludeRepos == nil

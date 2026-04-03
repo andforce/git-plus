@@ -298,7 +298,6 @@ concurrency: 5
 		connect.NewRequest(&configv1.UpdateSourceRequest{
 			SourceId: testStringPtr("github"),
 			Patch: &configv1.UpdateSourcePatch{
-				Id:       testStringPtr("github-renamed"),
 				Username: testStringPtr("hubot"),
 				OnlyIncludeRepos: &configv1.StringListValue{
 					Values: []string{"renamed/repo"},
@@ -317,8 +316,11 @@ concurrency: 5
 	if len(sources) != 1 {
 		t.Fatalf("expected one source, got %d", len(sources))
 	}
-	if sources[0].GetId() != "github-renamed" {
+	if sources[0].GetId() != "github" {
 		t.Fatalf("unexpected source id: %q", sources[0].GetId())
+	}
+	if sources[0].GetUsername() != "hubot" {
+		t.Fatalf("unexpected username: %q", sources[0].GetUsername())
 	}
 	if sources[0].GetToken() != encryptedToken {
 		t.Fatalf("expected token to remain unchanged, got %q", sources[0].GetToken())
@@ -328,7 +330,7 @@ concurrency: 5
 	if err != nil {
 		t.Fatalf("load persisted config: %v", err)
 	}
-	if loaded.Data.Sources[0].ID != "github-renamed" {
+	if loaded.Data.Sources[0].ID != "github" {
 		t.Fatalf("unexpected persisted id: %q", loaded.Data.Sources[0].ID)
 	}
 	if loaded.Data.Sources[0].Token != encryptedToken {

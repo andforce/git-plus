@@ -531,7 +531,6 @@ func (x *CreateSourceInput) GetExcludeRepos() []string {
 
 type UpdateSourcePatch struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
-	Id               *string                `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
 	Platform         *Platform              `protobuf:"varint,2,opt,name=platform,enum=gitplus.config.v1.Platform" json:"platform,omitempty"`
 	Username         *string                `protobuf:"bytes,3,opt,name=username" json:"username,omitempty"`
 	OnlyIncludeRepos *StringListValue       `protobuf:"bytes,4,opt,name=only_include_repos,json=onlyIncludeRepos" json:"only_include_repos,omitempty"`
@@ -568,13 +567,6 @@ func (x *UpdateSourcePatch) ProtoReflect() protoreflect.Message {
 // Deprecated: Use UpdateSourcePatch.ProtoReflect.Descriptor instead.
 func (*UpdateSourcePatch) Descriptor() ([]byte, []int) {
 	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{6}
-}
-
-func (x *UpdateSourcePatch) GetId() string {
-	if x != nil && x.Id != nil {
-		return *x.Id
-	}
-	return ""
 }
 
 func (x *UpdateSourcePatch) GetPlatform() Platform {
@@ -1302,14 +1294,13 @@ const file_gitplus_config_v1_config_proto_rawDesc = "" +
 	"\busername\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\busername\x120\n" +
 	"\x0ftoken_plaintext\x18\x04 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x0etokenPlaintext\x12<\n" +
 	"\x12only_include_repos\x18\x05 \x03(\tB\x0e\xbaH\v\x92\x01\b\x18\x01\"\x04r\x02\x10\x01R\x10onlyIncludeRepos\x123\n" +
-	"\rexclude_repos\x18\x06 \x03(\tB\x0e\xbaH\v\x92\x01\b\x18\x01\"\x04r\x02\x10\x01R\fexcludeRepos\"\xb1\x02\n" +
-	"\x11UpdateSourcePatch\x12\x17\n" +
-	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12C\n" +
+	"\rexclude_repos\x18\x06 \x03(\tB\x0e\xbaH\v\x92\x01\b\x18\x01\"\x04r\x02\x10\x01R\fexcludeRepos\"\x9e\x02\n" +
+	"\x11UpdateSourcePatch\x12C\n" +
 	"\bplatform\x18\x02 \x01(\x0e2\x1b.gitplus.config.v1.PlatformB\n" +
 	"\xbaH\a\x82\x01\x04\x10\x01 \x00R\bplatform\x12#\n" +
 	"\busername\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\busername\x12P\n" +
 	"\x12only_include_repos\x18\x04 \x01(\v2\".gitplus.config.v1.StringListValueR\x10onlyIncludeRepos\x12G\n" +
-	"\rexclude_repos\x18\x05 \x01(\v2\".gitplus.config.v1.StringListValueR\fexcludeRepos\"\x14\n" +
+	"\rexclude_repos\x18\x05 \x01(\v2\".gitplus.config.v1.StringListValueR\fexcludeReposJ\x04\b\x01\x10\x02\"\x14\n" +
 	"\x12CheckConfigRequest\"\x8c\x01\n" +
 	"\x13CheckConfigResponse\x12:\n" +
 	"\x06issues\x18\x01 \x03(\v2\".gitplus.config.v1.ValidationIssueR\x06issues\x129\n" +

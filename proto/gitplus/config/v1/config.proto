@@ -107,7 +107,7 @@ message CreateSourceInput {
 }
 
 message UpdateSourcePatch {
-  string id = 1 [(buf.validate.field).string.min_len = 1];
+  reserved 1;
   Platform platform = 2 [(buf.validate.field).enum = {
     defined_only: true
     not_in: [0]
