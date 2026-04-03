@@ -5,17 +5,37 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
+
+	"github.com/spf13/cobra"
 )
 
 const defaultListenAddr = ":8080"
 
 func main() {
-	if err := run(); err != nil {
+	if err := newRootCommand().Execute(); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func run() error {
+func newRootCommand() *cobra.Command {
+	var listenAddr string
+
+	cmd := &cobra.Command{
+		Use:   "git-plus",
+		Short: "Run the git-plus server",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			return run(resolveListenAddr(listenAddr, cmd.Flags().Changed("listen")))
+		},
+		SilenceUsage: true,
+	}
+
+	cmd.Flags().StringVarP(&listenAddr, "listen", "l", defaultListenAddr, "listen address")
+
+	return cmd
+}
+
+func run(listenAddr string) error {
 	frontendHandler, err := newFrontendHandler()
 	if err != nil {
 		return err
@@ -29,10 +49,29 @@ func run() error {
 	mux.HandleFunc("/ready", healthzHandler)
 	mux.Handle("/", frontendHandler)
 
-	listenAddr := envOrDefault("PORT", defaultListenAddr)
 	log.Printf("listening on http://localhost%s", listenAddr)
 
 	return http.ListenAndServe(listenAddr, mux)
+}
+
+func resolveListenAddr(flagValue string, flagChanged bool) string {
+	if flagChanged {
+		return normalizeListenAddr(flagValue)
+	}
+
+	if value := os.Getenv("PORT"); value != "" {
+		return normalizeListenAddr(value)
+	}
+
+	return defaultListenAddr
+}
+
+func normalizeListenAddr(value string) string {
+	if !strings.Contains(value, ":") {
+		return ":" + value
+	}
+
+	return value
 }
 
 func envOrDefault(key, fallback string) string {
