@@ -72,6 +72,37 @@ sources: []
 
 	issues := ValidateConfig(loaded)
 	assertHasIssue(t, issues, "empty_sources", "sources")
+	assertIssueMessage(t, issues, "empty_sources", "sources", "sources is empty")
+}
+
+func TestValidateConfigWarnsWhenSourcesIsMissing(t *testing.T) {
+	configPath := writeConfigFile(t, `
+concurrency: 3
+`)
+
+	loaded, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("unexpected load error: %v", err)
+	}
+
+	issues := ValidateConfig(loaded)
+	assertHasIssue(t, issues, "empty_sources", "sources")
+	assertIssueMessage(t, issues, "empty_sources", "sources", "sources is empty")
+}
+
+func TestValidateConfigWarnsWhenSourcesHasNoValue(t *testing.T) {
+	configPath := writeConfigFile(t, `
+sources:
+`)
+
+	loaded, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("unexpected load error: %v", err)
+	}
+
+	issues := ValidateConfig(loaded)
+	assertHasIssue(t, issues, "empty_sources", "sources")
+	assertIssueMessage(t, issues, "empty_sources", "sources", "sources is empty")
 }
 
 func TestCheckFileReturnsInvalidYAMLIssue(t *testing.T) {
@@ -256,6 +287,25 @@ func assertHasIssue(t *testing.T, issues []ValidationIssue, code string, path st
 	}
 
 	t.Fatalf("expected issue code=%q path=%q, got %#v", code, path, issues)
+}
+
+func assertIssueMessage(t *testing.T, issues []ValidationIssue, code string, path string, message string) {
+	t.Helper()
+
+	for _, issue := range issues {
+		if issue.Code != code {
+			continue
+		}
+		if path != "" && issue.Path != path {
+			continue
+		}
+		if issue.Message != message {
+			t.Fatalf("expected issue code=%q path=%q to have message %q, got %q", code, path, message, issue.Message)
+		}
+		return
+	}
+
+	t.Fatalf("expected issue code=%q path=%q message=%q, got %#v", code, path, message, issues)
 }
 
 func assertNoIssue(t *testing.T, issues []ValidationIssue, code string, path string) {

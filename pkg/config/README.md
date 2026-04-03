@@ -28,7 +28,7 @@ concurrency: 5
 ### `sources`
 
 - Type: array of source objects
-- Required: no, but an empty list produces a `warning`
+- Required: no, but having no configured sources produces a `warning`
 
 Each source supports the following fields:
 
@@ -71,7 +71,7 @@ Validation issues have three severity levels:
 ### Current `warning` rules
 
 - Unknown fields at the top level or inside a source
-- `sources` is present but empty
+- `sources` is empty
 
 ## Check RPCs
 
