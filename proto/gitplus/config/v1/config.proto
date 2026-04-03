@@ -120,10 +120,8 @@ message UpdateSourcePatch {
 message CheckConfigRequest {}
 
 message CheckConfigResponse {
-  string path = 1;
-  bool exists = 2;
-  repeated ValidationIssue issues = 3;
-  IssueSummary summary = 4;
+  repeated ValidationIssue issues = 1;
+  IssueSummary summary = 2;
 }
 
 message CheckSourceConfigRequest {
@@ -131,19 +129,17 @@ message CheckSourceConfigRequest {
 }
 
 message CheckSourceConfigResponse {
-  string path = 1;
-  bool exists = 2;
-  string source_id = 3;
-  repeated ValidationIssue issues = 4;
-  IssueSummary summary = 5;
+  bool exists = 1;
+  string source_id = 2;
+  repeated ValidationIssue issues = 3;
+  IssueSummary summary = 4;
 }
 
 message GetConfigRequest {}
 
 message GetConfigResponse {
-  string path = 1;
-  bool exists = 2;
-  ConfigSnapshot config = 3;
+  bool exists = 1;
+  ConfigSnapshot config = 2;
 }
 
 message CreateSourceRequest {

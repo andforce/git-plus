@@ -643,10 +643,8 @@ func (*CheckConfigRequest) Descriptor() ([]byte, []int) {
 
 type CheckConfigResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Path          *string                `protobuf:"bytes,1,opt,name=path" json:"path,omitempty"`
-	Exists        *bool                  `protobuf:"varint,2,opt,name=exists" json:"exists,omitempty"`
-	Issues        []*ValidationIssue     `protobuf:"bytes,3,rep,name=issues" json:"issues,omitempty"`
-	Summary       *IssueSummary          `protobuf:"bytes,4,opt,name=summary" json:"summary,omitempty"`
+	Issues        []*ValidationIssue     `protobuf:"bytes,1,rep,name=issues" json:"issues,omitempty"`
+	Summary       *IssueSummary          `protobuf:"bytes,2,opt,name=summary" json:"summary,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -679,20 +677,6 @@ func (x *CheckConfigResponse) ProtoReflect() protoreflect.Message {
 // Deprecated: Use CheckConfigResponse.ProtoReflect.Descriptor instead.
 func (*CheckConfigResponse) Descriptor() ([]byte, []int) {
 	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *CheckConfigResponse) GetPath() string {
-	if x != nil && x.Path != nil {
-		return *x.Path
-	}
-	return ""
-}
-
-func (x *CheckConfigResponse) GetExists() bool {
-	if x != nil && x.Exists != nil {
-		return *x.Exists
-	}
-	return false
 }
 
 func (x *CheckConfigResponse) GetIssues() []*ValidationIssue {
@@ -755,11 +739,10 @@ func (x *CheckSourceConfigRequest) GetSourceId() string {
 
 type CheckSourceConfigResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Path          *string                `protobuf:"bytes,1,opt,name=path" json:"path,omitempty"`
-	Exists        *bool                  `protobuf:"varint,2,opt,name=exists" json:"exists,omitempty"`
-	SourceId      *string                `protobuf:"bytes,3,opt,name=source_id,json=sourceId" json:"source_id,omitempty"`
-	Issues        []*ValidationIssue     `protobuf:"bytes,4,rep,name=issues" json:"issues,omitempty"`
-	Summary       *IssueSummary          `protobuf:"bytes,5,opt,name=summary" json:"summary,omitempty"`
+	Exists        *bool                  `protobuf:"varint,1,opt,name=exists" json:"exists,omitempty"`
+	SourceId      *string                `protobuf:"bytes,2,opt,name=source_id,json=sourceId" json:"source_id,omitempty"`
+	Issues        []*ValidationIssue     `protobuf:"bytes,3,rep,name=issues" json:"issues,omitempty"`
+	Summary       *IssueSummary          `protobuf:"bytes,4,opt,name=summary" json:"summary,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -792,13 +775,6 @@ func (x *CheckSourceConfigResponse) ProtoReflect() protoreflect.Message {
 // Deprecated: Use CheckSourceConfigResponse.ProtoReflect.Descriptor instead.
 func (*CheckSourceConfigResponse) Descriptor() ([]byte, []int) {
 	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{10}
-}
-
-func (x *CheckSourceConfigResponse) GetPath() string {
-	if x != nil && x.Path != nil {
-		return *x.Path
-	}
-	return ""
 }
 
 func (x *CheckSourceConfigResponse) GetExists() bool {
@@ -867,9 +843,8 @@ func (*GetConfigRequest) Descriptor() ([]byte, []int) {
 
 type GetConfigResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Path          *string                `protobuf:"bytes,1,opt,name=path" json:"path,omitempty"`
-	Exists        *bool                  `protobuf:"varint,2,opt,name=exists" json:"exists,omitempty"`
-	Config        *ConfigSnapshot        `protobuf:"bytes,3,opt,name=config" json:"config,omitempty"`
+	Exists        *bool                  `protobuf:"varint,1,opt,name=exists" json:"exists,omitempty"`
+	Config        *ConfigSnapshot        `protobuf:"bytes,2,opt,name=config" json:"config,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -902,13 +877,6 @@ func (x *GetConfigResponse) ProtoReflect() protoreflect.Message {
 // Deprecated: Use GetConfigResponse.ProtoReflect.Descriptor instead.
 func (*GetConfigResponse) Descriptor() ([]byte, []int) {
 	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *GetConfigResponse) GetPath() string {
-	if x != nil && x.Path != nil {
-		return *x.Path
-	}
-	return ""
 }
 
 func (x *GetConfigResponse) GetExists() bool {
@@ -1342,25 +1310,21 @@ const file_gitplus_config_v1_config_proto_rawDesc = "" +
 	"\busername\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\busername\x12P\n" +
 	"\x12only_include_repos\x18\x04 \x01(\v2\".gitplus.config.v1.StringListValueR\x10onlyIncludeRepos\x12G\n" +
 	"\rexclude_repos\x18\x05 \x01(\v2\".gitplus.config.v1.StringListValueR\fexcludeRepos\"\x14\n" +
-	"\x12CheckConfigRequest\"\xb8\x01\n" +
-	"\x13CheckConfigResponse\x12\x12\n" +
-	"\x04path\x18\x01 \x01(\tR\x04path\x12\x16\n" +
-	"\x06exists\x18\x02 \x01(\bR\x06exists\x12:\n" +
-	"\x06issues\x18\x03 \x03(\v2\".gitplus.config.v1.ValidationIssueR\x06issues\x129\n" +
-	"\asummary\x18\x04 \x01(\v2\x1f.gitplus.config.v1.IssueSummaryR\asummary\"7\n" +
+	"\x12CheckConfigRequest\"\x8c\x01\n" +
+	"\x13CheckConfigResponse\x12:\n" +
+	"\x06issues\x18\x01 \x03(\v2\".gitplus.config.v1.ValidationIssueR\x06issues\x129\n" +
+	"\asummary\x18\x02 \x01(\v2\x1f.gitplus.config.v1.IssueSummaryR\asummary\"7\n" +
 	"\x18CheckSourceConfigRequest\x12\x1b\n" +
-	"\tsource_id\x18\x01 \x01(\tR\bsourceId\"\xdb\x01\n" +
-	"\x19CheckSourceConfigResponse\x12\x12\n" +
-	"\x04path\x18\x01 \x01(\tR\x04path\x12\x16\n" +
-	"\x06exists\x18\x02 \x01(\bR\x06exists\x12\x1b\n" +
-	"\tsource_id\x18\x03 \x01(\tR\bsourceId\x12:\n" +
-	"\x06issues\x18\x04 \x03(\v2\".gitplus.config.v1.ValidationIssueR\x06issues\x129\n" +
-	"\asummary\x18\x05 \x01(\v2\x1f.gitplus.config.v1.IssueSummaryR\asummary\"\x12\n" +
-	"\x10GetConfigRequest\"z\n" +
-	"\x11GetConfigResponse\x12\x12\n" +
-	"\x04path\x18\x01 \x01(\tR\x04path\x12\x16\n" +
-	"\x06exists\x18\x02 \x01(\bR\x06exists\x129\n" +
-	"\x06config\x18\x03 \x01(\v2!.gitplus.config.v1.ConfigSnapshotR\x06config\"[\n" +
+	"\tsource_id\x18\x01 \x01(\tR\bsourceId\"\xc7\x01\n" +
+	"\x19CheckSourceConfigResponse\x12\x16\n" +
+	"\x06exists\x18\x01 \x01(\bR\x06exists\x12\x1b\n" +
+	"\tsource_id\x18\x02 \x01(\tR\bsourceId\x12:\n" +
+	"\x06issues\x18\x03 \x03(\v2\".gitplus.config.v1.ValidationIssueR\x06issues\x129\n" +
+	"\asummary\x18\x04 \x01(\v2\x1f.gitplus.config.v1.IssueSummaryR\asummary\"\x12\n" +
+	"\x10GetConfigRequest\"f\n" +
+	"\x11GetConfigResponse\x12\x16\n" +
+	"\x06exists\x18\x01 \x01(\bR\x06exists\x129\n" +
+	"\x06config\x18\x02 \x01(\v2!.gitplus.config.v1.ConfigSnapshotR\x06config\"[\n" +
 	"\x13CreateSourceRequest\x12D\n" +
 	"\x06source\x18\x01 \x01(\v2$.gitplus.config.v1.CreateSourceInputB\x06\xbaH\x03\xc8\x01\x01R\x06source\"Q\n" +
 	"\x14CreateSourceResponse\x129\n" +

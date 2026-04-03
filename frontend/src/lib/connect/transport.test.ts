@@ -14,12 +14,16 @@ describe('createApiTransport', () => {
       return Promise.resolve(
         new Response(
           JSON.stringify({
-            path: '/tmp/config.yaml',
-            exists: false,
-            issues: [],
+            issues: [
+              {
+                severity: 'SEVERITY_WARNING',
+                code: 'config_not_found',
+                message: 'config file does not exist',
+              },
+            ],
             summary: {
               error: 0,
-              warning: 0,
+              warning: 1,
               info: 0,
             },
           }),
@@ -40,8 +44,9 @@ describe('createApiTransport', () => {
 
     const response = await client.checkConfig({});
 
-    expect(response.exists).toBe(false);
-    expect(response.path).toBe('/tmp/config.yaml');
+    expect(response.issues).toHaveLength(1);
+    expect(response.issues[0]?.code).toBe('config_not_found');
+    expect(response.summary?.warning).toBe(1);
     expect(fetchSpy).toHaveBeenCalledTimes(1);
   });
 });

@@ -3,7 +3,6 @@ import {
   Badge,
   Box,
   Button,
-  Code,
   Container,
   Divider,
   Group,
@@ -54,73 +53,41 @@ function ConfigOverview() {
 
       <Stack gap="lg">
         <Box>
-          <Text size="xs" fw={500} c="dimmed" tt="uppercase" mb="xs">
-            Config file
+          <Text size="xs" fw={500} c="dimmed" tt="uppercase" mb={4}>
+            Health
           </Text>
-          <Group gap="sm">
-            <Code>{configData.path}</Code>
-            <Badge
-              variant="light"
-              color={configData.exists ? 'teal' : 'orange'}
-              size="sm"
-            >
-              {configData.exists ? 'Exists' : 'Using defaults'}
-            </Badge>
-          </Group>
+          {errorCount > 0 ? (
+            <Group gap={4}>
+              <IconExclamationCircle
+                size={14}
+                style={{ color: 'var(--mantine-color-red-6)' }}
+              />
+              <Text fw={600} c="red">
+                {errorCount} error{errorCount !== 1 && 's'}
+              </Text>
+            </Group>
+          ) : warningCount > 0 ? (
+            <Group gap={4}>
+              <IconAlertTriangle
+                size={14}
+                style={{ color: 'var(--mantine-color-orange-6)' }}
+              />
+              <Text fw={600} c="orange">
+                {warningCount} warning{warningCount !== 1 && 's'}
+              </Text>
+            </Group>
+          ) : (
+            <Group gap={4}>
+              <IconCircleCheck
+                size={14}
+                style={{ color: 'var(--mantine-color-teal-6)' }}
+              />
+              <Text fw={600} c="teal">
+                Healthy
+              </Text>
+            </Group>
+          )}
         </Box>
-
-        <Divider />
-
-        <Group gap="xl">
-          <Box>
-            <Text size="xs" fw={500} c="dimmed" tt="uppercase" mb={4}>
-              Sources
-            </Text>
-            <Text fw={600}>{sourceCount} configured</Text>
-          </Box>
-          <Box>
-            <Text size="xs" fw={500} c="dimmed" tt="uppercase" mb={4}>
-              Concurrency
-            </Text>
-            <Text fw={600}>{concurrency} parallel</Text>
-          </Box>
-          <Box>
-            <Text size="xs" fw={500} c="dimmed" tt="uppercase" mb={4}>
-              Health
-            </Text>
-            {errorCount > 0 ? (
-              <Group gap={4}>
-                <IconExclamationCircle
-                  size={14}
-                  style={{ color: 'var(--mantine-color-red-6)' }}
-                />
-                <Text fw={600} c="red">
-                  {errorCount} error{errorCount !== 1 && 's'}
-                </Text>
-              </Group>
-            ) : warningCount > 0 ? (
-              <Group gap={4}>
-                <IconAlertTriangle
-                  size={14}
-                  style={{ color: 'var(--mantine-color-yellow-6)' }}
-                />
-                <Text fw={600} c="yellow">
-                  {warningCount} warning{warningCount !== 1 && 's'}
-                </Text>
-              </Group>
-            ) : (
-              <Group gap={4}>
-                <IconCircleCheck
-                  size={14}
-                  style={{ color: 'var(--mantine-color-teal-6)' }}
-                />
-                <Text fw={600} c="teal">
-                  Healthy
-                </Text>
-              </Group>
-            )}
-          </Box>
-        </Group>
 
         {hasIssues && (
           <>
@@ -140,7 +107,11 @@ function ConfigOverview() {
                     >
                       {severityLabel(issue.severity)}
                     </Badge>
-                    <Text size="sm" style={{ flex: 1 }}>
+                    <Text
+                      size="sm"
+                      c={severityColor(issue.severity)}
+                      style={{ flex: 1 }}
+                    >
                       {issue.message}
                     </Text>
                   </Group>
@@ -149,6 +120,23 @@ function ConfigOverview() {
             </Box>
           </>
         )}
+
+        <Divider />
+
+        <Group gap="xl">
+          <Box>
+            <Text size="xs" fw={500} c="dimmed" tt="uppercase" mb={4}>
+              Sources
+            </Text>
+            <Text fw={600}>{sourceCount} configured</Text>
+          </Box>
+          <Box>
+            <Text size="xs" fw={500} c="dimmed" tt="uppercase" mb={4}>
+              Concurrency
+            </Text>
+            <Text fw={600}>{concurrency} parallel</Text>
+          </Box>
+        </Group>
 
         <Divider />
 
@@ -172,7 +160,7 @@ function severityColor(severity: ValidationIssue_Severity) {
     case ValidationIssue_Severity.ERROR:
       return 'red';
     case ValidationIssue_Severity.WARNING:
-      return 'yellow';
+      return 'orange';
     case ValidationIssue_Severity.INFO:
       return 'blue';
     default:

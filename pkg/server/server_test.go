@@ -30,13 +30,8 @@ func TestConfigServiceCheckConfigReturnsExistsFalseWhenConfigMissing(t *testing.
 		t.Fatalf("check config: %v", err)
 	}
 
-	if response.Msg.GetExists() {
-		t.Fatal("expected config file to be reported as missing")
-	}
-	if len(response.Msg.GetIssues()) != 0 {
-		t.Fatalf("expected no issues when config is missing, got %#v", response.Msg.GetIssues())
-	}
-	assertSummaryCounts(t, response.Msg.GetSummary(), 0, 0, 0)
+	assertHasIssueCode(t, response.Msg.GetIssues(), "config_not_found")
+	assertSummaryCounts(t, response.Msg.GetSummary(), 0, 1, 0)
 }
 
 func TestConfigServiceCheckConfigReturnsInvalidYAMLIssue(t *testing.T) {
@@ -58,9 +53,6 @@ sources:
 		t.Fatalf("check config: %v", err)
 	}
 
-	if !response.Msg.GetExists() {
-		t.Fatal("expected config file to exist")
-	}
 	assertHasIssueCode(t, response.Msg.GetIssues(), "invalid_yaml")
 	assertSummaryCounts(t, response.Msg.GetSummary(), 1, 0, 0)
 }
@@ -534,17 +526,13 @@ func TestServerHandlerRoutesConnectAPIAndKeepsLegacyRoutesGone(t *testing.T) {
 	server := newTestServer(t, dataDir)
 	client := server.Client()
 
-	response, err := newConfigServiceClient(server.URL).CheckConfig(
+	_, err := newConfigServiceClient(server.URL).CheckConfig(
 		context.Background(),
 		connect.NewRequest(&configv1.CheckConfigRequest{}),
 	)
 	if err != nil {
 		t.Fatalf("check config over /api route: %v", err)
 	}
-	if response.Msg.GetPath() != appconfig.PathForDataDir(dataDir) {
-		t.Fatalf("unexpected config path: %q", response.Msg.GetPath())
-	}
-
 	for _, route := range []string{
 		"/api/config/check",
 		"/api/config/sources/github/check",

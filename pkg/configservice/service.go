@@ -38,11 +38,16 @@ func (s *serviceServer) CheckConfig(
 	_ *connect.Request[configv1.CheckConfigRequest],
 ) (*connect.Response[configv1.CheckConfigResponse], error) {
 	result := appconfig.CheckFile(appconfig.PathForDataDir(s.dataDir), secretOptionsFromEnv())
+	if !result.Exists && len(result.Issues) == 0 {
+		result.Issues = append(result.Issues, appconfig.ValidationIssue{
+			Severity: appconfig.SeverityWarning,
+			Code:     "config_not_found",
+			Message:  "config file does not exist",
+		})
+	}
 	appconfig.SortIssues(result.Issues)
 
 	return connect.NewResponse(&configv1.CheckConfigResponse{
-		Path:    stringPtr(result.Path),
-		Exists:  boolPtr(result.Exists),
 		Issues:  toProtoIssues(result.Issues),
 		Summary: summarizeProtoIssues(result.Issues),
 	}), nil
@@ -57,7 +62,6 @@ func (s *serviceServer) CheckSourceConfig(
 	appconfig.SortIssues(result.Issues)
 
 	return connect.NewResponse(&configv1.CheckSourceConfigResponse{
-		Path:     stringPtr(result.Path),
 		Exists:   boolPtr(result.Exists),
 		SourceId: stringPtr(sourceID),
 		Issues:   toProtoIssues(result.Issues),
@@ -76,7 +80,6 @@ func (s *serviceServer) GetConfig(
 	}
 
 	return connect.NewResponse(&configv1.GetConfigResponse{
-		Path:   stringPtr(loaded.Path),
 		Exists: boolPtr(exists),
 		Config: toProtoConfigSnapshot(loaded.Data),
 	}), nil
