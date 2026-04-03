@@ -4,7 +4,24 @@ This file provides guidance to AI Code Agent when working with code in this repo
 
 ## Project Structure & Module Organization
 
-Source lives in `src/`. The Vite entry is `src/main.tsx`, global routing is defined in `src/router.tsx`, and route modules live in `src/routes` (`__root.tsx` for layout, `index.tsx` for the landing page). Shared UI composites belong in `src/components`, design primitives in `src/ui`, and styling overrides sit in `src/styles.css`. Static files stay in `public/`, while the deployable static build is written to `dist/`. Colocate new feature assets with the component or route that consumes them to keep dependencies obvious.
+This repository is a Go backend plus a Vite/TanStack Router frontend workspace.
+
+- Go entrypoints live at the repository root:
+  - `main.go` wires the HTTP server and reserved routes (`/api`, `/ready`, `/healthz`)
+  - `frontend_dev.go` handles development-mode proxying to the frontend dev server
+  - `frontend_embed.go` serves the embedded production frontend when building with `-tags embed`
+- Frontend source lives in `frontend/`:
+  - Vite entry: `frontend/src/main.tsx`
+  - Router setup: `frontend/src/router.tsx`
+  - Route modules: `frontend/src/routes`
+  - Shared UI composites: `frontend/src/components`
+  - Design primitives/themes: `frontend/src/ui`
+  - Global styling: `frontend/src/styles.css`
+  - Static assets: `frontend/public`
+- Frontend production assets are emitted to `frontend/dist/`
+- The production Go binary is emitted to `dist/git-plus`
+
+Colocate new frontend feature assets with the component or route that consumes them to keep dependencies obvious.
 
 - UI: Mantine v8. Use the context7 MCP tool with the library id `/mantine/mantine` to load docs.
 - Routing: TanStack Router. Use context7 with `/websites/tanstack_router` for Router docs.
@@ -12,19 +29,29 @@ Source lives in `src/`. The Vite entry is `src/main.tsx`, global routing is defi
 
 ## Build & Development Commands
 
-Use pnpm for everything. `pnpm dev` starts the Vite dev server on port 3000 with hot reload. `pnpm build` emits the optimized static site into `dist/`, while `pnpm preview` serves `dist/` through Vite Preview to sanity-check the production bundle. `pnpm check:types` runs `tsc --noEmit`. `pnpm lint` applies the TanStack + React ESLint rules, and `pnpm format` runs Prettier then auto-fixes lint errors.
+Use pnpm for workspace tasks and Go tooling for backend compilation/tests.
+
+- `pnpm dev` starts both the frontend dev server and the Go server. The Go server proxies every non-`/api` request to the frontend dev server.
+- `pnpm build` first builds the frontend into `frontend/dist/`, then builds `dist/git-plus` with `go build -tags embed`, embedding the frontend assets into the binary.
+- `pnpm test` runs `go test ./...` and then frontend Vitest.
+- `pnpm check:types` runs `frontend` type-checking via `tsc --noEmit`.
+- `pnpm lint` applies the TanStack + React ESLint rules.
+- `pnpm format` runs Prettier, then ESLint autofix, then ESLint verification.
+
+If you need frontend-only commands during local debugging, use the package-level scripts in `frontend/package.json` directly.
 
 Dependency upgrade policy:
 
 - Keep `@types/node` and `eslint` at their current versions.
 - Do not upgrade them unless explicitly requested.
 
-Testing uses Vitest:
+Frontend testing uses Vitest:
 
 - Vitest is configured via `vitest.config.ts` using `test.projects` (separate `unit` + `browser` projects).
-- `pnpm test` runs all projects.
-- `pnpm test:unit` runs the `unit` project (Node environment).
-- `pnpm test:browser` runs the `browser` project (Browser Mode with Playwright provider).
+- Root `pnpm test` runs Go tests first, then frontend Vitest.
+- Frontend-only `pnpm --filter ./frontend test` runs all Vitest projects.
+- Frontend-only `pnpm --filter ./frontend test:unit` runs the `unit` project.
+- Frontend-only `pnpm --filter ./frontend test:browser` runs the `browser` project.
 - The default test environment is `node`. For React component tests, prefer Browser Mode (`pnpm test:browser`) and name files `*.browser.test.tsx` / `*.browser.spec.tsx`.
 
 Browser Mode notes:
@@ -33,7 +60,7 @@ Browser Mode notes:
 - Setup file: `vitest.browser.setup.ts`
 - If Chromium is missing locally, install it with `pnpm exec playwright install chromium`
 
-Before declaring any Agent task complete, re-run `pnpm check:types` and `pnpm format` and ensure both commands pass cleanly.
+Before declaring any Agent task complete, re-run the commands affected by your changes. For full-stack changes, prefer validating with `pnpm test`, `pnpm build`, and `pnpm check:types`.
 
 ## ESLint
 
@@ -72,12 +99,12 @@ Commits should mirror the existing short, imperative pattern (`use mantine compo
 
 ## Security & Configuration Tips
 
-Secrets belong in `.env.local` (gitignored); reference them through Vite's `import.meta.env`. Run `lefthook install` once so git hooks catch lint regressions pre-push. Document any third-party scripts or analytics additions in the PR, including CSP or token requirements.
+Secrets belong at the repository root in local env files such as `.env` / `.env.local` (gitignored); frontend-only examples live alongside the workspace, but the active runtime setup is root-oriented. Run `lefthook install` once so git hooks catch lint regressions pre-push. Document any third-party scripts or analytics additions in the PR, including CSP or token requirements.
 
 ## Notes
 
 1. Prefer Mantine components and styles; avoid unnecessary custom CSS.
-2. Extract custom components into the `src/components/` directory (and then you can import them with `~components/`); use CSS Modules for each component's styles.
+2. Extract custom frontend components into `frontend/src/components/`; use the existing frontend structure and tooling rather than introducing a second pattern.
 3. Always use English when writing code, comments, and documentation.
 
 ## Dependencies / Tools

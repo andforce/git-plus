@@ -10,12 +10,13 @@
     "frontend"
   ],
   "scripts": {
-    "dev": "pnpm --filter ./frontend dev",
-    "build": "pnpm --filter ./frontend build",
-    "preview": "pnpm --filter ./frontend preview",
-    "test": "pnpm --filter ./frontend test",
-    "test:unit": "pnpm --filter ./frontend test:unit",
-    "test:browser": "pnpm --filter ./frontend test:browser",
+    "dev": "pnpm dlx concurrently@9.2.1 --kill-others-on-fail --names frontend,go \"pnpm dev:frontend\" \"pnpm dev:go\"",
+    "dev:frontend": "pnpm --filter ./frontend exec vite dev --host 127.0.0.1 --port 43210 --strictPort",
+    "dev:go": "FRONTEND_DEV_SERVER=http://127.0.0.1:43210 go run .",
+    "build": "pnpm build:frontend && pnpm build:go",
+    "build:frontend": "pnpm --filter ./frontend build",
+    "build:go": "mkdir -p dist && go build -tags embed -o ./dist/git-plus .",
+    "test": "go test ./... && pnpm --filter ./frontend test",
     "lint": "eslint .",
     "format": "prettier --write . && eslint --fix . && eslint .",
     "check:types": "pnpm --filter ./frontend check:types"
