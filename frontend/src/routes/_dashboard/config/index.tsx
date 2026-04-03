@@ -1,8 +1,8 @@
 import { Link, createFileRoute } from '@tanstack/react-router';
 import {
+  Anchor,
   Badge,
   Box,
-  Button,
   Container,
   Divider,
   Group,
@@ -12,9 +12,9 @@ import {
 } from '@mantine/core';
 import {
   IconAlertTriangle,
-  IconArrowRight,
   IconCircleCheck,
   IconExclamationCircle,
+  IconPencil,
 } from '@tabler/icons-react';
 import { useSuspenseQuery } from '@tanstack/react-query';
 import {
@@ -125,53 +125,51 @@ function ConfigOverview() {
 
         <Divider />
 
-        <Stack gap="xs" maw={280}>
-          <Group justify="space-between">
-            <Text size="sm" c="dimmed">
-              Sources
-            </Text>
-            <Text size="sm" fw={600}>
-              {sourceCount} configured
-            </Text>
-          </Group>
-          <Group justify="space-between">
-            <Text size="sm" c="dimmed">
-              Concurrency
-            </Text>
-            <Text size="sm" fw={600}>
-              {concurrency} parallel
-            </Text>
-          </Group>
-          <Group justify="space-between">
-            <Text size="sm" c="dimmed">
-              Max retry times
-            </Text>
-            <Text size="sm" fw={600}>
-              {maxRetryTimes}
-            </Text>
-          </Group>
-          <Group justify="space-between" align="flex-start">
-            <Text size="sm" c="dimmed">
-              Cron
-            </Text>
-            <Text size="sm" fw={600} ta="right">
-              {cron ?? 'Not set'}
-            </Text>
-          </Group>
-        </Stack>
+        <Box
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto auto auto',
+            gap: 'var(--mantine-spacing-xs) var(--mantine-spacing-sm)',
+            alignItems: 'baseline',
+            width: 'fit-content',
+          }}
+        >
+          <Text size="sm" c="dimmed">
+            Sources
+          </Text>
+          <Text size="sm" fw={600}>
+            {sourceCount} configured
+          </Text>
+          <Anchor component={Link} to="/config/sources" c="dimmed" lh={1}>
+            <IconPencil size={14} style={{ verticalAlign: 'middle' }} />
+          </Anchor>
 
-        <Divider />
+          <Text size="sm" c="dimmed">
+            Concurrency
+          </Text>
+          <Text size="sm" fw={600}>
+            {concurrency} parallel
+          </Text>
+          <span />
 
-        <Group>
-          <Button
-            component={Link}
-            to="/config/sources"
-            variant="light"
-            rightSection={<IconArrowRight size={16} />}
-          >
-            Manage Sources
-          </Button>
-        </Group>
+          <Text size="sm" c="dimmed">
+            Max retry times
+          </Text>
+          <Text size="sm" fw={600}>
+            {maxRetryTimes}
+          </Text>
+          <span />
+
+          <Text size="sm" c="dimmed">
+            Cron
+          </Text>
+          <Text size="sm" fw={600} ff="monospace">
+            {cron ?? 'Not set'}
+          </Text>
+          <Anchor component={Link} to="/config/cron" c="dimmed" lh={1}>
+            <IconPencil size={14} style={{ verticalAlign: 'middle' }} />
+          </Anchor>
+        </Box>
       </Stack>
     </Container>
   );
