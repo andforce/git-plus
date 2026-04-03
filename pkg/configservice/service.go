@@ -40,7 +40,7 @@ func (s *serviceServer) CheckConfig(
 	result := appconfig.CheckFile(appconfig.PathForDataDir(s.dataDir), secretOptionsFromEnv())
 	if !result.Exists && len(result.Issues) == 0 {
 		result.Issues = append(result.Issues, appconfig.ValidationIssue{
-			Severity: appconfig.SeverityWarning,
+			Severity: appconfig.SeverityError,
 			Code:     "config_not_found",
 			Message:  "config file does not exist",
 		})
@@ -299,6 +299,9 @@ func toProtoSource(source appconfig.SourceConfig) *configv1.Source {
 		Token:            stringPtr(sanitizeTokenForRead(source.Token)),
 		OnlyIncludeRepos: append([]string{}, source.OnlyIncludeRepos...),
 		ExcludeRepos:     append([]string{}, source.ExcludeRepos...),
+		IncludeDefaults:  boolPtr(source.IncludeDefaults),
+		IncludeStarred:   boolPtr(source.IncludeStarred),
+		IncludeWatching:  boolPtr(source.IncludeWatching),
 	}
 }
 
@@ -358,6 +361,9 @@ func createSourceFromProto(input *configv1.CreateSourceInput) (appconfig.SourceC
 		Token:            encryptedToken,
 		OnlyIncludeRepos: onlyIncludeRepos,
 		ExcludeRepos:     excludeRepos,
+		IncludeDefaults:  boolValueOrDefault(input.IncludeDefaults, appconfig.DefaultIncludeDefaults),
+		IncludeStarred:   boolValueOrDefault(input.IncludeStarred, false),
+		IncludeWatching:  boolValueOrDefault(input.IncludeWatching, false),
 	}, nil
 }
 
@@ -401,6 +407,18 @@ func applySourcePatch(input *configv1.UpdateSourcePatch, existingSource appconfi
 			return appconfig.SourceConfig{}, err
 		}
 		updatedSource.ExcludeRepos = excludeRepos
+	}
+
+	if input.IncludeDefaults != nil {
+		updatedSource.IncludeDefaults = input.GetIncludeDefaults()
+	}
+
+	if input.IncludeStarred != nil {
+		updatedSource.IncludeStarred = input.GetIncludeStarred()
+	}
+
+	if input.IncludeWatching != nil {
+		updatedSource.IncludeWatching = input.GetIncludeWatching()
 	}
 
 	return updatedSource, nil
@@ -475,7 +493,10 @@ func isEmptySourcePatch(input *configv1.UpdateSourcePatch) bool {
 	return input.Platform == nil &&
 		input.Username == nil &&
 		input.OnlyIncludeRepos == nil &&
-		input.ExcludeRepos == nil
+		input.ExcludeRepos == nil &&
+		input.IncludeDefaults == nil &&
+		input.IncludeStarred == nil &&
+		input.IncludeWatching == nil
 }
 
 func mustValidateInterceptor() connect.Interceptor {
@@ -511,4 +532,12 @@ func severityPtr(value configv1.ValidationIssue_Severity) *configv1.ValidationIs
 
 func platformPtr(value configv1.Platform) *configv1.Platform {
 	return &value
+}
+
+func boolValueOrDefault(value *bool, defaultValue bool) bool {
+	if value == nil {
+		return defaultValue
+	}
+
+	return *value
 }

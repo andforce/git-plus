@@ -60,6 +60,9 @@ function SourcesPage() {
         tokenPlaintext: string;
         onlyIncludeRepos: Array<string>;
         excludeRepos: Array<string>;
+        includeDefaults: boolean;
+        includeStarred: boolean;
+        includeWatching: boolean;
       };
     }) => configClient.createSource(input),
     onSuccess: () => {
@@ -74,11 +77,13 @@ function SourcesPage() {
     mutationFn: (input: {
       sourceId: string;
       patch: {
-        id: string;
         platform: number;
         username: string;
         onlyIncludeRepos: { values: Array<string> };
         excludeRepos: { values: Array<string> };
+        includeDefaults: boolean;
+        includeStarred: boolean;
+        includeWatching: boolean;
       };
     }) => configClient.updateSource(input),
     onSuccess: () => {

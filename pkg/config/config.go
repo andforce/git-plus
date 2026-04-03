@@ -9,9 +9,10 @@ import (
 )
 
 const (
-	ConfigFilename        = "config.yaml"
-	DefaultConcurrency    = 5
-	TokenPassphraseEnvVar = "ENCRYPT_PASSPHRASE"
+	ConfigFilename         = "config.yaml"
+	DefaultConcurrency     = 5
+	TokenPassphraseEnvVar  = "ENCRYPT_PASSPHRASE"
+	DefaultIncludeDefaults = true
 )
 
 type Config struct {
@@ -26,6 +27,9 @@ type SourceConfig struct {
 	Token            string   `yaml:"token"`
 	OnlyIncludeRepos []string `yaml:"only_include_repos"`
 	ExcludeRepos     []string `yaml:"exclude_repos"`
+	IncludeDefaults  bool     `yaml:"include_defaults"`
+	IncludeStarred   bool     `yaml:"include_starred"`
+	IncludeWatching  bool     `yaml:"include_watching"`
 }
 
 type LoadedConfig struct {
@@ -59,6 +63,7 @@ func Load(path string) (LoadedConfig, error) {
 	if err := document.Decode(&cfg); err != nil {
 		return LoadedConfig{}, fmt.Errorf("decode config file: %w", err)
 	}
+	applyConfigDefaults(&cfg, &document)
 
 	return LoadedConfig{
 		Path: path,
@@ -85,4 +90,26 @@ func LoadResolved(path string, opts SecretOptions) (LoadedConfig, error) {
 	loaded.Data = resolvedData
 
 	return loaded, nil
+}
+
+func applyConfigDefaults(cfg *Config, document *yaml.Node) {
+	if cfg == nil {
+		return
+	}
+
+	root := documentRoot(document)
+	sourcesNode, _, _ := mappingValue(root, "sources")
+	sourceNodes := sequenceItems(sourcesNode)
+
+	for index := range cfg.Sources {
+		cfg.Sources[index] = applySourceDefaults(cfg.Sources[index], sourceNodeAt(sourceNodes, index))
+	}
+}
+
+func applySourceDefaults(source SourceConfig, node *yaml.Node) SourceConfig {
+	if _, _, ok := mappingValue(node, "include_defaults"); !ok {
+		source.IncludeDefaults = DefaultIncludeDefaults
+	}
+
+	return source
 }

@@ -31,7 +31,7 @@ func TestConfigServiceCheckConfigReturnsExistsFalseWhenConfigMissing(t *testing.
 	}
 
 	assertHasIssueCode(t, response.Msg.GetIssues(), "config_not_found")
-	assertSummaryCounts(t, response.Msg.GetSummary(), 0, 1, 0)
+	assertSummaryCounts(t, response.Msg.GetSummary(), 1, 0, 0)
 }
 
 func TestConfigServiceCheckConfigReturnsInvalidYAMLIssue(t *testing.T) {
@@ -206,6 +206,9 @@ func TestConfigServiceCreateSourceEncryptsAndPersistsToken(t *testing.T) {
 				TokenPlaintext:   testStringPtr("super-secret-token"),
 				OnlyIncludeRepos: []string{"alpha/repo"},
 				ExcludeRepos:     []string{"beta/repo"},
+				IncludeDefaults:  testBoolPtr(true),
+				IncludeStarred:   testBoolPtr(true),
+				IncludeWatching:  testBoolPtr(false),
 			},
 		}),
 	)
@@ -223,6 +226,15 @@ func TestConfigServiceCreateSourceEncryptsAndPersistsToken(t *testing.T) {
 	if !appconfig.IsEncryptedToken(source.GetToken()) {
 		t.Fatalf("expected encrypted token format, got %q", source.GetToken())
 	}
+	if !source.GetIncludeDefaults() {
+		t.Fatal("expected include_defaults=true")
+	}
+	if !source.GetIncludeStarred() {
+		t.Fatal("expected include_starred=true")
+	}
+	if source.GetIncludeWatching() {
+		t.Fatal("expected include_watching=false")
+	}
 
 	configPath := filepath.Join(dataDir, appconfig.ConfigFilename)
 	loaded, err := appconfig.Load(configPath)
@@ -237,6 +249,15 @@ func TestConfigServiceCreateSourceEncryptsAndPersistsToken(t *testing.T) {
 	}
 	if loaded.Data.Sources[0].Token == "super-secret-token" {
 		t.Fatal("expected plaintext token to never be written to disk")
+	}
+	if !loaded.Data.Sources[0].IncludeDefaults {
+		t.Fatal("expected include_defaults to be persisted")
+	}
+	if !loaded.Data.Sources[0].IncludeStarred {
+		t.Fatal("expected include_starred to be persisted")
+	}
+	if loaded.Data.Sources[0].IncludeWatching {
+		t.Fatal("expected include_watching=false to be persisted")
 	}
 
 	decryptedToken, err := appconfig.DecryptToken(loaded.Data.Sources[0].Token, serverTestPassphrase)
@@ -256,6 +277,9 @@ sources:
     platform: github
     username: octocat
     token: plain-secret
+    include_defaults: false
+    include_starred: true
+    include_watching: true
 concurrency: 5
 `)
 	server := newTestServer(t, dataDir)
@@ -274,6 +298,15 @@ concurrency: 5
 	}
 	if sources[0].GetToken() != "" {
 		t.Fatalf("expected plaintext token to be withheld, got %q", sources[0].GetToken())
+	}
+	if sources[0].GetIncludeDefaults() {
+		t.Fatal("expected include_defaults=false from config")
+	}
+	if !sources[0].GetIncludeStarred() {
+		t.Fatal("expected include_starred=true from config")
+	}
+	if !sources[0].GetIncludeWatching() {
+		t.Fatal("expected include_watching=true from config")
 	}
 }
 
@@ -305,6 +338,8 @@ concurrency: 5
 				ExcludeRepos: &configv1.StringListValue{
 					Values: []string{"ignored/repo"},
 				},
+				IncludeDefaults: testBoolPtr(false),
+				IncludeStarred:  testBoolPtr(true),
 			},
 		}),
 	)
@@ -325,6 +360,12 @@ concurrency: 5
 	if sources[0].GetToken() != encryptedToken {
 		t.Fatalf("expected token to remain unchanged, got %q", sources[0].GetToken())
 	}
+	if sources[0].GetIncludeDefaults() {
+		t.Fatal("expected include_defaults=false after patch")
+	}
+	if !sources[0].GetIncludeStarred() {
+		t.Fatal("expected include_starred=true after patch")
+	}
 
 	loaded, err := appconfig.Load(filepath.Join(dataDir, appconfig.ConfigFilename))
 	if err != nil {
@@ -335,6 +376,12 @@ concurrency: 5
 	}
 	if loaded.Data.Sources[0].Token != encryptedToken {
 		t.Fatalf("unexpected persisted token: %q", loaded.Data.Sources[0].Token)
+	}
+	if loaded.Data.Sources[0].IncludeDefaults {
+		t.Fatal("expected persisted include_defaults=false")
+	}
+	if !loaded.Data.Sources[0].IncludeStarred {
+		t.Fatal("expected persisted include_starred=true")
 	}
 }
 
@@ -705,5 +752,9 @@ func testStringPtr(value string) *string {
 }
 
 func testPlatformPtr(value configv1.Platform) *configv1.Platform {
+	return &value
+}
+
+func testBoolPtr(value bool) *bool {
 	return &value
 }

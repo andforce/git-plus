@@ -26,6 +26,45 @@ sources:
 	if loaded.Data.Concurrency != DefaultConcurrency {
 		t.Fatalf("expected default concurrency %d, got %d", DefaultConcurrency, loaded.Data.Concurrency)
 	}
+	if !loaded.Data.Sources[0].IncludeDefaults {
+		t.Fatal("expected include_defaults to default to true")
+	}
+	if loaded.Data.Sources[0].IncludeStarred {
+		t.Fatal("expected include_starred to default to false")
+	}
+	if loaded.Data.Sources[0].IncludeWatching {
+		t.Fatal("expected include_watching to default to false")
+	}
+}
+
+func TestLoadPreservesExplicitIncludeDefaultsFalse(t *testing.T) {
+	encryptedToken := mustEncryptToken(t, "secret", testPassphrase)
+	configPath := writeConfigFile(t, `
+sources:
+  - id: github
+    platform: github
+    username: octocat
+    token: `+encryptedToken+`
+    include_defaults: false
+    include_starred: true
+    include_watching: true
+`)
+
+	loaded, err := Load(configPath)
+	if err != nil {
+		t.Fatalf("unexpected load error: %v", err)
+	}
+
+	source := loaded.Data.Sources[0]
+	if source.IncludeDefaults {
+		t.Fatal("expected explicit include_defaults=false to be preserved")
+	}
+	if !source.IncludeStarred {
+		t.Fatal("expected include_starred=true to be preserved")
+	}
+	if !source.IncludeWatching {
+		t.Fatal("expected include_watching=true to be preserved")
+	}
 }
 
 func TestValidateConfigReportsExpectedIssues(t *testing.T) {

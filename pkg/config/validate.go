@@ -136,6 +136,9 @@ var sourceFields = []string{
 	"token",
 	"only_include_repos",
 	"exclude_repos",
+	"include_defaults",
+	"include_starred",
+	"include_watching",
 }
 
 func validateSourceCollection(sources []SourceConfig, root *yaml.Node, opts SecretOptions) []ValidationIssue {

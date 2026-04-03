@@ -8,6 +8,7 @@ import {
   Group,
   PasswordInput,
   Stack,
+  Switch,
   Text,
   TextInput,
   UnstyledButton,
@@ -32,6 +33,9 @@ interface CreateData {
     tokenPlaintext: string;
     onlyIncludeRepos: Array<string>;
     excludeRepos: Array<string>;
+    includeDefaults: boolean;
+    includeStarred: boolean;
+    includeWatching: boolean;
   };
 }
 
@@ -42,6 +46,9 @@ interface UpdateData {
     username: string;
     onlyIncludeRepos: { values: Array<string> };
     excludeRepos: { values: Array<string> };
+    includeDefaults: boolean;
+    includeStarred: boolean;
+    includeWatching: boolean;
   };
 }
 
@@ -61,6 +68,9 @@ interface FormValues {
   tokenPlaintext: string;
   onlyIncludeRepos: Array<string>;
   excludeRepos: Array<string>;
+  includeDefaults: boolean;
+  includeStarred: boolean;
+  includeWatching: boolean;
 }
 
 function platformName(p: Platform): string {
@@ -106,6 +116,9 @@ export function SourceFormDrawer({
       tokenPlaintext: '',
       onlyIncludeRepos: [],
       excludeRepos: [],
+      includeDefaults: true,
+      includeStarred: false,
+      includeWatching: false,
     },
     validate: {
       id: (value) => (value.trim() ? null : 'Source ID is required'),
@@ -125,14 +138,31 @@ export function SourceFormDrawer({
         tokenPlaintext: '',
         onlyIncludeRepos: [...source.onlyIncludeRepos],
         excludeRepos: [...source.excludeRepos],
+        includeDefaults: source.includeDefaults,
+        includeStarred: source.includeStarred,
+        includeWatching: source.includeWatching,
       });
       form.resetDirty();
       setAdvancedOpen(
-        source.onlyIncludeRepos.length > 0 || source.excludeRepos.length > 0,
+        source.onlyIncludeRepos.length > 0 ||
+          source.excludeRepos.length > 0 ||
+          !source.includeDefaults ||
+          source.includeStarred ||
+          source.includeWatching,
       );
     } else {
       setPlatform(null);
       setAdvancedOpen(false);
+      form.setInitialValues({
+        id: '',
+        username: '',
+        tokenPlaintext: '',
+        onlyIncludeRepos: [],
+        excludeRepos: [],
+        includeDefaults: true,
+        includeStarred: false,
+        includeWatching: false,
+      });
       form.reset();
     }
   }, [opened, mode, source]);
@@ -155,6 +185,9 @@ export function SourceFormDrawer({
           tokenPlaintext: values.tokenPlaintext.trim(),
           onlyIncludeRepos: values.onlyIncludeRepos,
           excludeRepos: values.excludeRepos,
+          includeDefaults: values.includeDefaults,
+          includeStarred: values.includeStarred,
+          includeWatching: values.includeWatching,
         },
       });
     } else {
@@ -165,6 +198,9 @@ export function SourceFormDrawer({
           username: values.username.trim(),
           onlyIncludeRepos: { values: values.onlyIncludeRepos },
           excludeRepos: { values: values.excludeRepos },
+          includeDefaults: values.includeDefaults,
+          includeStarred: values.includeStarred,
+          includeWatching: values.includeWatching,
         },
       });
     }
@@ -281,6 +317,29 @@ export function SourceFormDrawer({
               </UnstyledButton>
               <Collapse expanded={advancedOpen}>
                 <Stack gap="sm" mt="sm">
+                  <Stack gap="xs">
+                    <Switch
+                      label="Include default accessible repositories"
+                      description="Repositories you can access by default, including your own and organization repositories."
+                      {...form.getInputProps('includeDefaults', {
+                        type: 'checkbox',
+                      })}
+                    />
+                    <Switch
+                      label="Include starred repositories"
+                      description="Repositories you have starred on GitHub."
+                      {...form.getInputProps('includeStarred', {
+                        type: 'checkbox',
+                      })}
+                    />
+                    <Switch
+                      label="Include watching repositories"
+                      description="Repositories you are watching on GitHub."
+                      {...form.getInputProps('includeWatching', {
+                        type: 'checkbox',
+                      })}
+                    />
+                  </Stack>
                   <StringListInput
                     label="Only Include Repos"
                     description="Supports wildcards, e.g. my-org/*, *-backup"

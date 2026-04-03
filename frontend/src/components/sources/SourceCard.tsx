@@ -29,9 +29,7 @@ export function SourceCard({
   onReplaceToken,
   onDelete,
 }: SourceCardProps) {
-  const hasInclude = source.onlyIncludeRepos.length > 0;
-  const hasExclude = source.excludeRepos.length > 0;
-
+  const scopeBadges = getScopeBadges(source);
   const repoSummary = getRepoSummary(source);
 
   return (
@@ -81,31 +79,39 @@ export function SourceCard({
           <Text size="xs" c="dimmed">
             {repoSummary.label}
           </Text>
-          {hasInclude &&
-            source.onlyIncludeRepos.slice(0, 2).map((repo) => (
-              <Badge
-                key={repo}
-                size="xs"
-                variant="outline"
-                color="gray"
-                fw={400}
-              >
-                {repo}
-              </Badge>
-            ))}
-          {hasExclude &&
-            !hasInclude &&
-            source.excludeRepos.slice(0, 2).map((repo) => (
-              <Badge
-                key={repo}
-                size="xs"
-                variant="outline"
-                color="gray"
-                fw={400}
-              >
-                {repo}
-              </Badge>
-            ))}
+          {scopeBadges.map((badge) => (
+            <Badge
+              key={badge.label}
+              size="xs"
+              variant="light"
+              color={badge.color}
+              fw={500}
+            >
+              {badge.label}
+            </Badge>
+          ))}
+          {source.onlyIncludeRepos.slice(0, 2).map((repo) => (
+            <Badge
+              key={`include-${repo}`}
+              size="xs"
+              variant="outline"
+              color="gray"
+              fw={400}
+            >
+              + {repo}
+            </Badge>
+          ))}
+          {source.excludeRepos.slice(0, 2).map((repo) => (
+            <Badge
+              key={`exclude-${repo}`}
+              size="xs"
+              variant="outline"
+              color="gray"
+              fw={400}
+            >
+              - {repo}
+            </Badge>
+          ))}
           {repoSummary.extra > 0 && (
             <Text size="xs" c="dimmed">
               +{repoSummary.extra}
@@ -118,24 +124,37 @@ export function SourceCard({
 }
 
 function getRepoSummary(source: Source) {
-  const hasInclude = source.onlyIncludeRepos.length > 0;
-  const hasExclude = source.excludeRepos.length > 0;
+  const scopeCount =
+    (source.includeDefaults ? 1 : 0) +
+    (source.includeStarred ? 1 : 0) +
+    (source.includeWatching ? 1 : 0);
+  const filterCount =
+    source.onlyIncludeRepos.length + source.excludeRepos.length;
 
-  if (!hasInclude && !hasExclude) {
-    return { label: 'All repositories', extra: 0 };
+  if (scopeCount == 0 && filterCount == 0) {
+    return { label: 'No repository groups enabled', extra: 0 };
   }
 
-  if (hasInclude) {
-    const total = source.onlyIncludeRepos.length;
-    return {
-      label: `${total} included ·`,
-      extra: Math.max(0, total - 2),
-    };
-  }
-
-  const total = source.excludeRepos.length;
   return {
-    label: `${total} excluded ·`,
-    extra: Math.max(0, total - 2),
+    label: `${scopeCount} group${scopeCount !== 1 ? 's' : ''} · ${filterCount} filter${filterCount !== 1 ? 's' : ''}`,
+    extra:
+      Math.max(0, source.onlyIncludeRepos.length - 2) +
+      Math.max(0, source.excludeRepos.length - 2),
   };
+}
+
+function getScopeBadges(source: Source) {
+  const badges: Array<{ label: string; color: string }> = [];
+
+  if (source.includeDefaults) {
+    badges.push({ label: 'Default access', color: 'blue' });
+  }
+  if (source.includeStarred) {
+    badges.push({ label: 'Starred', color: 'yellow' });
+  }
+  if (source.includeWatching) {
+    badges.push({ label: 'Watching', color: 'grape' });
+  }
+
+  return badges;
 }

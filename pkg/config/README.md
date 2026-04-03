@@ -20,6 +20,9 @@ sources:
       - hello-world
     exclude_repos:
       - archived-repo
+    include_defaults: true
+    include_starred: false
+    include_watching: false
 concurrency: 5
 ```
 
@@ -40,6 +43,15 @@ Each source supports the following fields:
 | `token`              | string   | yes      | Must use `$encrypted$1$...` format |
 | `only_include_repos` | string[] | no       | Optional allowlist                 |
 | `exclude_repos`      | string[] | no       | Optional blocklist                 |
+| `include_defaults`   | bool     | no       | Default `true`                     |
+| `include_starred`    | bool     | no       | Default `false`                    |
+| `include_watching`   | bool     | no       | Default `false`                    |
+
+Meaning of the include fields:
+
+- `include_defaults`: include repositories you can access by default, including your own repositories and organization repositories
+- `include_starred`: include repositories you have starred
+- `include_watching`: include repositories you are watching
 
 ### `concurrency`
 
@@ -92,8 +104,6 @@ The service is mounted under the `/api` base path.
 
 Response fields:
 
-- `path`
-- `exists`
 - `issues`
 - `summary`
 
@@ -101,8 +111,6 @@ Example response shape:
 
 ```json
 {
-  "path": "/path/to/data-dir/config.yaml",
-  "exists": true,
   "issues": [
     {
       "severity": "SEVERITY_WARNING",
@@ -130,7 +138,6 @@ Example response shape:
 
 Response fields:
 
-- `path`
 - `exists`
 - `source_id`
 - `issues`

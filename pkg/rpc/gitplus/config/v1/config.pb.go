@@ -273,6 +273,9 @@ type Source struct {
 	Token            *string                `protobuf:"bytes,4,opt,name=token" json:"token,omitempty"`
 	OnlyIncludeRepos []string               `protobuf:"bytes,5,rep,name=only_include_repos,json=onlyIncludeRepos" json:"only_include_repos,omitempty"`
 	ExcludeRepos     []string               `protobuf:"bytes,6,rep,name=exclude_repos,json=excludeRepos" json:"exclude_repos,omitempty"`
+	IncludeDefaults  *bool                  `protobuf:"varint,7,opt,name=include_defaults,json=includeDefaults" json:"include_defaults,omitempty"`
+	IncludeStarred   *bool                  `protobuf:"varint,8,opt,name=include_starred,json=includeStarred" json:"include_starred,omitempty"`
+	IncludeWatching  *bool                  `protobuf:"varint,9,opt,name=include_watching,json=includeWatching" json:"include_watching,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -347,6 +350,27 @@ func (x *Source) GetExcludeRepos() []string {
 		return x.ExcludeRepos
 	}
 	return nil
+}
+
+func (x *Source) GetIncludeDefaults() bool {
+	if x != nil && x.IncludeDefaults != nil {
+		return *x.IncludeDefaults
+	}
+	return false
+}
+
+func (x *Source) GetIncludeStarred() bool {
+	if x != nil && x.IncludeStarred != nil {
+		return *x.IncludeStarred
+	}
+	return false
+}
+
+func (x *Source) GetIncludeWatching() bool {
+	if x != nil && x.IncludeWatching != nil {
+		return *x.IncludeWatching
+	}
+	return false
 }
 
 type ConfigSnapshot struct {
@@ -453,6 +477,9 @@ type CreateSourceInput struct {
 	TokenPlaintext   *string                `protobuf:"bytes,4,opt,name=token_plaintext,json=tokenPlaintext" json:"token_plaintext,omitempty"`
 	OnlyIncludeRepos []string               `protobuf:"bytes,5,rep,name=only_include_repos,json=onlyIncludeRepos" json:"only_include_repos,omitempty"`
 	ExcludeRepos     []string               `protobuf:"bytes,6,rep,name=exclude_repos,json=excludeRepos" json:"exclude_repos,omitempty"`
+	IncludeDefaults  *bool                  `protobuf:"varint,7,opt,name=include_defaults,json=includeDefaults" json:"include_defaults,omitempty"`
+	IncludeStarred   *bool                  `protobuf:"varint,8,opt,name=include_starred,json=includeStarred" json:"include_starred,omitempty"`
+	IncludeWatching  *bool                  `protobuf:"varint,9,opt,name=include_watching,json=includeWatching" json:"include_watching,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -529,12 +556,36 @@ func (x *CreateSourceInput) GetExcludeRepos() []string {
 	return nil
 }
 
+func (x *CreateSourceInput) GetIncludeDefaults() bool {
+	if x != nil && x.IncludeDefaults != nil {
+		return *x.IncludeDefaults
+	}
+	return false
+}
+
+func (x *CreateSourceInput) GetIncludeStarred() bool {
+	if x != nil && x.IncludeStarred != nil {
+		return *x.IncludeStarred
+	}
+	return false
+}
+
+func (x *CreateSourceInput) GetIncludeWatching() bool {
+	if x != nil && x.IncludeWatching != nil {
+		return *x.IncludeWatching
+	}
+	return false
+}
+
 type UpdateSourcePatch struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
 	Platform         *Platform              `protobuf:"varint,2,opt,name=platform,enum=gitplus.config.v1.Platform" json:"platform,omitempty"`
 	Username         *string                `protobuf:"bytes,3,opt,name=username" json:"username,omitempty"`
 	OnlyIncludeRepos *StringListValue       `protobuf:"bytes,4,opt,name=only_include_repos,json=onlyIncludeRepos" json:"only_include_repos,omitempty"`
 	ExcludeRepos     *StringListValue       `protobuf:"bytes,5,opt,name=exclude_repos,json=excludeRepos" json:"exclude_repos,omitempty"`
+	IncludeDefaults  *bool                  `protobuf:"varint,6,opt,name=include_defaults,json=includeDefaults" json:"include_defaults,omitempty"`
+	IncludeStarred   *bool                  `protobuf:"varint,7,opt,name=include_starred,json=includeStarred" json:"include_starred,omitempty"`
+	IncludeWatching  *bool                  `protobuf:"varint,8,opt,name=include_watching,json=includeWatching" json:"include_watching,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -595,6 +646,27 @@ func (x *UpdateSourcePatch) GetExcludeRepos() *StringListValue {
 		return x.ExcludeRepos
 	}
 	return nil
+}
+
+func (x *UpdateSourcePatch) GetIncludeDefaults() bool {
+	if x != nil && x.IncludeDefaults != nil {
+		return *x.IncludeDefaults
+	}
+	return false
+}
+
+func (x *UpdateSourcePatch) GetIncludeStarred() bool {
+	if x != nil && x.IncludeStarred != nil {
+		return *x.IncludeStarred
+	}
+	return false
+}
+
+func (x *UpdateSourcePatch) GetIncludeWatching() bool {
+	if x != nil && x.IncludeWatching != nil {
+		return *x.IncludeWatching
+	}
+	return false
 }
 
 type CheckConfigRequest struct {
@@ -1273,7 +1345,7 @@ const file_gitplus_config_v1_config_proto_rawDesc = "" +
 	"\fIssueSummary\x12\x14\n" +
 	"\x05error\x18\x01 \x01(\x05R\x05error\x12\x18\n" +
 	"\awarning\x18\x02 \x01(\x05R\awarning\x12\x12\n" +
-	"\x04info\x18\x03 \x01(\x05R\x04info\"\xac\x02\n" +
+	"\x04info\x18\x03 \x01(\x05R\x04info\"\xab\x03\n" +
 	"\x06Source\x12\x17\n" +
 	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12C\n" +
 	"\bplatform\x18\x02 \x01(\x0e2\x1b.gitplus.config.v1.PlatformB\n" +
@@ -1281,12 +1353,15 @@ const file_gitplus_config_v1_config_proto_rawDesc = "" +
 	"\busername\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\busername\x12,\n" +
 	"\x05token\x18\x04 \x01(\tB\x16\xbaH\x13r\x11\x10\x01:\r$encrypted$1$R\x05token\x12<\n" +
 	"\x12only_include_repos\x18\x05 \x03(\tB\x0e\xbaH\v\x92\x01\b\x18\x01\"\x04r\x02\x10\x01R\x10onlyIncludeRepos\x123\n" +
-	"\rexclude_repos\x18\x06 \x03(\tB\x0e\xbaH\v\x92\x01\b\x18\x01\"\x04r\x02\x10\x01R\fexcludeRepos\"p\n" +
+	"\rexclude_repos\x18\x06 \x03(\tB\x0e\xbaH\v\x92\x01\b\x18\x01\"\x04r\x02\x10\x01R\fexcludeRepos\x12)\n" +
+	"\x10include_defaults\x18\a \x01(\bR\x0fincludeDefaults\x12'\n" +
+	"\x0finclude_starred\x18\b \x01(\bR\x0eincludeStarred\x12)\n" +
+	"\x10include_watching\x18\t \x01(\bR\x0fincludeWatching\"p\n" +
 	"\x0eConfigSnapshot\x12)\n" +
 	"\vconcurrency\x18\x01 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00R\vconcurrency\x123\n" +
 	"\asources\x18\x02 \x03(\v2\x19.gitplus.config.v1.SourceR\asources\"9\n" +
 	"\x0fStringListValue\x12&\n" +
-	"\x06values\x18\x01 \x03(\tB\x0e\xbaH\v\x92\x01\b\x18\x01\"\x04r\x02\x10\x01R\x06values\"\xbb\x02\n" +
+	"\x06values\x18\x01 \x03(\tB\x0e\xbaH\v\x92\x01\b\x18\x01\"\x04r\x02\x10\x01R\x06values\"\xba\x03\n" +
 	"\x11CreateSourceInput\x12\x17\n" +
 	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12C\n" +
 	"\bplatform\x18\x02 \x01(\x0e2\x1b.gitplus.config.v1.PlatformB\n" +
@@ -1294,13 +1369,19 @@ const file_gitplus_config_v1_config_proto_rawDesc = "" +
 	"\busername\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\busername\x120\n" +
 	"\x0ftoken_plaintext\x18\x04 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x0etokenPlaintext\x12<\n" +
 	"\x12only_include_repos\x18\x05 \x03(\tB\x0e\xbaH\v\x92\x01\b\x18\x01\"\x04r\x02\x10\x01R\x10onlyIncludeRepos\x123\n" +
-	"\rexclude_repos\x18\x06 \x03(\tB\x0e\xbaH\v\x92\x01\b\x18\x01\"\x04r\x02\x10\x01R\fexcludeRepos\"\x9e\x02\n" +
+	"\rexclude_repos\x18\x06 \x03(\tB\x0e\xbaH\v\x92\x01\b\x18\x01\"\x04r\x02\x10\x01R\fexcludeRepos\x12)\n" +
+	"\x10include_defaults\x18\a \x01(\bR\x0fincludeDefaults\x12'\n" +
+	"\x0finclude_starred\x18\b \x01(\bR\x0eincludeStarred\x12)\n" +
+	"\x10include_watching\x18\t \x01(\bR\x0fincludeWatching\"\x9d\x03\n" +
 	"\x11UpdateSourcePatch\x12C\n" +
 	"\bplatform\x18\x02 \x01(\x0e2\x1b.gitplus.config.v1.PlatformB\n" +
 	"\xbaH\a\x82\x01\x04\x10\x01 \x00R\bplatform\x12#\n" +
 	"\busername\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\busername\x12P\n" +
 	"\x12only_include_repos\x18\x04 \x01(\v2\".gitplus.config.v1.StringListValueR\x10onlyIncludeRepos\x12G\n" +
-	"\rexclude_repos\x18\x05 \x01(\v2\".gitplus.config.v1.StringListValueR\fexcludeReposJ\x04\b\x01\x10\x02\"\x14\n" +
+	"\rexclude_repos\x18\x05 \x01(\v2\".gitplus.config.v1.StringListValueR\fexcludeRepos\x12)\n" +
+	"\x10include_defaults\x18\x06 \x01(\bR\x0fincludeDefaults\x12'\n" +
+	"\x0finclude_starred\x18\a \x01(\bR\x0eincludeStarred\x12)\n" +
+	"\x10include_watching\x18\b \x01(\bR\x0fincludeWatchingJ\x04\b\x01\x10\x02\"\x14\n" +
 	"\x12CheckConfigRequest\"\x8c\x01\n" +
 	"\x13CheckConfigResponse\x12:\n" +
 	"\x06issues\x18\x01 \x03(\v2\".gitplus.config.v1.ValidationIssueR\x06issues\x129\n" +

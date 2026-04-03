@@ -62,6 +62,9 @@ message Source {
       }
     }
   }];
+  bool include_defaults = 7;
+  bool include_starred = 8;
+  bool include_watching = 9;
 }
 
 message ConfigSnapshot {
@@ -104,6 +107,9 @@ message CreateSourceInput {
       }
     }
   }];
+  bool include_defaults = 7;
+  bool include_starred = 8;
+  bool include_watching = 9;
 }
 
 message UpdateSourcePatch {
@@ -115,6 +121,9 @@ message UpdateSourcePatch {
   string username = 3 [(buf.validate.field).string.min_len = 1];
   StringListValue only_include_repos = 4;
   StringListValue exclude_repos = 5;
+  bool include_defaults = 6;
+  bool include_starred = 7;
+  bool include_watching = 8;
 }
 
 message CheckConfigRequest {}
