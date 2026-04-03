@@ -1,6 +1,17 @@
-syntax = "proto3";
+edition = "2023";
 
 package gitplus.config.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/go_features.proto";
+
+option features.(pb.go).api_level = API_OPEN;
+option features.field_presence = EXPLICIT;
+
+enum Platform {
+  PLATFORM_UNSPECIFIED = 0;
+  PLATFORM_GITHUB = 1;
+}
 
 message ValidationIssue {
   enum Severity {
@@ -24,6 +35,88 @@ message IssueSummary {
   int32 info = 3;
 }
 
+message Source {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+  Platform platform = 2 [(buf.validate.field).enum = {
+    defined_only: true
+    not_in: [0]
+  }];
+  string username = 3 [(buf.validate.field).string.min_len = 1];
+  string token = 4 [(buf.validate.field).string = {
+    min_len: 1
+    prefix: "$encrypted$1$"
+  }];
+  repeated string only_include_repos = 5 [(buf.validate.field).repeated = {
+    unique: true
+    items: {
+      string: {
+        min_len: 1
+      }
+    }
+  }];
+  repeated string exclude_repos = 6 [(buf.validate.field).repeated = {
+    unique: true
+    items: {
+      string: {
+        min_len: 1
+      }
+    }
+  }];
+}
+
+message ConfigSnapshot {
+  int32 concurrency = 1 [(buf.validate.field).int32.gt = 0];
+  repeated Source sources = 2;
+}
+
+message StringListValue {
+  repeated string values = 1 [(buf.validate.field).repeated = {
+    unique: true
+    items: {
+      string: {
+        min_len: 1
+      }
+    }
+  }];
+}
+
+message CreateSourceInput {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+  Platform platform = 2 [(buf.validate.field).enum = {
+    defined_only: true
+    not_in: [0]
+  }];
+  string username = 3 [(buf.validate.field).string.min_len = 1];
+  string token_plaintext = 4 [(buf.validate.field).string.min_len = 1];
+  repeated string only_include_repos = 5 [(buf.validate.field).repeated = {
+    unique: true
+    items: {
+      string: {
+        min_len: 1
+      }
+    }
+  }];
+  repeated string exclude_repos = 6 [(buf.validate.field).repeated = {
+    unique: true
+    items: {
+      string: {
+        min_len: 1
+      }
+    }
+  }];
+}
+
+message UpdateSourcePatch {
+  string id = 1 [(buf.validate.field).string.min_len = 1];
+  Platform platform = 2 [(buf.validate.field).enum = {
+    defined_only: true
+    not_in: [0]
+  }];
+  string username = 3 [(buf.validate.field).string.min_len = 1];
+  StringListValue only_include_repos = 4;
+  StringListValue exclude_repos = 5;
+}
+
 message CheckConfigRequest {}
 
 message CheckConfigResponse {
@@ -45,7 +138,54 @@ message CheckSourceConfigResponse {
   IssueSummary summary = 5;
 }
 
+message GetConfigRequest {}
+
+message GetConfigResponse {
+  string path = 1;
+  bool exists = 2;
+  ConfigSnapshot config = 3;
+}
+
+message CreateSourceRequest {
+  CreateSourceInput source = 1 [(buf.validate.field).required = true];
+}
+
+message CreateSourceResponse {
+  ConfigSnapshot config = 1;
+}
+
+message UpdateSourceRequest {
+  string source_id = 1 [(buf.validate.field).string.min_len = 1];
+  UpdateSourcePatch patch = 2 [(buf.validate.field).required = true];
+}
+
+message UpdateSourceResponse {
+  ConfigSnapshot config = 1;
+}
+
+message ReplaceSourceTokenRequest {
+  string source_id = 1 [(buf.validate.field).string.min_len = 1];
+  string token_plaintext = 2 [(buf.validate.field).string.min_len = 1];
+}
+
+message ReplaceSourceTokenResponse {
+  Source source = 1;
+}
+
+message DeleteSourceRequest {
+  string source_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+message DeleteSourceResponse {
+  ConfigSnapshot config = 1;
+}
+
 service ConfigService {
   rpc CheckConfig(CheckConfigRequest) returns (CheckConfigResponse);
   rpc CheckSourceConfig(CheckSourceConfigRequest) returns (CheckSourceConfigResponse);
+  rpc GetConfig(GetConfigRequest) returns (GetConfigResponse);
+  rpc CreateSource(CreateSourceRequest) returns (CreateSourceResponse);
+  rpc UpdateSource(UpdateSourceRequest) returns (UpdateSourceResponse);
+  rpc ReplaceSourceToken(ReplaceSourceTokenRequest) returns (ReplaceSourceTokenResponse);
+  rpc DeleteSource(DeleteSourceRequest) returns (DeleteSourceResponse);
 }

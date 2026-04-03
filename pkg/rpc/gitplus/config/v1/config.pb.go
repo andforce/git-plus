@@ -7,8 +7,10 @@
 package configv1
 
 import (
+	_ "buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go/buf/validate"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	_ "google.golang.org/protobuf/types/gofeaturespb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -20,6 +22,52 @@ const (
 	// Verify that runtime/protoimpl is sufficiently up-to-date.
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
+
+type Platform int32
+
+const (
+	Platform_PLATFORM_UNSPECIFIED Platform = 0
+	Platform_PLATFORM_GITHUB      Platform = 1
+)
+
+// Enum value maps for Platform.
+var (
+	Platform_name = map[int32]string{
+		0: "PLATFORM_UNSPECIFIED",
+		1: "PLATFORM_GITHUB",
+	}
+	Platform_value = map[string]int32{
+		"PLATFORM_UNSPECIFIED": 0,
+		"PLATFORM_GITHUB":      1,
+	}
+)
+
+func (x Platform) Enum() *Platform {
+	p := new(Platform)
+	*p = x
+	return p
+}
+
+func (x Platform) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Platform) Descriptor() protoreflect.EnumDescriptor {
+	return file_gitplus_config_v1_config_proto_enumTypes[0].Descriptor()
+}
+
+func (Platform) Type() protoreflect.EnumType {
+	return &file_gitplus_config_v1_config_proto_enumTypes[0]
+}
+
+func (x Platform) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Platform.Descriptor instead.
+func (Platform) EnumDescriptor() ([]byte, []int) {
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{0}
+}
 
 type ValidationIssue_Severity int32
 
@@ -57,11 +105,11 @@ func (x ValidationIssue_Severity) String() string {
 }
 
 func (ValidationIssue_Severity) Descriptor() protoreflect.EnumDescriptor {
-	return file_gitplus_config_v1_config_proto_enumTypes[0].Descriptor()
+	return file_gitplus_config_v1_config_proto_enumTypes[1].Descriptor()
 }
 
 func (ValidationIssue_Severity) Type() protoreflect.EnumType {
-	return &file_gitplus_config_v1_config_proto_enumTypes[0]
+	return &file_gitplus_config_v1_config_proto_enumTypes[1]
 }
 
 func (x ValidationIssue_Severity) Number() protoreflect.EnumNumber {
@@ -74,13 +122,13 @@ func (ValidationIssue_Severity) EnumDescriptor() ([]byte, []int) {
 }
 
 type ValidationIssue struct {
-	state         protoimpl.MessageState   `protogen:"open.v1"`
-	Severity      ValidationIssue_Severity `protobuf:"varint,1,opt,name=severity,proto3,enum=gitplus.config.v1.ValidationIssue_Severity" json:"severity,omitempty"`
-	Code          string                   `protobuf:"bytes,2,opt,name=code,proto3" json:"code,omitempty"`
-	Message       string                   `protobuf:"bytes,3,opt,name=message,proto3" json:"message,omitempty"`
-	Path          string                   `protobuf:"bytes,4,opt,name=path,proto3" json:"path,omitempty"`
-	SourceId      string                   `protobuf:"bytes,5,opt,name=source_id,json=sourceId,proto3" json:"source_id,omitempty"`
-	Line          int32                    `protobuf:"varint,6,opt,name=line,proto3" json:"line,omitempty"`
+	state         protoimpl.MessageState    `protogen:"open.v1"`
+	Severity      *ValidationIssue_Severity `protobuf:"varint,1,opt,name=severity,enum=gitplus.config.v1.ValidationIssue_Severity" json:"severity,omitempty"`
+	Code          *string                   `protobuf:"bytes,2,opt,name=code" json:"code,omitempty"`
+	Message       *string                   `protobuf:"bytes,3,opt,name=message" json:"message,omitempty"`
+	Path          *string                   `protobuf:"bytes,4,opt,name=path" json:"path,omitempty"`
+	SourceId      *string                   `protobuf:"bytes,5,opt,name=source_id,json=sourceId" json:"source_id,omitempty"`
+	Line          *int32                    `protobuf:"varint,6,opt,name=line" json:"line,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -116,52 +164,52 @@ func (*ValidationIssue) Descriptor() ([]byte, []int) {
 }
 
 func (x *ValidationIssue) GetSeverity() ValidationIssue_Severity {
-	if x != nil {
-		return x.Severity
+	if x != nil && x.Severity != nil {
+		return *x.Severity
 	}
 	return ValidationIssue_SEVERITY_UNSPECIFIED
 }
 
 func (x *ValidationIssue) GetCode() string {
-	if x != nil {
-		return x.Code
+	if x != nil && x.Code != nil {
+		return *x.Code
 	}
 	return ""
 }
 
 func (x *ValidationIssue) GetMessage() string {
-	if x != nil {
-		return x.Message
+	if x != nil && x.Message != nil {
+		return *x.Message
 	}
 	return ""
 }
 
 func (x *ValidationIssue) GetPath() string {
-	if x != nil {
-		return x.Path
+	if x != nil && x.Path != nil {
+		return *x.Path
 	}
 	return ""
 }
 
 func (x *ValidationIssue) GetSourceId() string {
-	if x != nil {
-		return x.SourceId
+	if x != nil && x.SourceId != nil {
+		return *x.SourceId
 	}
 	return ""
 }
 
 func (x *ValidationIssue) GetLine() int32 {
-	if x != nil {
-		return x.Line
+	if x != nil && x.Line != nil {
+		return *x.Line
 	}
 	return 0
 }
 
 type IssueSummary struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Error         int32                  `protobuf:"varint,1,opt,name=error,proto3" json:"error,omitempty"`
-	Warning       int32                  `protobuf:"varint,2,opt,name=warning,proto3" json:"warning,omitempty"`
-	Info          int32                  `protobuf:"varint,3,opt,name=info,proto3" json:"info,omitempty"`
+	Error         *int32                 `protobuf:"varint,1,opt,name=error" json:"error,omitempty"`
+	Warning       *int32                 `protobuf:"varint,2,opt,name=warning" json:"warning,omitempty"`
+	Info          *int32                 `protobuf:"varint,3,opt,name=info" json:"info,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -197,24 +245,364 @@ func (*IssueSummary) Descriptor() ([]byte, []int) {
 }
 
 func (x *IssueSummary) GetError() int32 {
-	if x != nil {
-		return x.Error
+	if x != nil && x.Error != nil {
+		return *x.Error
 	}
 	return 0
 }
 
 func (x *IssueSummary) GetWarning() int32 {
-	if x != nil {
-		return x.Warning
+	if x != nil && x.Warning != nil {
+		return *x.Warning
 	}
 	return 0
 }
 
 func (x *IssueSummary) GetInfo() int32 {
-	if x != nil {
-		return x.Info
+	if x != nil && x.Info != nil {
+		return *x.Info
 	}
 	return 0
+}
+
+type Source struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Id               *string                `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	Platform         *Platform              `protobuf:"varint,2,opt,name=platform,enum=gitplus.config.v1.Platform" json:"platform,omitempty"`
+	Username         *string                `protobuf:"bytes,3,opt,name=username" json:"username,omitempty"`
+	Token            *string                `protobuf:"bytes,4,opt,name=token" json:"token,omitempty"`
+	OnlyIncludeRepos []string               `protobuf:"bytes,5,rep,name=only_include_repos,json=onlyIncludeRepos" json:"only_include_repos,omitempty"`
+	ExcludeRepos     []string               `protobuf:"bytes,6,rep,name=exclude_repos,json=excludeRepos" json:"exclude_repos,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *Source) Reset() {
+	*x = Source{}
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Source) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Source) ProtoMessage() {}
+
+func (x *Source) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Source.ProtoReflect.Descriptor instead.
+func (*Source) Descriptor() ([]byte, []int) {
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *Source) GetId() string {
+	if x != nil && x.Id != nil {
+		return *x.Id
+	}
+	return ""
+}
+
+func (x *Source) GetPlatform() Platform {
+	if x != nil && x.Platform != nil {
+		return *x.Platform
+	}
+	return Platform_PLATFORM_UNSPECIFIED
+}
+
+func (x *Source) GetUsername() string {
+	if x != nil && x.Username != nil {
+		return *x.Username
+	}
+	return ""
+}
+
+func (x *Source) GetToken() string {
+	if x != nil && x.Token != nil {
+		return *x.Token
+	}
+	return ""
+}
+
+func (x *Source) GetOnlyIncludeRepos() []string {
+	if x != nil {
+		return x.OnlyIncludeRepos
+	}
+	return nil
+}
+
+func (x *Source) GetExcludeRepos() []string {
+	if x != nil {
+		return x.ExcludeRepos
+	}
+	return nil
+}
+
+type ConfigSnapshot struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Concurrency   *int32                 `protobuf:"varint,1,opt,name=concurrency" json:"concurrency,omitempty"`
+	Sources       []*Source              `protobuf:"bytes,2,rep,name=sources" json:"sources,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ConfigSnapshot) Reset() {
+	*x = ConfigSnapshot{}
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[3]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ConfigSnapshot) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ConfigSnapshot) ProtoMessage() {}
+
+func (x *ConfigSnapshot) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[3]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ConfigSnapshot.ProtoReflect.Descriptor instead.
+func (*ConfigSnapshot) Descriptor() ([]byte, []int) {
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{3}
+}
+
+func (x *ConfigSnapshot) GetConcurrency() int32 {
+	if x != nil && x.Concurrency != nil {
+		return *x.Concurrency
+	}
+	return 0
+}
+
+func (x *ConfigSnapshot) GetSources() []*Source {
+	if x != nil {
+		return x.Sources
+	}
+	return nil
+}
+
+type StringListValue struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Values        []string               `protobuf:"bytes,1,rep,name=values" json:"values,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *StringListValue) Reset() {
+	*x = StringListValue{}
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *StringListValue) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*StringListValue) ProtoMessage() {}
+
+func (x *StringListValue) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use StringListValue.ProtoReflect.Descriptor instead.
+func (*StringListValue) Descriptor() ([]byte, []int) {
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *StringListValue) GetValues() []string {
+	if x != nil {
+		return x.Values
+	}
+	return nil
+}
+
+type CreateSourceInput struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Id               *string                `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	Platform         *Platform              `protobuf:"varint,2,opt,name=platform,enum=gitplus.config.v1.Platform" json:"platform,omitempty"`
+	Username         *string                `protobuf:"bytes,3,opt,name=username" json:"username,omitempty"`
+	TokenPlaintext   *string                `protobuf:"bytes,4,opt,name=token_plaintext,json=tokenPlaintext" json:"token_plaintext,omitempty"`
+	OnlyIncludeRepos []string               `protobuf:"bytes,5,rep,name=only_include_repos,json=onlyIncludeRepos" json:"only_include_repos,omitempty"`
+	ExcludeRepos     []string               `protobuf:"bytes,6,rep,name=exclude_repos,json=excludeRepos" json:"exclude_repos,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *CreateSourceInput) Reset() {
+	*x = CreateSourceInput{}
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateSourceInput) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateSourceInput) ProtoMessage() {}
+
+func (x *CreateSourceInput) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateSourceInput.ProtoReflect.Descriptor instead.
+func (*CreateSourceInput) Descriptor() ([]byte, []int) {
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *CreateSourceInput) GetId() string {
+	if x != nil && x.Id != nil {
+		return *x.Id
+	}
+	return ""
+}
+
+func (x *CreateSourceInput) GetPlatform() Platform {
+	if x != nil && x.Platform != nil {
+		return *x.Platform
+	}
+	return Platform_PLATFORM_UNSPECIFIED
+}
+
+func (x *CreateSourceInput) GetUsername() string {
+	if x != nil && x.Username != nil {
+		return *x.Username
+	}
+	return ""
+}
+
+func (x *CreateSourceInput) GetTokenPlaintext() string {
+	if x != nil && x.TokenPlaintext != nil {
+		return *x.TokenPlaintext
+	}
+	return ""
+}
+
+func (x *CreateSourceInput) GetOnlyIncludeRepos() []string {
+	if x != nil {
+		return x.OnlyIncludeRepos
+	}
+	return nil
+}
+
+func (x *CreateSourceInput) GetExcludeRepos() []string {
+	if x != nil {
+		return x.ExcludeRepos
+	}
+	return nil
+}
+
+type UpdateSourcePatch struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	Id               *string                `protobuf:"bytes,1,opt,name=id" json:"id,omitempty"`
+	Platform         *Platform              `protobuf:"varint,2,opt,name=platform,enum=gitplus.config.v1.Platform" json:"platform,omitempty"`
+	Username         *string                `protobuf:"bytes,3,opt,name=username" json:"username,omitempty"`
+	OnlyIncludeRepos *StringListValue       `protobuf:"bytes,4,opt,name=only_include_repos,json=onlyIncludeRepos" json:"only_include_repos,omitempty"`
+	ExcludeRepos     *StringListValue       `protobuf:"bytes,5,opt,name=exclude_repos,json=excludeRepos" json:"exclude_repos,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *UpdateSourcePatch) Reset() {
+	*x = UpdateSourcePatch{}
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateSourcePatch) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateSourcePatch) ProtoMessage() {}
+
+func (x *UpdateSourcePatch) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateSourcePatch.ProtoReflect.Descriptor instead.
+func (*UpdateSourcePatch) Descriptor() ([]byte, []int) {
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *UpdateSourcePatch) GetId() string {
+	if x != nil && x.Id != nil {
+		return *x.Id
+	}
+	return ""
+}
+
+func (x *UpdateSourcePatch) GetPlatform() Platform {
+	if x != nil && x.Platform != nil {
+		return *x.Platform
+	}
+	return Platform_PLATFORM_UNSPECIFIED
+}
+
+func (x *UpdateSourcePatch) GetUsername() string {
+	if x != nil && x.Username != nil {
+		return *x.Username
+	}
+	return ""
+}
+
+func (x *UpdateSourcePatch) GetOnlyIncludeRepos() *StringListValue {
+	if x != nil {
+		return x.OnlyIncludeRepos
+	}
+	return nil
+}
+
+func (x *UpdateSourcePatch) GetExcludeRepos() *StringListValue {
+	if x != nil {
+		return x.ExcludeRepos
+	}
+	return nil
 }
 
 type CheckConfigRequest struct {
@@ -225,7 +613,7 @@ type CheckConfigRequest struct {
 
 func (x *CheckConfigRequest) Reset() {
 	*x = CheckConfigRequest{}
-	mi := &file_gitplus_config_v1_config_proto_msgTypes[2]
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -237,7 +625,7 @@ func (x *CheckConfigRequest) String() string {
 func (*CheckConfigRequest) ProtoMessage() {}
 
 func (x *CheckConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitplus_config_v1_config_proto_msgTypes[2]
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -250,22 +638,22 @@ func (x *CheckConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckConfigRequest.ProtoReflect.Descriptor instead.
 func (*CheckConfigRequest) Descriptor() ([]byte, []int) {
-	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{2}
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{7}
 }
 
 type CheckConfigResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	Exists        bool                   `protobuf:"varint,2,opt,name=exists,proto3" json:"exists,omitempty"`
-	Issues        []*ValidationIssue     `protobuf:"bytes,3,rep,name=issues,proto3" json:"issues,omitempty"`
-	Summary       *IssueSummary          `protobuf:"bytes,4,opt,name=summary,proto3" json:"summary,omitempty"`
+	Path          *string                `protobuf:"bytes,1,opt,name=path" json:"path,omitempty"`
+	Exists        *bool                  `protobuf:"varint,2,opt,name=exists" json:"exists,omitempty"`
+	Issues        []*ValidationIssue     `protobuf:"bytes,3,rep,name=issues" json:"issues,omitempty"`
+	Summary       *IssueSummary          `protobuf:"bytes,4,opt,name=summary" json:"summary,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CheckConfigResponse) Reset() {
 	*x = CheckConfigResponse{}
-	mi := &file_gitplus_config_v1_config_proto_msgTypes[3]
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -277,7 +665,7 @@ func (x *CheckConfigResponse) String() string {
 func (*CheckConfigResponse) ProtoMessage() {}
 
 func (x *CheckConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitplus_config_v1_config_proto_msgTypes[3]
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -290,19 +678,19 @@ func (x *CheckConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckConfigResponse.ProtoReflect.Descriptor instead.
 func (*CheckConfigResponse) Descriptor() ([]byte, []int) {
-	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{3}
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *CheckConfigResponse) GetPath() string {
-	if x != nil {
-		return x.Path
+	if x != nil && x.Path != nil {
+		return *x.Path
 	}
 	return ""
 }
 
 func (x *CheckConfigResponse) GetExists() bool {
-	if x != nil {
-		return x.Exists
+	if x != nil && x.Exists != nil {
+		return *x.Exists
 	}
 	return false
 }
@@ -323,14 +711,14 @@ func (x *CheckConfigResponse) GetSummary() *IssueSummary {
 
 type CheckSourceConfigRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	SourceId      string                 `protobuf:"bytes,1,opt,name=source_id,json=sourceId,proto3" json:"source_id,omitempty"`
+	SourceId      *string                `protobuf:"bytes,1,opt,name=source_id,json=sourceId" json:"source_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CheckSourceConfigRequest) Reset() {
 	*x = CheckSourceConfigRequest{}
-	mi := &file_gitplus_config_v1_config_proto_msgTypes[4]
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -342,7 +730,7 @@ func (x *CheckSourceConfigRequest) String() string {
 func (*CheckSourceConfigRequest) ProtoMessage() {}
 
 func (x *CheckSourceConfigRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitplus_config_v1_config_proto_msgTypes[4]
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -355,30 +743,30 @@ func (x *CheckSourceConfigRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckSourceConfigRequest.ProtoReflect.Descriptor instead.
 func (*CheckSourceConfigRequest) Descriptor() ([]byte, []int) {
-	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{4}
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *CheckSourceConfigRequest) GetSourceId() string {
-	if x != nil {
-		return x.SourceId
+	if x != nil && x.SourceId != nil {
+		return *x.SourceId
 	}
 	return ""
 }
 
 type CheckSourceConfigResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Path          string                 `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
-	Exists        bool                   `protobuf:"varint,2,opt,name=exists,proto3" json:"exists,omitempty"`
-	SourceId      string                 `protobuf:"bytes,3,opt,name=source_id,json=sourceId,proto3" json:"source_id,omitempty"`
-	Issues        []*ValidationIssue     `protobuf:"bytes,4,rep,name=issues,proto3" json:"issues,omitempty"`
-	Summary       *IssueSummary          `protobuf:"bytes,5,opt,name=summary,proto3" json:"summary,omitempty"`
+	Path          *string                `protobuf:"bytes,1,opt,name=path" json:"path,omitempty"`
+	Exists        *bool                  `protobuf:"varint,2,opt,name=exists" json:"exists,omitempty"`
+	SourceId      *string                `protobuf:"bytes,3,opt,name=source_id,json=sourceId" json:"source_id,omitempty"`
+	Issues        []*ValidationIssue     `protobuf:"bytes,4,rep,name=issues" json:"issues,omitempty"`
+	Summary       *IssueSummary          `protobuf:"bytes,5,opt,name=summary" json:"summary,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *CheckSourceConfigResponse) Reset() {
 	*x = CheckSourceConfigResponse{}
-	mi := &file_gitplus_config_v1_config_proto_msgTypes[5]
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -390,7 +778,7 @@ func (x *CheckSourceConfigResponse) String() string {
 func (*CheckSourceConfigResponse) ProtoMessage() {}
 
 func (x *CheckSourceConfigResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitplus_config_v1_config_proto_msgTypes[5]
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -403,26 +791,26 @@ func (x *CheckSourceConfigResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckSourceConfigResponse.ProtoReflect.Descriptor instead.
 func (*CheckSourceConfigResponse) Descriptor() ([]byte, []int) {
-	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{5}
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *CheckSourceConfigResponse) GetPath() string {
-	if x != nil {
-		return x.Path
+	if x != nil && x.Path != nil {
+		return *x.Path
 	}
 	return ""
 }
 
 func (x *CheckSourceConfigResponse) GetExists() bool {
-	if x != nil {
-		return x.Exists
+	if x != nil && x.Exists != nil {
+		return *x.Exists
 	}
 	return false
 }
 
 func (x *CheckSourceConfigResponse) GetSourceId() string {
-	if x != nil {
-		return x.SourceId
+	if x != nil && x.SourceId != nil {
+		return *x.SourceId
 	}
 	return ""
 }
@@ -441,11 +829,475 @@ func (x *CheckSourceConfigResponse) GetSummary() *IssueSummary {
 	return nil
 }
 
+type GetConfigRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetConfigRequest) Reset() {
+	*x = GetConfigRequest{}
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetConfigRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetConfigRequest) ProtoMessage() {}
+
+func (x *GetConfigRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetConfigRequest.ProtoReflect.Descriptor instead.
+func (*GetConfigRequest) Descriptor() ([]byte, []int) {
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{11}
+}
+
+type GetConfigResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Path          *string                `protobuf:"bytes,1,opt,name=path" json:"path,omitempty"`
+	Exists        *bool                  `protobuf:"varint,2,opt,name=exists" json:"exists,omitempty"`
+	Config        *ConfigSnapshot        `protobuf:"bytes,3,opt,name=config" json:"config,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetConfigResponse) Reset() {
+	*x = GetConfigResponse{}
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[12]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetConfigResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetConfigResponse) ProtoMessage() {}
+
+func (x *GetConfigResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[12]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetConfigResponse.ProtoReflect.Descriptor instead.
+func (*GetConfigResponse) Descriptor() ([]byte, []int) {
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *GetConfigResponse) GetPath() string {
+	if x != nil && x.Path != nil {
+		return *x.Path
+	}
+	return ""
+}
+
+func (x *GetConfigResponse) GetExists() bool {
+	if x != nil && x.Exists != nil {
+		return *x.Exists
+	}
+	return false
+}
+
+func (x *GetConfigResponse) GetConfig() *ConfigSnapshot {
+	if x != nil {
+		return x.Config
+	}
+	return nil
+}
+
+type CreateSourceRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Source        *CreateSourceInput     `protobuf:"bytes,1,opt,name=source" json:"source,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateSourceRequest) Reset() {
+	*x = CreateSourceRequest{}
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateSourceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateSourceRequest) ProtoMessage() {}
+
+func (x *CreateSourceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateSourceRequest.ProtoReflect.Descriptor instead.
+func (*CreateSourceRequest) Descriptor() ([]byte, []int) {
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *CreateSourceRequest) GetSource() *CreateSourceInput {
+	if x != nil {
+		return x.Source
+	}
+	return nil
+}
+
+type CreateSourceResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Config        *ConfigSnapshot        `protobuf:"bytes,1,opt,name=config" json:"config,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateSourceResponse) Reset() {
+	*x = CreateSourceResponse{}
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateSourceResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateSourceResponse) ProtoMessage() {}
+
+func (x *CreateSourceResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateSourceResponse.ProtoReflect.Descriptor instead.
+func (*CreateSourceResponse) Descriptor() ([]byte, []int) {
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *CreateSourceResponse) GetConfig() *ConfigSnapshot {
+	if x != nil {
+		return x.Config
+	}
+	return nil
+}
+
+type UpdateSourceRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SourceId      *string                `protobuf:"bytes,1,opt,name=source_id,json=sourceId" json:"source_id,omitempty"`
+	Patch         *UpdateSourcePatch     `protobuf:"bytes,2,opt,name=patch" json:"patch,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateSourceRequest) Reset() {
+	*x = UpdateSourceRequest{}
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateSourceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateSourceRequest) ProtoMessage() {}
+
+func (x *UpdateSourceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateSourceRequest.ProtoReflect.Descriptor instead.
+func (*UpdateSourceRequest) Descriptor() ([]byte, []int) {
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *UpdateSourceRequest) GetSourceId() string {
+	if x != nil && x.SourceId != nil {
+		return *x.SourceId
+	}
+	return ""
+}
+
+func (x *UpdateSourceRequest) GetPatch() *UpdateSourcePatch {
+	if x != nil {
+		return x.Patch
+	}
+	return nil
+}
+
+type UpdateSourceResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Config        *ConfigSnapshot        `protobuf:"bytes,1,opt,name=config" json:"config,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateSourceResponse) Reset() {
+	*x = UpdateSourceResponse{}
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateSourceResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateSourceResponse) ProtoMessage() {}
+
+func (x *UpdateSourceResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateSourceResponse.ProtoReflect.Descriptor instead.
+func (*UpdateSourceResponse) Descriptor() ([]byte, []int) {
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *UpdateSourceResponse) GetConfig() *ConfigSnapshot {
+	if x != nil {
+		return x.Config
+	}
+	return nil
+}
+
+type ReplaceSourceTokenRequest struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	SourceId       *string                `protobuf:"bytes,1,opt,name=source_id,json=sourceId" json:"source_id,omitempty"`
+	TokenPlaintext *string                `protobuf:"bytes,2,opt,name=token_plaintext,json=tokenPlaintext" json:"token_plaintext,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *ReplaceSourceTokenRequest) Reset() {
+	*x = ReplaceSourceTokenRequest{}
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReplaceSourceTokenRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReplaceSourceTokenRequest) ProtoMessage() {}
+
+func (x *ReplaceSourceTokenRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReplaceSourceTokenRequest.ProtoReflect.Descriptor instead.
+func (*ReplaceSourceTokenRequest) Descriptor() ([]byte, []int) {
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *ReplaceSourceTokenRequest) GetSourceId() string {
+	if x != nil && x.SourceId != nil {
+		return *x.SourceId
+	}
+	return ""
+}
+
+func (x *ReplaceSourceTokenRequest) GetTokenPlaintext() string {
+	if x != nil && x.TokenPlaintext != nil {
+		return *x.TokenPlaintext
+	}
+	return ""
+}
+
+type ReplaceSourceTokenResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Source        *Source                `protobuf:"bytes,1,opt,name=source" json:"source,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ReplaceSourceTokenResponse) Reset() {
+	*x = ReplaceSourceTokenResponse{}
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ReplaceSourceTokenResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ReplaceSourceTokenResponse) ProtoMessage() {}
+
+func (x *ReplaceSourceTokenResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ReplaceSourceTokenResponse.ProtoReflect.Descriptor instead.
+func (*ReplaceSourceTokenResponse) Descriptor() ([]byte, []int) {
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *ReplaceSourceTokenResponse) GetSource() *Source {
+	if x != nil {
+		return x.Source
+	}
+	return nil
+}
+
+type DeleteSourceRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	SourceId      *string                `protobuf:"bytes,1,opt,name=source_id,json=sourceId" json:"source_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteSourceRequest) Reset() {
+	*x = DeleteSourceRequest{}
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteSourceRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteSourceRequest) ProtoMessage() {}
+
+func (x *DeleteSourceRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteSourceRequest.ProtoReflect.Descriptor instead.
+func (*DeleteSourceRequest) Descriptor() ([]byte, []int) {
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *DeleteSourceRequest) GetSourceId() string {
+	if x != nil && x.SourceId != nil {
+		return *x.SourceId
+	}
+	return ""
+}
+
+type DeleteSourceResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Config        *ConfigSnapshot        `protobuf:"bytes,1,opt,name=config" json:"config,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteSourceResponse) Reset() {
+	*x = DeleteSourceResponse{}
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteSourceResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteSourceResponse) ProtoMessage() {}
+
+func (x *DeleteSourceResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteSourceResponse.ProtoReflect.Descriptor instead.
+func (*DeleteSourceResponse) Descriptor() ([]byte, []int) {
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *DeleteSourceResponse) GetConfig() *ConfigSnapshot {
+	if x != nil {
+		return x.Config
+	}
+	return nil
+}
+
 var File_gitplus_config_v1_config_proto protoreflect.FileDescriptor
 
 const file_gitplus_config_v1_config_proto_rawDesc = "" +
 	"\n" +
-	"\x1egitplus/config/v1/config.proto\x12\x11gitplus.config.v1\"\xb0\x02\n" +
+	"\x1egitplus/config/v1/config.proto\x12\x11gitplus.config.v1\x1a\x1bbuf/validate/validate.proto\x1a!google/protobuf/go_features.proto\"\xb0\x02\n" +
 	"\x0fValidationIssue\x12G\n" +
 	"\bseverity\x18\x01 \x01(\x0e2+.gitplus.config.v1.ValidationIssue.SeverityR\bseverity\x12\x12\n" +
 	"\x04code\x18\x02 \x01(\tR\x04code\x12\x18\n" +
@@ -461,7 +1313,35 @@ const file_gitplus_config_v1_config_proto_rawDesc = "" +
 	"\fIssueSummary\x12\x14\n" +
 	"\x05error\x18\x01 \x01(\x05R\x05error\x12\x18\n" +
 	"\awarning\x18\x02 \x01(\x05R\awarning\x12\x12\n" +
-	"\x04info\x18\x03 \x01(\x05R\x04info\"\x14\n" +
+	"\x04info\x18\x03 \x01(\x05R\x04info\"\xac\x02\n" +
+	"\x06Source\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12C\n" +
+	"\bplatform\x18\x02 \x01(\x0e2\x1b.gitplus.config.v1.PlatformB\n" +
+	"\xbaH\a\x82\x01\x04\x10\x01 \x00R\bplatform\x12#\n" +
+	"\busername\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\busername\x12,\n" +
+	"\x05token\x18\x04 \x01(\tB\x16\xbaH\x13r\x11\x10\x01:\r$encrypted$1$R\x05token\x12<\n" +
+	"\x12only_include_repos\x18\x05 \x03(\tB\x0e\xbaH\v\x92\x01\b\x18\x01\"\x04r\x02\x10\x01R\x10onlyIncludeRepos\x123\n" +
+	"\rexclude_repos\x18\x06 \x03(\tB\x0e\xbaH\v\x92\x01\b\x18\x01\"\x04r\x02\x10\x01R\fexcludeRepos\"p\n" +
+	"\x0eConfigSnapshot\x12)\n" +
+	"\vconcurrency\x18\x01 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00R\vconcurrency\x123\n" +
+	"\asources\x18\x02 \x03(\v2\x19.gitplus.config.v1.SourceR\asources\"9\n" +
+	"\x0fStringListValue\x12&\n" +
+	"\x06values\x18\x01 \x03(\tB\x0e\xbaH\v\x92\x01\b\x18\x01\"\x04r\x02\x10\x01R\x06values\"\xbb\x02\n" +
+	"\x11CreateSourceInput\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12C\n" +
+	"\bplatform\x18\x02 \x01(\x0e2\x1b.gitplus.config.v1.PlatformB\n" +
+	"\xbaH\a\x82\x01\x04\x10\x01 \x00R\bplatform\x12#\n" +
+	"\busername\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\busername\x120\n" +
+	"\x0ftoken_plaintext\x18\x04 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x0etokenPlaintext\x12<\n" +
+	"\x12only_include_repos\x18\x05 \x03(\tB\x0e\xbaH\v\x92\x01\b\x18\x01\"\x04r\x02\x10\x01R\x10onlyIncludeRepos\x123\n" +
+	"\rexclude_repos\x18\x06 \x03(\tB\x0e\xbaH\v\x92\x01\b\x18\x01\"\x04r\x02\x10\x01R\fexcludeRepos\"\xb1\x02\n" +
+	"\x11UpdateSourcePatch\x12\x17\n" +
+	"\x02id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x02id\x12C\n" +
+	"\bplatform\x18\x02 \x01(\x0e2\x1b.gitplus.config.v1.PlatformB\n" +
+	"\xbaH\a\x82\x01\x04\x10\x01 \x00R\bplatform\x12#\n" +
+	"\busername\x18\x03 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\busername\x12P\n" +
+	"\x12only_include_repos\x18\x04 \x01(\v2\".gitplus.config.v1.StringListValueR\x10onlyIncludeRepos\x12G\n" +
+	"\rexclude_repos\x18\x05 \x01(\v2\".gitplus.config.v1.StringListValueR\fexcludeRepos\"\x14\n" +
 	"\x12CheckConfigRequest\"\xb8\x01\n" +
 	"\x13CheckConfigResponse\x12\x12\n" +
 	"\x04path\x18\x01 \x01(\tR\x04path\x12\x16\n" +
@@ -475,11 +1355,42 @@ const file_gitplus_config_v1_config_proto_rawDesc = "" +
 	"\x06exists\x18\x02 \x01(\bR\x06exists\x12\x1b\n" +
 	"\tsource_id\x18\x03 \x01(\tR\bsourceId\x12:\n" +
 	"\x06issues\x18\x04 \x03(\v2\".gitplus.config.v1.ValidationIssueR\x06issues\x129\n" +
-	"\asummary\x18\x05 \x01(\v2\x1f.gitplus.config.v1.IssueSummaryR\asummary2\xdd\x01\n" +
+	"\asummary\x18\x05 \x01(\v2\x1f.gitplus.config.v1.IssueSummaryR\asummary\"\x12\n" +
+	"\x10GetConfigRequest\"z\n" +
+	"\x11GetConfigResponse\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x12\x16\n" +
+	"\x06exists\x18\x02 \x01(\bR\x06exists\x129\n" +
+	"\x06config\x18\x03 \x01(\v2!.gitplus.config.v1.ConfigSnapshotR\x06config\"[\n" +
+	"\x13CreateSourceRequest\x12D\n" +
+	"\x06source\x18\x01 \x01(\v2$.gitplus.config.v1.CreateSourceInputB\x06\xbaH\x03\xc8\x01\x01R\x06source\"Q\n" +
+	"\x14CreateSourceResponse\x129\n" +
+	"\x06config\x18\x01 \x01(\v2!.gitplus.config.v1.ConfigSnapshotR\x06config\"\x7f\n" +
+	"\x13UpdateSourceRequest\x12$\n" +
+	"\tsource_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bsourceId\x12B\n" +
+	"\x05patch\x18\x02 \x01(\v2$.gitplus.config.v1.UpdateSourcePatchB\x06\xbaH\x03\xc8\x01\x01R\x05patch\"Q\n" +
+	"\x14UpdateSourceResponse\x129\n" +
+	"\x06config\x18\x01 \x01(\v2!.gitplus.config.v1.ConfigSnapshotR\x06config\"s\n" +
+	"\x19ReplaceSourceTokenRequest\x12$\n" +
+	"\tsource_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bsourceId\x120\n" +
+	"\x0ftoken_plaintext\x18\x02 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x0etokenPlaintext\"O\n" +
+	"\x1aReplaceSourceTokenResponse\x121\n" +
+	"\x06source\x18\x01 \x01(\v2\x19.gitplus.config.v1.SourceR\x06source\";\n" +
+	"\x13DeleteSourceRequest\x12$\n" +
+	"\tsource_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\bsourceId\"Q\n" +
+	"\x14DeleteSourceResponse\x129\n" +
+	"\x06config\x18\x01 \x01(\v2!.gitplus.config.v1.ConfigSnapshotR\x06config*9\n" +
+	"\bPlatform\x12\x18\n" +
+	"\x14PLATFORM_UNSPECIFIED\x10\x00\x12\x13\n" +
+	"\x0fPLATFORM_GITHUB\x10\x012\xcb\x05\n" +
 	"\rConfigService\x12\\\n" +
 	"\vCheckConfig\x12%.gitplus.config.v1.CheckConfigRequest\x1a&.gitplus.config.v1.CheckConfigResponse\x12n\n" +
-	"\x11CheckSourceConfig\x12+.gitplus.config.v1.CheckSourceConfigRequest\x1a,.gitplus.config.v1.CheckSourceConfigResponseB\xcb\x01\n" +
-	"\x15com.gitplus.config.v1B\vConfigProtoP\x01Z?github.com/ImSingee/git-plus/pkg/rpc/gitplus/config/v1;configv1\xa2\x02\x03GCX\xaa\x02\x11Gitplus.Config.V1\xca\x02\x11Gitplus\\Config\\V1\xe2\x02\x1dGitplus\\Config\\V1\\GPBMetadata\xea\x02\x13Gitplus::Config::V1b\x06proto3"
+	"\x11CheckSourceConfig\x12+.gitplus.config.v1.CheckSourceConfigRequest\x1a,.gitplus.config.v1.CheckSourceConfigResponse\x12V\n" +
+	"\tGetConfig\x12#.gitplus.config.v1.GetConfigRequest\x1a$.gitplus.config.v1.GetConfigResponse\x12_\n" +
+	"\fCreateSource\x12&.gitplus.config.v1.CreateSourceRequest\x1a'.gitplus.config.v1.CreateSourceResponse\x12_\n" +
+	"\fUpdateSource\x12&.gitplus.config.v1.UpdateSourceRequest\x1a'.gitplus.config.v1.UpdateSourceResponse\x12q\n" +
+	"\x12ReplaceSourceToken\x12,.gitplus.config.v1.ReplaceSourceTokenRequest\x1a-.gitplus.config.v1.ReplaceSourceTokenResponse\x12_\n" +
+	"\fDeleteSource\x12&.gitplus.config.v1.DeleteSourceRequest\x1a'.gitplus.config.v1.DeleteSourceResponseB\xd5\x01\n" +
+	"\x15com.gitplus.config.v1B\vConfigProtoP\x01Z?github.com/ImSingee/git-plus/pkg/rpc/gitplus/config/v1;configv1\xa2\x02\x03GCX\xaa\x02\x11Gitplus.Config.V1\xca\x02\x11Gitplus\\Config\\V1\xe2\x02\x1dGitplus\\Config\\V1\\GPBMetadata\xea\x02\x13Gitplus::Config::V1\x92\x03\a\xd2>\x02\x10\x01\b\x01b\beditionsp\xe8\a"
 
 var (
 	file_gitplus_config_v1_config_proto_rawDescOnce sync.Once
@@ -493,32 +1404,71 @@ func file_gitplus_config_v1_config_proto_rawDescGZIP() []byte {
 	return file_gitplus_config_v1_config_proto_rawDescData
 }
 
-var file_gitplus_config_v1_config_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_gitplus_config_v1_config_proto_msgTypes = make([]protoimpl.MessageInfo, 6)
+var file_gitplus_config_v1_config_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
+var file_gitplus_config_v1_config_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
 var file_gitplus_config_v1_config_proto_goTypes = []any{
-	(ValidationIssue_Severity)(0),     // 0: gitplus.config.v1.ValidationIssue.Severity
-	(*ValidationIssue)(nil),           // 1: gitplus.config.v1.ValidationIssue
-	(*IssueSummary)(nil),              // 2: gitplus.config.v1.IssueSummary
-	(*CheckConfigRequest)(nil),        // 3: gitplus.config.v1.CheckConfigRequest
-	(*CheckConfigResponse)(nil),       // 4: gitplus.config.v1.CheckConfigResponse
-	(*CheckSourceConfigRequest)(nil),  // 5: gitplus.config.v1.CheckSourceConfigRequest
-	(*CheckSourceConfigResponse)(nil), // 6: gitplus.config.v1.CheckSourceConfigResponse
+	(Platform)(0),                      // 0: gitplus.config.v1.Platform
+	(ValidationIssue_Severity)(0),      // 1: gitplus.config.v1.ValidationIssue.Severity
+	(*ValidationIssue)(nil),            // 2: gitplus.config.v1.ValidationIssue
+	(*IssueSummary)(nil),               // 3: gitplus.config.v1.IssueSummary
+	(*Source)(nil),                     // 4: gitplus.config.v1.Source
+	(*ConfigSnapshot)(nil),             // 5: gitplus.config.v1.ConfigSnapshot
+	(*StringListValue)(nil),            // 6: gitplus.config.v1.StringListValue
+	(*CreateSourceInput)(nil),          // 7: gitplus.config.v1.CreateSourceInput
+	(*UpdateSourcePatch)(nil),          // 8: gitplus.config.v1.UpdateSourcePatch
+	(*CheckConfigRequest)(nil),         // 9: gitplus.config.v1.CheckConfigRequest
+	(*CheckConfigResponse)(nil),        // 10: gitplus.config.v1.CheckConfigResponse
+	(*CheckSourceConfigRequest)(nil),   // 11: gitplus.config.v1.CheckSourceConfigRequest
+	(*CheckSourceConfigResponse)(nil),  // 12: gitplus.config.v1.CheckSourceConfigResponse
+	(*GetConfigRequest)(nil),           // 13: gitplus.config.v1.GetConfigRequest
+	(*GetConfigResponse)(nil),          // 14: gitplus.config.v1.GetConfigResponse
+	(*CreateSourceRequest)(nil),        // 15: gitplus.config.v1.CreateSourceRequest
+	(*CreateSourceResponse)(nil),       // 16: gitplus.config.v1.CreateSourceResponse
+	(*UpdateSourceRequest)(nil),        // 17: gitplus.config.v1.UpdateSourceRequest
+	(*UpdateSourceResponse)(nil),       // 18: gitplus.config.v1.UpdateSourceResponse
+	(*ReplaceSourceTokenRequest)(nil),  // 19: gitplus.config.v1.ReplaceSourceTokenRequest
+	(*ReplaceSourceTokenResponse)(nil), // 20: gitplus.config.v1.ReplaceSourceTokenResponse
+	(*DeleteSourceRequest)(nil),        // 21: gitplus.config.v1.DeleteSourceRequest
+	(*DeleteSourceResponse)(nil),       // 22: gitplus.config.v1.DeleteSourceResponse
 }
 var file_gitplus_config_v1_config_proto_depIdxs = []int32{
-	0, // 0: gitplus.config.v1.ValidationIssue.severity:type_name -> gitplus.config.v1.ValidationIssue.Severity
-	1, // 1: gitplus.config.v1.CheckConfigResponse.issues:type_name -> gitplus.config.v1.ValidationIssue
-	2, // 2: gitplus.config.v1.CheckConfigResponse.summary:type_name -> gitplus.config.v1.IssueSummary
-	1, // 3: gitplus.config.v1.CheckSourceConfigResponse.issues:type_name -> gitplus.config.v1.ValidationIssue
-	2, // 4: gitplus.config.v1.CheckSourceConfigResponse.summary:type_name -> gitplus.config.v1.IssueSummary
-	3, // 5: gitplus.config.v1.ConfigService.CheckConfig:input_type -> gitplus.config.v1.CheckConfigRequest
-	5, // 6: gitplus.config.v1.ConfigService.CheckSourceConfig:input_type -> gitplus.config.v1.CheckSourceConfigRequest
-	4, // 7: gitplus.config.v1.ConfigService.CheckConfig:output_type -> gitplus.config.v1.CheckConfigResponse
-	6, // 8: gitplus.config.v1.ConfigService.CheckSourceConfig:output_type -> gitplus.config.v1.CheckSourceConfigResponse
-	7, // [7:9] is the sub-list for method output_type
-	5, // [5:7] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	1,  // 0: gitplus.config.v1.ValidationIssue.severity:type_name -> gitplus.config.v1.ValidationIssue.Severity
+	0,  // 1: gitplus.config.v1.Source.platform:type_name -> gitplus.config.v1.Platform
+	4,  // 2: gitplus.config.v1.ConfigSnapshot.sources:type_name -> gitplus.config.v1.Source
+	0,  // 3: gitplus.config.v1.CreateSourceInput.platform:type_name -> gitplus.config.v1.Platform
+	0,  // 4: gitplus.config.v1.UpdateSourcePatch.platform:type_name -> gitplus.config.v1.Platform
+	6,  // 5: gitplus.config.v1.UpdateSourcePatch.only_include_repos:type_name -> gitplus.config.v1.StringListValue
+	6,  // 6: gitplus.config.v1.UpdateSourcePatch.exclude_repos:type_name -> gitplus.config.v1.StringListValue
+	2,  // 7: gitplus.config.v1.CheckConfigResponse.issues:type_name -> gitplus.config.v1.ValidationIssue
+	3,  // 8: gitplus.config.v1.CheckConfigResponse.summary:type_name -> gitplus.config.v1.IssueSummary
+	2,  // 9: gitplus.config.v1.CheckSourceConfigResponse.issues:type_name -> gitplus.config.v1.ValidationIssue
+	3,  // 10: gitplus.config.v1.CheckSourceConfigResponse.summary:type_name -> gitplus.config.v1.IssueSummary
+	5,  // 11: gitplus.config.v1.GetConfigResponse.config:type_name -> gitplus.config.v1.ConfigSnapshot
+	7,  // 12: gitplus.config.v1.CreateSourceRequest.source:type_name -> gitplus.config.v1.CreateSourceInput
+	5,  // 13: gitplus.config.v1.CreateSourceResponse.config:type_name -> gitplus.config.v1.ConfigSnapshot
+	8,  // 14: gitplus.config.v1.UpdateSourceRequest.patch:type_name -> gitplus.config.v1.UpdateSourcePatch
+	5,  // 15: gitplus.config.v1.UpdateSourceResponse.config:type_name -> gitplus.config.v1.ConfigSnapshot
+	4,  // 16: gitplus.config.v1.ReplaceSourceTokenResponse.source:type_name -> gitplus.config.v1.Source
+	5,  // 17: gitplus.config.v1.DeleteSourceResponse.config:type_name -> gitplus.config.v1.ConfigSnapshot
+	9,  // 18: gitplus.config.v1.ConfigService.CheckConfig:input_type -> gitplus.config.v1.CheckConfigRequest
+	11, // 19: gitplus.config.v1.ConfigService.CheckSourceConfig:input_type -> gitplus.config.v1.CheckSourceConfigRequest
+	13, // 20: gitplus.config.v1.ConfigService.GetConfig:input_type -> gitplus.config.v1.GetConfigRequest
+	15, // 21: gitplus.config.v1.ConfigService.CreateSource:input_type -> gitplus.config.v1.CreateSourceRequest
+	17, // 22: gitplus.config.v1.ConfigService.UpdateSource:input_type -> gitplus.config.v1.UpdateSourceRequest
+	19, // 23: gitplus.config.v1.ConfigService.ReplaceSourceToken:input_type -> gitplus.config.v1.ReplaceSourceTokenRequest
+	21, // 24: gitplus.config.v1.ConfigService.DeleteSource:input_type -> gitplus.config.v1.DeleteSourceRequest
+	10, // 25: gitplus.config.v1.ConfigService.CheckConfig:output_type -> gitplus.config.v1.CheckConfigResponse
+	12, // 26: gitplus.config.v1.ConfigService.CheckSourceConfig:output_type -> gitplus.config.v1.CheckSourceConfigResponse
+	14, // 27: gitplus.config.v1.ConfigService.GetConfig:output_type -> gitplus.config.v1.GetConfigResponse
+	16, // 28: gitplus.config.v1.ConfigService.CreateSource:output_type -> gitplus.config.v1.CreateSourceResponse
+	18, // 29: gitplus.config.v1.ConfigService.UpdateSource:output_type -> gitplus.config.v1.UpdateSourceResponse
+	20, // 30: gitplus.config.v1.ConfigService.ReplaceSourceToken:output_type -> gitplus.config.v1.ReplaceSourceTokenResponse
+	22, // 31: gitplus.config.v1.ConfigService.DeleteSource:output_type -> gitplus.config.v1.DeleteSourceResponse
+	25, // [25:32] is the sub-list for method output_type
+	18, // [18:25] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_gitplus_config_v1_config_proto_init() }
@@ -531,8 +1481,8 @@ func file_gitplus_config_v1_config_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gitplus_config_v1_config_proto_rawDesc), len(file_gitplus_config_v1_config_proto_rawDesc)),
-			NumEnums:      1,
-			NumMessages:   6,
+			NumEnums:      2,
+			NumMessages:   21,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

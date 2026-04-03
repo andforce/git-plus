@@ -2,12 +2,17 @@ package configservice
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"slices"
 	"strconv"
+	"strings"
 
 	"connectrpc.com/connect"
+	connectvalidate "connectrpc.com/validate"
 	appconfig "github.com/ImSingee/git-plus/pkg/config"
 	configv1 "github.com/ImSingee/git-plus/pkg/rpc/gitplus/config/v1"
 	"github.com/ImSingee/git-plus/pkg/rpc/gitplus/config/v1/configv1connect"
@@ -19,9 +24,10 @@ type serviceServer struct {
 
 func NewHandler(dataDir string) http.Handler {
 	rpcMux := http.NewServeMux()
-	path, handler := configv1connect.NewConfigServiceHandler(&serviceServer{
-		dataDir: dataDir,
-	})
+	path, handler := configv1connect.NewConfigServiceHandler(
+		&serviceServer{dataDir: dataDir},
+		connect.WithInterceptors(mustValidateInterceptor()),
+	)
 	rpcMux.Handle(path, handler)
 
 	return http.StripPrefix("/api", rpcMux)
@@ -35,8 +41,8 @@ func (s *serviceServer) CheckConfig(
 	appconfig.SortIssues(result.Issues)
 
 	return connect.NewResponse(&configv1.CheckConfigResponse{
-		Path:    result.Path,
-		Exists:  result.Exists,
+		Path:    stringPtr(result.Path),
+		Exists:  boolPtr(result.Exists),
 		Issues:  toProtoIssues(result.Issues),
 		Summary: summarizeProtoIssues(result.Issues),
 	}), nil
@@ -46,16 +52,156 @@ func (s *serviceServer) CheckSourceConfig(
 	_ context.Context,
 	req *connect.Request[configv1.CheckSourceConfigRequest],
 ) (*connect.Response[configv1.CheckSourceConfigResponse], error) {
-	sourceID := req.Msg.GetSourceId()
+	sourceID := strings.TrimSpace(req.Msg.GetSourceId())
 	result := appconfig.CheckSource(appconfig.PathForDataDir(s.dataDir), sourceID, secretOptionsFromEnv())
 	appconfig.SortIssues(result.Issues)
 
 	return connect.NewResponse(&configv1.CheckSourceConfigResponse{
-		Path:     result.Path,
-		Exists:   result.Exists,
-		SourceId: sourceID,
+		Path:     stringPtr(result.Path),
+		Exists:   boolPtr(result.Exists),
+		SourceId: stringPtr(sourceID),
 		Issues:   toProtoIssues(result.Issues),
 		Summary:  summarizeProtoIssues(result.Issues),
+	}), nil
+}
+
+func (s *serviceServer) GetConfig(
+	_ context.Context,
+	_ *connect.Request[configv1.GetConfigRequest],
+) (*connect.Response[configv1.GetConfigResponse], error) {
+	path := appconfig.PathForDataDir(s.dataDir)
+	loaded, exists, err := appconfig.LoadOrDefault(path)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("load config: %w", err))
+	}
+
+	return connect.NewResponse(&configv1.GetConfigResponse{
+		Path:   stringPtr(loaded.Path),
+		Exists: boolPtr(exists),
+		Config: toProtoConfigSnapshot(loaded.Data),
+	}), nil
+}
+
+func (s *serviceServer) CreateSource(
+	_ context.Context,
+	req *connect.Request[configv1.CreateSourceRequest],
+) (*connect.Response[configv1.CreateSourceResponse], error) {
+	loaded, err := s.loadConfigForMutation()
+	if err != nil {
+		return nil, err
+	}
+
+	source, err := createSourceFromProto(req.Msg.GetSource())
+	if err != nil {
+		return nil, err
+	}
+	if findSourceIndex(loaded.Data.Sources, source.ID) >= 0 {
+		return nil, connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("source %q already exists", source.ID))
+	}
+
+	loaded.Data.Sources = append(loaded.Data.Sources, source)
+	s.sortSources(&loaded.Data)
+
+	if err := appconfig.Save(loaded.Path, loaded.Data); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save config: %w", err))
+	}
+
+	return connect.NewResponse(&configv1.CreateSourceResponse{
+		Config: toProtoConfigSnapshot(loaded.Data),
+	}), nil
+}
+
+func (s *serviceServer) UpdateSource(
+	_ context.Context,
+	req *connect.Request[configv1.UpdateSourceRequest],
+) (*connect.Response[configv1.UpdateSourceResponse], error) {
+	loaded, err := s.loadConfigForMutation()
+	if err != nil {
+		return nil, err
+	}
+
+	currentID := strings.TrimSpace(req.Msg.GetSourceId())
+	index := findSourceIndex(loaded.Data.Sources, currentID)
+	if index < 0 {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("source %q was not found", currentID))
+	}
+
+	updatedSource, err := applySourcePatch(req.Msg.Patch, loaded.Data.Sources[index])
+	if err != nil {
+		return nil, err
+	}
+
+	if duplicateIndex := findSourceIndex(loaded.Data.Sources, updatedSource.ID); duplicateIndex >= 0 && duplicateIndex != index {
+		return nil, connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("source %q already exists", updatedSource.ID))
+	}
+
+	loaded.Data.Sources[index] = updatedSource
+	s.sortSources(&loaded.Data)
+
+	if err := appconfig.Save(loaded.Path, loaded.Data); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save config: %w", err))
+	}
+
+	return connect.NewResponse(&configv1.UpdateSourceResponse{
+		Config: toProtoConfigSnapshot(loaded.Data),
+	}), nil
+}
+
+func (s *serviceServer) ReplaceSourceToken(
+	_ context.Context,
+	req *connect.Request[configv1.ReplaceSourceTokenRequest],
+) (*connect.Response[configv1.ReplaceSourceTokenResponse], error) {
+	loaded, err := s.loadConfigForMutation()
+	if err != nil {
+		return nil, err
+	}
+
+	sourceID := strings.TrimSpace(req.Msg.GetSourceId())
+	index := findSourceIndex(loaded.Data.Sources, sourceID)
+	if index < 0 {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("source %q was not found", sourceID))
+	}
+
+	encryptedToken, err := encryptPlaintextToken(req.Msg.GetTokenPlaintext())
+	if err != nil {
+		return nil, err
+	}
+
+	loaded.Data.Sources[index].Token = encryptedToken
+
+	if err := appconfig.Save(loaded.Path, loaded.Data); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save config: %w", err))
+	}
+
+	return connect.NewResponse(&configv1.ReplaceSourceTokenResponse{
+		Source: toProtoSource(loaded.Data.Sources[index]),
+	}), nil
+}
+
+func (s *serviceServer) DeleteSource(
+	_ context.Context,
+	req *connect.Request[configv1.DeleteSourceRequest],
+) (*connect.Response[configv1.DeleteSourceResponse], error) {
+	loaded, err := s.loadConfigForMutation()
+	if err != nil {
+		return nil, err
+	}
+
+	sourceID := strings.TrimSpace(req.Msg.GetSourceId())
+	index := findSourceIndex(loaded.Data.Sources, sourceID)
+	if index < 0 {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("source %q was not found", sourceID))
+	}
+
+	loaded.Data.Sources = slices.Delete(loaded.Data.Sources, index, index+1)
+	s.sortSources(&loaded.Data)
+
+	if err := appconfig.Save(loaded.Path, loaded.Data); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save config: %w", err))
+	}
+
+	return connect.NewResponse(&configv1.DeleteSourceResponse{
+		Config: toProtoConfigSnapshot(loaded.Data),
 	}), nil
 }
 
@@ -79,13 +225,28 @@ func LogIssuesOnStartup(dataDir string, logger *log.Logger) {
 	}
 }
 
+func (s *serviceServer) loadConfigForMutation() (appconfig.LoadedConfig, error) {
+	loaded, _, err := appconfig.LoadOrDefault(appconfig.PathForDataDir(s.dataDir))
+	if err != nil {
+		return appconfig.LoadedConfig{}, connect.NewError(connect.CodeInternal, fmt.Errorf("load config: %w", err))
+	}
+
+	return loaded, nil
+}
+
+func (s *serviceServer) sortSources(cfg *appconfig.Config) {
+	slices.SortFunc(cfg.Sources, func(a appconfig.SourceConfig, b appconfig.SourceConfig) int {
+		return strings.Compare(a.ID, b.ID)
+	})
+}
+
 func summarizeProtoIssues(issues []appconfig.ValidationIssue) *configv1.IssueSummary {
 	summary := appconfig.Summary(issues)
 
 	return &configv1.IssueSummary{
-		Error:   int32(summary[appconfig.SeverityError]),
-		Warning: int32(summary[appconfig.SeverityWarning]),
-		Info:    int32(summary[appconfig.SeverityInfo]),
+		Error:   int32Ptr(int32(summary[appconfig.SeverityError])),
+		Warning: int32Ptr(int32(summary[appconfig.SeverityWarning])),
+		Info:    int32Ptr(int32(summary[appconfig.SeverityInfo])),
 	}
 }
 
@@ -94,12 +255,12 @@ func toProtoIssues(issues []appconfig.ValidationIssue) []*configv1.ValidationIss
 
 	for _, issue := range issues {
 		protoIssues = append(protoIssues, &configv1.ValidationIssue{
-			Severity: toProtoSeverity(issue.Severity),
-			Code:     issue.Code,
-			Message:  issue.Message,
-			Path:     issue.Path,
-			SourceId: issue.SourceID,
-			Line:     int32(issue.Line),
+			Severity: severityPtr(toProtoSeverity(issue.Severity)),
+			Code:     stringPtr(issue.Code),
+			Message:  stringPtr(issue.Message),
+			Path:     stringPtr(issue.Path),
+			SourceId: stringPtr(issue.SourceID),
+			Line:     int32Ptr(int32(issue.Line)),
 		})
 	}
 
@@ -119,8 +280,245 @@ func toProtoSeverity(severity appconfig.Severity) configv1.ValidationIssue_Sever
 	}
 }
 
+func toProtoConfigSnapshot(cfg appconfig.Config) *configv1.ConfigSnapshot {
+	sources := make([]*configv1.Source, 0, len(cfg.Sources))
+	for _, source := range cfg.Sources {
+		sources = append(sources, toProtoSource(source))
+	}
+
+	return &configv1.ConfigSnapshot{
+		Concurrency: int32Ptr(int32(cfg.Concurrency)),
+		Sources:     sources,
+	}
+}
+
+func toProtoSource(source appconfig.SourceConfig) *configv1.Source {
+	return &configv1.Source{
+		Id:               stringPtr(source.ID),
+		Platform:         platformPtr(toProtoPlatform(source.Platform)),
+		Username:         stringPtr(source.Username),
+		Token:            stringPtr(sanitizeTokenForRead(source.Token)),
+		OnlyIncludeRepos: append([]string{}, source.OnlyIncludeRepos...),
+		ExcludeRepos:     append([]string{}, source.ExcludeRepos...),
+	}
+}
+
+func toProtoPlatform(platform string) configv1.Platform {
+	switch strings.TrimSpace(platform) {
+	case "github":
+		return configv1.Platform_PLATFORM_GITHUB
+	default:
+		return configv1.Platform_PLATFORM_UNSPECIFIED
+	}
+}
+
+func fromProtoPlatform(platform configv1.Platform) (string, error) {
+	switch platform {
+	case configv1.Platform_PLATFORM_GITHUB:
+		return "github", nil
+	default:
+		return "", connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("unsupported platform %q", platform.String()))
+	}
+}
+
+func createSourceFromProto(input *configv1.CreateSourceInput) (appconfig.SourceConfig, error) {
+	if input == nil {
+		return appconfig.SourceConfig{}, connect.NewError(connect.CodeInvalidArgument, errors.New("source is required"))
+	}
+
+	platform, err := fromProtoPlatform(input.GetPlatform())
+	if err != nil {
+		return appconfig.SourceConfig{}, err
+	}
+	encryptedToken, err := encryptPlaintextToken(input.GetTokenPlaintext())
+	if err != nil {
+		return appconfig.SourceConfig{}, err
+	}
+
+	id, err := normalizeRequiredString("source.id", input.GetId())
+	if err != nil {
+		return appconfig.SourceConfig{}, err
+	}
+	username, err := normalizeRequiredString("source.username", input.GetUsername())
+	if err != nil {
+		return appconfig.SourceConfig{}, err
+	}
+	onlyIncludeRepos, err := normalizeStringList("source.only_include_repos", input.GetOnlyIncludeRepos())
+	if err != nil {
+		return appconfig.SourceConfig{}, err
+	}
+	excludeRepos, err := normalizeStringList("source.exclude_repos", input.GetExcludeRepos())
+	if err != nil {
+		return appconfig.SourceConfig{}, err
+	}
+
+	return appconfig.SourceConfig{
+		ID:               id,
+		Platform:         platform,
+		Username:         username,
+		Token:            encryptedToken,
+		OnlyIncludeRepos: onlyIncludeRepos,
+		ExcludeRepos:     excludeRepos,
+	}, nil
+}
+
+func applySourcePatch(input *configv1.UpdateSourcePatch, existingSource appconfig.SourceConfig) (appconfig.SourceConfig, error) {
+	if input == nil {
+		return appconfig.SourceConfig{}, connect.NewError(connect.CodeInvalidArgument, errors.New("patch is required"))
+	}
+	if isEmptySourcePatch(input) {
+		return appconfig.SourceConfig{}, connect.NewError(connect.CodeInvalidArgument, errors.New("patch must include at least one field"))
+	}
+
+	updatedSource := existingSource
+
+	if input.Id != nil {
+		id, err := normalizeRequiredString("patch.id", input.GetId())
+		if err != nil {
+			return appconfig.SourceConfig{}, err
+		}
+		updatedSource.ID = id
+	}
+
+	if input.Platform != nil {
+		platform, err := fromProtoPlatform(input.GetPlatform())
+		if err != nil {
+			return appconfig.SourceConfig{}, err
+		}
+		updatedSource.Platform = platform
+	}
+
+	if input.Username != nil {
+		username, err := normalizeRequiredString("patch.username", input.GetUsername())
+		if err != nil {
+			return appconfig.SourceConfig{}, err
+		}
+		updatedSource.Username = username
+	}
+
+	if input.OnlyIncludeRepos != nil {
+		onlyIncludeRepos, err := normalizeStringList("patch.only_include_repos", input.OnlyIncludeRepos.GetValues())
+		if err != nil {
+			return appconfig.SourceConfig{}, err
+		}
+		updatedSource.OnlyIncludeRepos = onlyIncludeRepos
+	}
+
+	if input.ExcludeRepos != nil {
+		excludeRepos, err := normalizeStringList("patch.exclude_repos", input.ExcludeRepos.GetValues())
+		if err != nil {
+			return appconfig.SourceConfig{}, err
+		}
+		updatedSource.ExcludeRepos = excludeRepos
+	}
+
+	return updatedSource, nil
+}
+
+func encryptPlaintextToken(plaintext string) (string, error) {
+	token, err := normalizeRequiredString("token_plaintext", plaintext)
+	if err != nil {
+		return "", err
+	}
+
+	encryptedToken, err := appconfig.EncryptToken(token, os.Getenv(appconfig.TokenPassphraseEnvVar))
+	if err != nil {
+		return "", connect.NewError(connect.CodeInternal, fmt.Errorf("encrypt token: %w", err))
+	}
+
+	return encryptedToken, nil
+}
+
+func sanitizeTokenForRead(token string) string {
+	if appconfig.IsEncryptedToken(token) {
+		return token
+	}
+
+	return ""
+}
+
+func normalizeRequiredString(field string, value string) (string, error) {
+	trimmedValue := strings.TrimSpace(value)
+	if trimmedValue == "" {
+		return "", connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("%s is required", field))
+	}
+
+	return trimmedValue, nil
+}
+
+func normalizeStringList(field string, values []string) ([]string, error) {
+	if len(values) == 0 {
+		return []string{}, nil
+	}
+
+	normalizedValues := make([]string, 0, len(values))
+	seen := make(map[string]struct{}, len(values))
+
+	for index, value := range values {
+		trimmedValue := strings.TrimSpace(value)
+		if trimmedValue == "" {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("%s[%d] is required", field, index))
+		}
+		if _, exists := seen[trimmedValue]; exists {
+			return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("%s contains duplicate value %q", field, trimmedValue))
+		}
+
+		seen[trimmedValue] = struct{}{}
+		normalizedValues = append(normalizedValues, trimmedValue)
+	}
+
+	return normalizedValues, nil
+}
+
+func findSourceIndex(sources []appconfig.SourceConfig, sourceID string) int {
+	for index, source := range sources {
+		if source.ID == sourceID {
+			return index
+		}
+	}
+
+	return -1
+}
+
+func isEmptySourcePatch(input *configv1.UpdateSourcePatch) bool {
+	return input.Id == nil &&
+		input.Platform == nil &&
+		input.Username == nil &&
+		input.OnlyIncludeRepos == nil &&
+		input.ExcludeRepos == nil
+}
+
+func mustValidateInterceptor() connect.Interceptor {
+	interceptor, err := connectvalidate.NewInterceptor()
+	if err != nil {
+		panic(fmt.Sprintf("create connect validate interceptor: %v", err))
+	}
+
+	return interceptor
+}
+
 func secretOptionsFromEnv() appconfig.SecretOptions {
 	return appconfig.SecretOptions{
 		Passphrase: os.Getenv(appconfig.TokenPassphraseEnvVar),
 	}
+}
+
+func stringPtr(value string) *string {
+	return &value
+}
+
+func boolPtr(value bool) *bool {
+	return &value
+}
+
+func int32Ptr(value int32) *int32 {
+	return &value
+}
+
+func severityPtr(value configv1.ValidationIssue_Severity) *configv1.ValidationIssue_Severity {
+	return &value
+}
+
+func platformPtr(value configv1.Platform) *configv1.Platform {
+	return &value
 }
