@@ -235,6 +235,115 @@ cron: '0 * * * *'
 	}
 }
 
+func TestConfigServiceUpdateConfigUpdatesGlobalFields(t *testing.T) {
+	dataDir := t.TempDir()
+	server := newTestServer(t, dataDir)
+
+	response, err := newConfigServiceClient(server.URL).UpdateConfig(
+		context.Background(),
+		connect.NewRequest(&configv1.UpdateConfigRequest{
+			Concurrency:   testInt32Ptr(8),
+			MaxRetryTimes: testInt32Ptr(5),
+		}),
+	)
+	if err != nil {
+		t.Fatalf("update config: %v", err)
+	}
+
+	configSnapshot := response.Msg.GetConfig()
+	if configSnapshot.GetConcurrency() != 8 {
+		t.Fatalf("unexpected concurrency: %d", configSnapshot.GetConcurrency())
+	}
+	if configSnapshot.GetMaxRetryTimes() != 5 {
+		t.Fatalf("unexpected max_retry_times: %d", configSnapshot.GetMaxRetryTimes())
+	}
+
+	loaded, err := appconfig.Load(filepath.Join(dataDir, appconfig.ConfigFilename))
+	if err != nil {
+		t.Fatalf("load persisted config: %v", err)
+	}
+	if loaded.Data.Concurrency != 8 {
+		t.Fatalf("unexpected persisted concurrency: %d", loaded.Data.Concurrency)
+	}
+	if loaded.Data.MaxRetryTimes != 5 {
+		t.Fatalf("unexpected persisted max_retry_times: %d", loaded.Data.MaxRetryTimes)
+	}
+}
+
+func TestConfigServiceUpdateConfigSupportsPartialPatch(t *testing.T) {
+	dataDir := t.TempDir()
+	if err := appconfig.Save(filepath.Join(dataDir, appconfig.ConfigFilename), appconfig.Config{
+		Sources:       []appconfig.SourceConfig{},
+		Concurrency:   7,
+		MaxRetryTimes: 4,
+	}); err != nil {
+		t.Fatalf("save initial config: %v", err)
+	}
+	server := newTestServer(t, dataDir)
+
+	response, err := newConfigServiceClient(server.URL).UpdateConfig(
+		context.Background(),
+		connect.NewRequest(&configv1.UpdateConfigRequest{
+			MaxRetryTimes: testInt32Ptr(1),
+		}),
+	)
+	if err != nil {
+		t.Fatalf("update config: %v", err)
+	}
+
+	configSnapshot := response.Msg.GetConfig()
+	if configSnapshot.GetConcurrency() != 7 {
+		t.Fatalf("expected concurrency to remain unchanged, got %d", configSnapshot.GetConcurrency())
+	}
+	if configSnapshot.GetMaxRetryTimes() != 1 {
+		t.Fatalf("unexpected max_retry_times: %d", configSnapshot.GetMaxRetryTimes())
+	}
+}
+
+func TestConfigServiceUpdateConfigRejectsEmptyPatch(t *testing.T) {
+	dataDir := t.TempDir()
+	server := newTestServer(t, dataDir)
+
+	_, err := newConfigServiceClient(server.URL).UpdateConfig(
+		context.Background(),
+		connect.NewRequest(&configv1.UpdateConfigRequest{}),
+	)
+	if err == nil {
+		t.Fatal("expected empty config patch to fail")
+	}
+
+	connectErr := new(connect.Error)
+	if !errors.As(err, &connectErr) {
+		t.Fatalf("expected connect error, got %v", err)
+	}
+	if connectErr.Code() != connect.CodeInvalidArgument {
+		t.Fatalf("expected invalid argument error, got %s", connectErr.Code())
+	}
+}
+
+func TestConfigServiceUpdateConfigUsesBufValidateInterceptor(t *testing.T) {
+	dataDir := t.TempDir()
+	server := newTestServer(t, dataDir)
+
+	_, err := newConfigServiceClient(server.URL).UpdateConfig(
+		context.Background(),
+		connect.NewRequest(&configv1.UpdateConfigRequest{
+			Concurrency: testInt32Ptr(0),
+		}),
+	)
+	if err == nil {
+		t.Fatal("expected invalid config patch to fail validation")
+	}
+
+	connectErr := new(connect.Error)
+	if !errors.As(err, &connectErr) {
+		t.Fatalf("expected connect error, got %v", err)
+	}
+	if connectErr.Code() != connect.CodeInvalidArgument {
+		t.Fatalf("expected invalid argument error, got %s", connectErr.Code())
+	}
+}
+
 func TestCronServiceGetCronRuntimeReturnsStartupAppliedCron(t *testing.T) {
 	dataDir := t.TempDir()
 	writeConfigFile(t, dataDir, "cron: '0 * * * *'\n")
@@ -1241,6 +1350,10 @@ func mustEncryptServerTokenWithPassphrase(t *testing.T, plaintext string, passph
 	}
 
 	return encryptedToken
+}
+
+func testInt32Ptr(value int32) *int32 {
+	return &value
 }
 
 func mustNewTestCronRuntime(t *testing.T, dataDir string, taskManager *task.Manager) *cronruntime.Runtime {

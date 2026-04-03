@@ -88,6 +88,29 @@ func (s *serviceServer) GetConfig(
 	}), nil
 }
 
+func (s *serviceServer) UpdateConfig(
+	_ context.Context,
+	req *connect.Request[configv1.UpdateConfigRequest],
+) (*connect.Response[configv1.UpdateConfigResponse], error) {
+	loaded, err := s.loadConfigForMutation()
+	if err != nil {
+		return nil, err
+	}
+
+	updatedConfig, err := applyConfigPatch(req.Msg, loaded.Data)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := appconfig.Save(loaded.Path, updatedConfig); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("save config: %w", err))
+	}
+
+	return connect.NewResponse(&configv1.UpdateConfigResponse{
+		Config: toProtoConfigSnapshot(updatedConfig),
+	}), nil
+}
+
 func (s *serviceServer) CreateSource(
 	_ context.Context,
 	req *connect.Request[configv1.CreateSourceRequest],
@@ -429,6 +452,27 @@ func applySourcePatch(input *configv1.UpdateSourcePatch, existingSource appconfi
 	return updatedSource, nil
 }
 
+func applyConfigPatch(input *configv1.UpdateConfigRequest, existingConfig appconfig.Config) (appconfig.Config, error) {
+	if input == nil {
+		return appconfig.Config{}, connect.NewError(connect.CodeInvalidArgument, errors.New("patch is required"))
+	}
+	if isEmptyConfigPatch(input) {
+		return appconfig.Config{}, connect.NewError(connect.CodeInvalidArgument, errors.New("patch must include at least one field"))
+	}
+
+	updatedConfig := existingConfig
+
+	if input.Concurrency != nil {
+		updatedConfig.Concurrency = int(input.GetConcurrency())
+	}
+
+	if input.MaxRetryTimes != nil {
+		updatedConfig.MaxRetryTimes = int(input.GetMaxRetryTimes())
+	}
+
+	return updatedConfig, nil
+}
+
 func encryptPlaintextToken(plaintext string) (string, error) {
 	token, err := normalizeRequiredString("token_plaintext", plaintext)
 	if err != nil {
@@ -502,6 +546,11 @@ func isEmptySourcePatch(input *configv1.UpdateSourcePatch) bool {
 		input.IncludeDefaults == nil &&
 		input.IncludeStarred == nil &&
 		input.IncludeWatching == nil
+}
+
+func isEmptyConfigPatch(input *configv1.UpdateConfigRequest) bool {
+	return input.Concurrency == nil &&
+		input.MaxRetryTimes == nil
 }
 
 func mustValidateInterceptor() connect.Interceptor {

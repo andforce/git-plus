@@ -1,11 +1,15 @@
+import { useState } from 'react';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import {
-  Anchor,
+  ActionIcon,
   Badge,
   Box,
+  Button,
   Container,
   Divider,
   Group,
+  Modal,
+  NumberInput,
   Stack,
   Text,
   Title,
@@ -16,11 +20,18 @@ import {
   IconExclamationCircle,
   IconPencil,
 } from '@tabler/icons-react';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import {
+  useMutation,
+  useQueryClient,
+  useSuspenseQuery,
+} from '@tanstack/react-query';
+import { ConnectError } from '@connectrpc/connect';
+import { toast } from 'sonner';
 import {
   configCheckQueryOptions,
   configQueryOptions,
 } from '~lib/config-queries';
+import { configClient } from '~lib/connect/client';
 import { ValidationIssue_Severity } from '~rpc/gitplus/config/v1/config_pb';
 
 export const Route = createFileRoute('/_dashboard/config/')({
@@ -33,9 +44,15 @@ export const Route = createFileRoute('/_dashboard/config/')({
   component: ConfigOverview,
 });
 
+function getErrorMessage(error: unknown): string {
+  if (error instanceof ConnectError) return error.message;
+  return 'An unexpected error occurred';
+}
+
 function ConfigOverview() {
   const { data: configData } = useSuspenseQuery(configQueryOptions);
   const { data: checkData } = useSuspenseQuery(configCheckQueryOptions);
+  const queryClient = useQueryClient();
 
   const config = configData.config;
   const sourceCount = config?.sources.length ?? 0;
@@ -45,6 +62,38 @@ function ConfigOverview() {
   const errorCount = checkData.summary?.error ?? 0;
   const warningCount = checkData.summary?.warning ?? 0;
   const hasIssues = checkData.issues.length > 0;
+
+  const [editField, setEditField] = useState<
+    'concurrency' | 'maxRetryTimes' | null
+  >(null);
+  const [editValue, setEditValue] = useState<number>(0);
+
+  const openEdit = (field: 'concurrency' | 'maxRetryTimes') => {
+    setEditField(field);
+    setEditValue(field === 'concurrency' ? concurrency : maxRetryTimes);
+  };
+
+  const invalidateConfig = () =>
+    queryClient.invalidateQueries({ queryKey: ['config'] });
+
+  const updateMutation = useMutation({
+    mutationFn: (params: { concurrency: number; maxRetryTimes: number }) =>
+      configClient.updateConfig(params),
+    onSuccess: () => {
+      invalidateConfig();
+      setEditField(null);
+      toast.success('Configuration updated');
+    },
+    onError: (error) => toast.error(getErrorMessage(error)),
+  });
+
+  const handleSave = () => {
+    if (editField === 'concurrency') {
+      updateMutation.mutate({ concurrency: editValue, maxRetryTimes });
+    } else {
+      updateMutation.mutate({ concurrency, maxRetryTimes: editValue });
+    }
+  };
 
   return (
     <Container fluid py="xl" px="xl">
@@ -140,9 +189,15 @@ function ConfigOverview() {
           <Text size="sm" fw={600}>
             {sourceCount} configured
           </Text>
-          <Anchor component={Link} to="/config/sources" c="dimmed" lh={1}>
-            <IconPencil size={14} style={{ verticalAlign: 'middle' }} />
-          </Anchor>
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            size="sm"
+            component={Link}
+            to="/config/sources"
+          >
+            <IconPencil size={14} />
+          </ActionIcon>
 
           <Text size="sm" c="dimmed">
             Concurrency
@@ -150,7 +205,14 @@ function ConfigOverview() {
           <Text size="sm" fw={600}>
             {concurrency} parallel
           </Text>
-          <span />
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            size="sm"
+            onClick={() => openEdit('concurrency')}
+          >
+            <IconPencil size={14} />
+          </ActionIcon>
 
           <Text size="sm" c="dimmed">
             Max retry times
@@ -158,7 +220,14 @@ function ConfigOverview() {
           <Text size="sm" fw={600}>
             {maxRetryTimes}
           </Text>
-          <span />
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            size="sm"
+            onClick={() => openEdit('maxRetryTimes')}
+          >
+            <IconPencil size={14} />
+          </ActionIcon>
 
           <Text size="sm" c="dimmed">
             Cron
@@ -166,11 +235,52 @@ function ConfigOverview() {
           <Text size="sm" fw={600} ff="monospace">
             {cron ?? 'Not set'}
           </Text>
-          <Anchor component={Link} to="/config/cron" c="dimmed" lh={1}>
-            <IconPencil size={14} style={{ verticalAlign: 'middle' }} />
-          </Anchor>
+          <ActionIcon
+            variant="subtle"
+            color="gray"
+            size="sm"
+            component={Link}
+            to="/config/cron"
+          >
+            <IconPencil size={14} />
+          </ActionIcon>
         </Box>
       </Stack>
+
+      <Modal
+        opened={editField !== null}
+        onClose={() => setEditField(null)}
+        title={
+          editField === 'concurrency'
+            ? 'Edit Concurrency'
+            : 'Edit Max Retry Times'
+        }
+        size="xs"
+        centered
+      >
+        <Stack gap="md">
+          <NumberInput
+            label={
+              editField === 'concurrency'
+                ? 'Concurrent parallel tasks'
+                : 'Maximum retry attempts'
+            }
+            value={editValue}
+            onChange={(v) =>
+              setEditValue(typeof v === 'number' ? v : editValue)
+            }
+            min={editField === 'concurrency' ? 1 : 0}
+          />
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setEditField(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} loading={updateMutation.isPending}>
+              Save
+            </Button>
+          </Group>
+        </Stack>
+      </Modal>
     </Container>
   );
 }

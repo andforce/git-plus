@@ -41,6 +41,9 @@ const (
 	ConfigServiceCheckSourceConfigProcedure = "/gitplus.config.v1.ConfigService/CheckSourceConfig"
 	// ConfigServiceGetConfigProcedure is the fully-qualified name of the ConfigService's GetConfig RPC.
 	ConfigServiceGetConfigProcedure = "/gitplus.config.v1.ConfigService/GetConfig"
+	// ConfigServiceUpdateConfigProcedure is the fully-qualified name of the ConfigService's
+	// UpdateConfig RPC.
+	ConfigServiceUpdateConfigProcedure = "/gitplus.config.v1.ConfigService/UpdateConfig"
 	// ConfigServiceCreateSourceProcedure is the fully-qualified name of the ConfigService's
 	// CreateSource RPC.
 	ConfigServiceCreateSourceProcedure = "/gitplus.config.v1.ConfigService/CreateSource"
@@ -60,6 +63,7 @@ type ConfigServiceClient interface {
 	CheckConfig(context.Context, *connect.Request[v1.CheckConfigRequest]) (*connect.Response[v1.CheckConfigResponse], error)
 	CheckSourceConfig(context.Context, *connect.Request[v1.CheckSourceConfigRequest]) (*connect.Response[v1.CheckSourceConfigResponse], error)
 	GetConfig(context.Context, *connect.Request[v1.GetConfigRequest]) (*connect.Response[v1.GetConfigResponse], error)
+	UpdateConfig(context.Context, *connect.Request[v1.UpdateConfigRequest]) (*connect.Response[v1.UpdateConfigResponse], error)
 	CreateSource(context.Context, *connect.Request[v1.CreateSourceRequest]) (*connect.Response[v1.CreateSourceResponse], error)
 	UpdateSource(context.Context, *connect.Request[v1.UpdateSourceRequest]) (*connect.Response[v1.UpdateSourceResponse], error)
 	ReplaceSourceToken(context.Context, *connect.Request[v1.ReplaceSourceTokenRequest]) (*connect.Response[v1.ReplaceSourceTokenResponse], error)
@@ -95,6 +99,12 @@ func NewConfigServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 			connect.WithSchema(configServiceMethods.ByName("GetConfig")),
 			connect.WithClientOptions(opts...),
 		),
+		updateConfig: connect.NewClient[v1.UpdateConfigRequest, v1.UpdateConfigResponse](
+			httpClient,
+			baseURL+ConfigServiceUpdateConfigProcedure,
+			connect.WithSchema(configServiceMethods.ByName("UpdateConfig")),
+			connect.WithClientOptions(opts...),
+		),
 		createSource: connect.NewClient[v1.CreateSourceRequest, v1.CreateSourceResponse](
 			httpClient,
 			baseURL+ConfigServiceCreateSourceProcedure,
@@ -127,6 +137,7 @@ type configServiceClient struct {
 	checkConfig        *connect.Client[v1.CheckConfigRequest, v1.CheckConfigResponse]
 	checkSourceConfig  *connect.Client[v1.CheckSourceConfigRequest, v1.CheckSourceConfigResponse]
 	getConfig          *connect.Client[v1.GetConfigRequest, v1.GetConfigResponse]
+	updateConfig       *connect.Client[v1.UpdateConfigRequest, v1.UpdateConfigResponse]
 	createSource       *connect.Client[v1.CreateSourceRequest, v1.CreateSourceResponse]
 	updateSource       *connect.Client[v1.UpdateSourceRequest, v1.UpdateSourceResponse]
 	replaceSourceToken *connect.Client[v1.ReplaceSourceTokenRequest, v1.ReplaceSourceTokenResponse]
@@ -146,6 +157,11 @@ func (c *configServiceClient) CheckSourceConfig(ctx context.Context, req *connec
 // GetConfig calls gitplus.config.v1.ConfigService.GetConfig.
 func (c *configServiceClient) GetConfig(ctx context.Context, req *connect.Request[v1.GetConfigRequest]) (*connect.Response[v1.GetConfigResponse], error) {
 	return c.getConfig.CallUnary(ctx, req)
+}
+
+// UpdateConfig calls gitplus.config.v1.ConfigService.UpdateConfig.
+func (c *configServiceClient) UpdateConfig(ctx context.Context, req *connect.Request[v1.UpdateConfigRequest]) (*connect.Response[v1.UpdateConfigResponse], error) {
+	return c.updateConfig.CallUnary(ctx, req)
 }
 
 // CreateSource calls gitplus.config.v1.ConfigService.CreateSource.
@@ -173,6 +189,7 @@ type ConfigServiceHandler interface {
 	CheckConfig(context.Context, *connect.Request[v1.CheckConfigRequest]) (*connect.Response[v1.CheckConfigResponse], error)
 	CheckSourceConfig(context.Context, *connect.Request[v1.CheckSourceConfigRequest]) (*connect.Response[v1.CheckSourceConfigResponse], error)
 	GetConfig(context.Context, *connect.Request[v1.GetConfigRequest]) (*connect.Response[v1.GetConfigResponse], error)
+	UpdateConfig(context.Context, *connect.Request[v1.UpdateConfigRequest]) (*connect.Response[v1.UpdateConfigResponse], error)
 	CreateSource(context.Context, *connect.Request[v1.CreateSourceRequest]) (*connect.Response[v1.CreateSourceResponse], error)
 	UpdateSource(context.Context, *connect.Request[v1.UpdateSourceRequest]) (*connect.Response[v1.UpdateSourceResponse], error)
 	ReplaceSourceToken(context.Context, *connect.Request[v1.ReplaceSourceTokenRequest]) (*connect.Response[v1.ReplaceSourceTokenResponse], error)
@@ -202,6 +219,12 @@ func NewConfigServiceHandler(svc ConfigServiceHandler, opts ...connect.HandlerOp
 		ConfigServiceGetConfigProcedure,
 		svc.GetConfig,
 		connect.WithSchema(configServiceMethods.ByName("GetConfig")),
+		connect.WithHandlerOptions(opts...),
+	)
+	configServiceUpdateConfigHandler := connect.NewUnaryHandler(
+		ConfigServiceUpdateConfigProcedure,
+		svc.UpdateConfig,
+		connect.WithSchema(configServiceMethods.ByName("UpdateConfig")),
 		connect.WithHandlerOptions(opts...),
 	)
 	configServiceCreateSourceHandler := connect.NewUnaryHandler(
@@ -236,6 +259,8 @@ func NewConfigServiceHandler(svc ConfigServiceHandler, opts ...connect.HandlerOp
 			configServiceCheckSourceConfigHandler.ServeHTTP(w, r)
 		case ConfigServiceGetConfigProcedure:
 			configServiceGetConfigHandler.ServeHTTP(w, r)
+		case ConfigServiceUpdateConfigProcedure:
+			configServiceUpdateConfigHandler.ServeHTTP(w, r)
 		case ConfigServiceCreateSourceProcedure:
 			configServiceCreateSourceHandler.ServeHTTP(w, r)
 		case ConfigServiceUpdateSourceProcedure:
@@ -263,6 +288,10 @@ func (UnimplementedConfigServiceHandler) CheckSourceConfig(context.Context, *con
 
 func (UnimplementedConfigServiceHandler) GetConfig(context.Context, *connect.Request[v1.GetConfigRequest]) (*connect.Response[v1.GetConfigResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitplus.config.v1.ConfigService.GetConfig is not implemented"))
+}
+
+func (UnimplementedConfigServiceHandler) UpdateConfig(context.Context, *connect.Request[v1.UpdateConfigRequest]) (*connect.Response[v1.UpdateConfigResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitplus.config.v1.ConfigService.UpdateConfig is not implemented"))
 }
 
 func (UnimplementedConfigServiceHandler) CreateSource(context.Context, *connect.Request[v1.CreateSourceRequest]) (*connect.Response[v1.CreateSourceResponse], error) {

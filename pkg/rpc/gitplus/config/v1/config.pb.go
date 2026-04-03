@@ -973,6 +973,102 @@ func (x *GetConfigResponse) GetConfig() *ConfigSnapshot {
 	return nil
 }
 
+type UpdateConfigRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Concurrency   *int32                 `protobuf:"varint,1,opt,name=concurrency" json:"concurrency,omitempty"`
+	MaxRetryTimes *int32                 `protobuf:"varint,2,opt,name=max_retry_times,json=maxRetryTimes" json:"max_retry_times,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateConfigRequest) Reset() {
+	*x = UpdateConfigRequest{}
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateConfigRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateConfigRequest) ProtoMessage() {}
+
+func (x *UpdateConfigRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateConfigRequest.ProtoReflect.Descriptor instead.
+func (*UpdateConfigRequest) Descriptor() ([]byte, []int) {
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *UpdateConfigRequest) GetConcurrency() int32 {
+	if x != nil && x.Concurrency != nil {
+		return *x.Concurrency
+	}
+	return 0
+}
+
+func (x *UpdateConfigRequest) GetMaxRetryTimes() int32 {
+	if x != nil && x.MaxRetryTimes != nil {
+		return *x.MaxRetryTimes
+	}
+	return 0
+}
+
+type UpdateConfigResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Config        *ConfigSnapshot        `protobuf:"bytes,1,opt,name=config" json:"config,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateConfigResponse) Reset() {
+	*x = UpdateConfigResponse{}
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateConfigResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateConfigResponse) ProtoMessage() {}
+
+func (x *UpdateConfigResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateConfigResponse.ProtoReflect.Descriptor instead.
+func (*UpdateConfigResponse) Descriptor() ([]byte, []int) {
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *UpdateConfigResponse) GetConfig() *ConfigSnapshot {
+	if x != nil {
+		return x.Config
+	}
+	return nil
+}
+
 type CreateSourceRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Source        *CreateSourceInput     `protobuf:"bytes,1,opt,name=source" json:"source,omitempty"`
@@ -982,7 +1078,7 @@ type CreateSourceRequest struct {
 
 func (x *CreateSourceRequest) Reset() {
 	*x = CreateSourceRequest{}
-	mi := &file_gitplus_config_v1_config_proto_msgTypes[13]
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -994,7 +1090,7 @@ func (x *CreateSourceRequest) String() string {
 func (*CreateSourceRequest) ProtoMessage() {}
 
 func (x *CreateSourceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitplus_config_v1_config_proto_msgTypes[13]
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1007,7 +1103,7 @@ func (x *CreateSourceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateSourceRequest.ProtoReflect.Descriptor instead.
 func (*CreateSourceRequest) Descriptor() ([]byte, []int) {
-	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{13}
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *CreateSourceRequest) GetSource() *CreateSourceInput {
@@ -1026,7 +1122,7 @@ type CreateSourceResponse struct {
 
 func (x *CreateSourceResponse) Reset() {
 	*x = CreateSourceResponse{}
-	mi := &file_gitplus_config_v1_config_proto_msgTypes[14]
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1038,7 +1134,7 @@ func (x *CreateSourceResponse) String() string {
 func (*CreateSourceResponse) ProtoMessage() {}
 
 func (x *CreateSourceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitplus_config_v1_config_proto_msgTypes[14]
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1051,7 +1147,7 @@ func (x *CreateSourceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateSourceResponse.ProtoReflect.Descriptor instead.
 func (*CreateSourceResponse) Descriptor() ([]byte, []int) {
-	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{14}
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *CreateSourceResponse) GetConfig() *ConfigSnapshot {
@@ -1071,7 +1167,7 @@ type UpdateSourceRequest struct {
 
 func (x *UpdateSourceRequest) Reset() {
 	*x = UpdateSourceRequest{}
-	mi := &file_gitplus_config_v1_config_proto_msgTypes[15]
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1083,7 +1179,7 @@ func (x *UpdateSourceRequest) String() string {
 func (*UpdateSourceRequest) ProtoMessage() {}
 
 func (x *UpdateSourceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitplus_config_v1_config_proto_msgTypes[15]
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1096,7 +1192,7 @@ func (x *UpdateSourceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateSourceRequest.ProtoReflect.Descriptor instead.
 func (*UpdateSourceRequest) Descriptor() ([]byte, []int) {
-	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{15}
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *UpdateSourceRequest) GetSourceId() string {
@@ -1122,7 +1218,7 @@ type UpdateSourceResponse struct {
 
 func (x *UpdateSourceResponse) Reset() {
 	*x = UpdateSourceResponse{}
-	mi := &file_gitplus_config_v1_config_proto_msgTypes[16]
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1134,7 +1230,7 @@ func (x *UpdateSourceResponse) String() string {
 func (*UpdateSourceResponse) ProtoMessage() {}
 
 func (x *UpdateSourceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitplus_config_v1_config_proto_msgTypes[16]
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1147,7 +1243,7 @@ func (x *UpdateSourceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use UpdateSourceResponse.ProtoReflect.Descriptor instead.
 func (*UpdateSourceResponse) Descriptor() ([]byte, []int) {
-	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{16}
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *UpdateSourceResponse) GetConfig() *ConfigSnapshot {
@@ -1167,7 +1263,7 @@ type ReplaceSourceTokenRequest struct {
 
 func (x *ReplaceSourceTokenRequest) Reset() {
 	*x = ReplaceSourceTokenRequest{}
-	mi := &file_gitplus_config_v1_config_proto_msgTypes[17]
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1179,7 +1275,7 @@ func (x *ReplaceSourceTokenRequest) String() string {
 func (*ReplaceSourceTokenRequest) ProtoMessage() {}
 
 func (x *ReplaceSourceTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitplus_config_v1_config_proto_msgTypes[17]
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1192,7 +1288,7 @@ func (x *ReplaceSourceTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReplaceSourceTokenRequest.ProtoReflect.Descriptor instead.
 func (*ReplaceSourceTokenRequest) Descriptor() ([]byte, []int) {
-	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{17}
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *ReplaceSourceTokenRequest) GetSourceId() string {
@@ -1218,7 +1314,7 @@ type ReplaceSourceTokenResponse struct {
 
 func (x *ReplaceSourceTokenResponse) Reset() {
 	*x = ReplaceSourceTokenResponse{}
-	mi := &file_gitplus_config_v1_config_proto_msgTypes[18]
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1230,7 +1326,7 @@ func (x *ReplaceSourceTokenResponse) String() string {
 func (*ReplaceSourceTokenResponse) ProtoMessage() {}
 
 func (x *ReplaceSourceTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitplus_config_v1_config_proto_msgTypes[18]
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1243,7 +1339,7 @@ func (x *ReplaceSourceTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReplaceSourceTokenResponse.ProtoReflect.Descriptor instead.
 func (*ReplaceSourceTokenResponse) Descriptor() ([]byte, []int) {
-	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{18}
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *ReplaceSourceTokenResponse) GetSource() *Source {
@@ -1262,7 +1358,7 @@ type DeleteSourceRequest struct {
 
 func (x *DeleteSourceRequest) Reset() {
 	*x = DeleteSourceRequest{}
-	mi := &file_gitplus_config_v1_config_proto_msgTypes[19]
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1274,7 +1370,7 @@ func (x *DeleteSourceRequest) String() string {
 func (*DeleteSourceRequest) ProtoMessage() {}
 
 func (x *DeleteSourceRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitplus_config_v1_config_proto_msgTypes[19]
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1287,7 +1383,7 @@ func (x *DeleteSourceRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteSourceRequest.ProtoReflect.Descriptor instead.
 func (*DeleteSourceRequest) Descriptor() ([]byte, []int) {
-	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{19}
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *DeleteSourceRequest) GetSourceId() string {
@@ -1306,7 +1402,7 @@ type DeleteSourceResponse struct {
 
 func (x *DeleteSourceResponse) Reset() {
 	*x = DeleteSourceResponse{}
-	mi := &file_gitplus_config_v1_config_proto_msgTypes[20]
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1318,7 +1414,7 @@ func (x *DeleteSourceResponse) String() string {
 func (*DeleteSourceResponse) ProtoMessage() {}
 
 func (x *DeleteSourceResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitplus_config_v1_config_proto_msgTypes[20]
+	mi := &file_gitplus_config_v1_config_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1331,7 +1427,7 @@ func (x *DeleteSourceResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DeleteSourceResponse.ProtoReflect.Descriptor instead.
 func (*DeleteSourceResponse) Descriptor() ([]byte, []int) {
-	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{20}
+	return file_gitplus_config_v1_config_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *DeleteSourceResponse) GetConfig() *ConfigSnapshot {
@@ -1414,7 +1510,12 @@ const file_gitplus_config_v1_config_proto_rawDesc = "" +
 	"\x10GetConfigRequest\"f\n" +
 	"\x11GetConfigResponse\x12\x16\n" +
 	"\x06exists\x18\x01 \x01(\bR\x06exists\x129\n" +
-	"\x06config\x18\x02 \x01(\v2!.gitplus.config.v1.ConfigSnapshotR\x06config\"[\n" +
+	"\x06config\x18\x02 \x01(\v2!.gitplus.config.v1.ConfigSnapshotR\x06config\"q\n" +
+	"\x13UpdateConfigRequest\x12)\n" +
+	"\vconcurrency\x18\x01 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00R\vconcurrency\x12/\n" +
+	"\x0fmax_retry_times\x18\x02 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\rmaxRetryTimes\"Q\n" +
+	"\x14UpdateConfigResponse\x129\n" +
+	"\x06config\x18\x01 \x01(\v2!.gitplus.config.v1.ConfigSnapshotR\x06config\"[\n" +
 	"\x13CreateSourceRequest\x12D\n" +
 	"\x06source\x18\x01 \x01(\v2$.gitplus.config.v1.CreateSourceInputB\x06\xbaH\x03\xc8\x01\x01R\x06source\"Q\n" +
 	"\x14CreateSourceResponse\x129\n" +
@@ -1435,11 +1536,12 @@ const file_gitplus_config_v1_config_proto_rawDesc = "" +
 	"\x06config\x18\x01 \x01(\v2!.gitplus.config.v1.ConfigSnapshotR\x06config*9\n" +
 	"\bPlatform\x12\x18\n" +
 	"\x14PLATFORM_UNSPECIFIED\x10\x00\x12\x13\n" +
-	"\x0fPLATFORM_GITHUB\x10\x012\xcb\x05\n" +
+	"\x0fPLATFORM_GITHUB\x10\x012\xac\x06\n" +
 	"\rConfigService\x12\\\n" +
 	"\vCheckConfig\x12%.gitplus.config.v1.CheckConfigRequest\x1a&.gitplus.config.v1.CheckConfigResponse\x12n\n" +
 	"\x11CheckSourceConfig\x12+.gitplus.config.v1.CheckSourceConfigRequest\x1a,.gitplus.config.v1.CheckSourceConfigResponse\x12V\n" +
 	"\tGetConfig\x12#.gitplus.config.v1.GetConfigRequest\x1a$.gitplus.config.v1.GetConfigResponse\x12_\n" +
+	"\fUpdateConfig\x12&.gitplus.config.v1.UpdateConfigRequest\x1a'.gitplus.config.v1.UpdateConfigResponse\x12_\n" +
 	"\fCreateSource\x12&.gitplus.config.v1.CreateSourceRequest\x1a'.gitplus.config.v1.CreateSourceResponse\x12_\n" +
 	"\fUpdateSource\x12&.gitplus.config.v1.UpdateSourceRequest\x1a'.gitplus.config.v1.UpdateSourceResponse\x12q\n" +
 	"\x12ReplaceSourceToken\x12,.gitplus.config.v1.ReplaceSourceTokenRequest\x1a-.gitplus.config.v1.ReplaceSourceTokenResponse\x12_\n" +
@@ -1459,7 +1561,7 @@ func file_gitplus_config_v1_config_proto_rawDescGZIP() []byte {
 }
 
 var file_gitplus_config_v1_config_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_gitplus_config_v1_config_proto_msgTypes = make([]protoimpl.MessageInfo, 21)
+var file_gitplus_config_v1_config_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
 var file_gitplus_config_v1_config_proto_goTypes = []any{
 	(Platform)(0),                      // 0: gitplus.config.v1.Platform
 	(ValidationIssue_Severity)(0),      // 1: gitplus.config.v1.ValidationIssue.Severity
@@ -1476,14 +1578,16 @@ var file_gitplus_config_v1_config_proto_goTypes = []any{
 	(*CheckSourceConfigResponse)(nil),  // 12: gitplus.config.v1.CheckSourceConfigResponse
 	(*GetConfigRequest)(nil),           // 13: gitplus.config.v1.GetConfigRequest
 	(*GetConfigResponse)(nil),          // 14: gitplus.config.v1.GetConfigResponse
-	(*CreateSourceRequest)(nil),        // 15: gitplus.config.v1.CreateSourceRequest
-	(*CreateSourceResponse)(nil),       // 16: gitplus.config.v1.CreateSourceResponse
-	(*UpdateSourceRequest)(nil),        // 17: gitplus.config.v1.UpdateSourceRequest
-	(*UpdateSourceResponse)(nil),       // 18: gitplus.config.v1.UpdateSourceResponse
-	(*ReplaceSourceTokenRequest)(nil),  // 19: gitplus.config.v1.ReplaceSourceTokenRequest
-	(*ReplaceSourceTokenResponse)(nil), // 20: gitplus.config.v1.ReplaceSourceTokenResponse
-	(*DeleteSourceRequest)(nil),        // 21: gitplus.config.v1.DeleteSourceRequest
-	(*DeleteSourceResponse)(nil),       // 22: gitplus.config.v1.DeleteSourceResponse
+	(*UpdateConfigRequest)(nil),        // 15: gitplus.config.v1.UpdateConfigRequest
+	(*UpdateConfigResponse)(nil),       // 16: gitplus.config.v1.UpdateConfigResponse
+	(*CreateSourceRequest)(nil),        // 17: gitplus.config.v1.CreateSourceRequest
+	(*CreateSourceResponse)(nil),       // 18: gitplus.config.v1.CreateSourceResponse
+	(*UpdateSourceRequest)(nil),        // 19: gitplus.config.v1.UpdateSourceRequest
+	(*UpdateSourceResponse)(nil),       // 20: gitplus.config.v1.UpdateSourceResponse
+	(*ReplaceSourceTokenRequest)(nil),  // 21: gitplus.config.v1.ReplaceSourceTokenRequest
+	(*ReplaceSourceTokenResponse)(nil), // 22: gitplus.config.v1.ReplaceSourceTokenResponse
+	(*DeleteSourceRequest)(nil),        // 23: gitplus.config.v1.DeleteSourceRequest
+	(*DeleteSourceResponse)(nil),       // 24: gitplus.config.v1.DeleteSourceResponse
 }
 var file_gitplus_config_v1_config_proto_depIdxs = []int32{
 	1,  // 0: gitplus.config.v1.ValidationIssue.severity:type_name -> gitplus.config.v1.ValidationIssue.Severity
@@ -1498,31 +1602,34 @@ var file_gitplus_config_v1_config_proto_depIdxs = []int32{
 	2,  // 9: gitplus.config.v1.CheckSourceConfigResponse.issues:type_name -> gitplus.config.v1.ValidationIssue
 	3,  // 10: gitplus.config.v1.CheckSourceConfigResponse.summary:type_name -> gitplus.config.v1.IssueSummary
 	5,  // 11: gitplus.config.v1.GetConfigResponse.config:type_name -> gitplus.config.v1.ConfigSnapshot
-	7,  // 12: gitplus.config.v1.CreateSourceRequest.source:type_name -> gitplus.config.v1.CreateSourceInput
-	5,  // 13: gitplus.config.v1.CreateSourceResponse.config:type_name -> gitplus.config.v1.ConfigSnapshot
-	8,  // 14: gitplus.config.v1.UpdateSourceRequest.patch:type_name -> gitplus.config.v1.UpdateSourcePatch
-	5,  // 15: gitplus.config.v1.UpdateSourceResponse.config:type_name -> gitplus.config.v1.ConfigSnapshot
-	4,  // 16: gitplus.config.v1.ReplaceSourceTokenResponse.source:type_name -> gitplus.config.v1.Source
-	5,  // 17: gitplus.config.v1.DeleteSourceResponse.config:type_name -> gitplus.config.v1.ConfigSnapshot
-	9,  // 18: gitplus.config.v1.ConfigService.CheckConfig:input_type -> gitplus.config.v1.CheckConfigRequest
-	11, // 19: gitplus.config.v1.ConfigService.CheckSourceConfig:input_type -> gitplus.config.v1.CheckSourceConfigRequest
-	13, // 20: gitplus.config.v1.ConfigService.GetConfig:input_type -> gitplus.config.v1.GetConfigRequest
-	15, // 21: gitplus.config.v1.ConfigService.CreateSource:input_type -> gitplus.config.v1.CreateSourceRequest
-	17, // 22: gitplus.config.v1.ConfigService.UpdateSource:input_type -> gitplus.config.v1.UpdateSourceRequest
-	19, // 23: gitplus.config.v1.ConfigService.ReplaceSourceToken:input_type -> gitplus.config.v1.ReplaceSourceTokenRequest
-	21, // 24: gitplus.config.v1.ConfigService.DeleteSource:input_type -> gitplus.config.v1.DeleteSourceRequest
-	10, // 25: gitplus.config.v1.ConfigService.CheckConfig:output_type -> gitplus.config.v1.CheckConfigResponse
-	12, // 26: gitplus.config.v1.ConfigService.CheckSourceConfig:output_type -> gitplus.config.v1.CheckSourceConfigResponse
-	14, // 27: gitplus.config.v1.ConfigService.GetConfig:output_type -> gitplus.config.v1.GetConfigResponse
-	16, // 28: gitplus.config.v1.ConfigService.CreateSource:output_type -> gitplus.config.v1.CreateSourceResponse
-	18, // 29: gitplus.config.v1.ConfigService.UpdateSource:output_type -> gitplus.config.v1.UpdateSourceResponse
-	20, // 30: gitplus.config.v1.ConfigService.ReplaceSourceToken:output_type -> gitplus.config.v1.ReplaceSourceTokenResponse
-	22, // 31: gitplus.config.v1.ConfigService.DeleteSource:output_type -> gitplus.config.v1.DeleteSourceResponse
-	25, // [25:32] is the sub-list for method output_type
-	18, // [18:25] is the sub-list for method input_type
-	18, // [18:18] is the sub-list for extension type_name
-	18, // [18:18] is the sub-list for extension extendee
-	0,  // [0:18] is the sub-list for field type_name
+	5,  // 12: gitplus.config.v1.UpdateConfigResponse.config:type_name -> gitplus.config.v1.ConfigSnapshot
+	7,  // 13: gitplus.config.v1.CreateSourceRequest.source:type_name -> gitplus.config.v1.CreateSourceInput
+	5,  // 14: gitplus.config.v1.CreateSourceResponse.config:type_name -> gitplus.config.v1.ConfigSnapshot
+	8,  // 15: gitplus.config.v1.UpdateSourceRequest.patch:type_name -> gitplus.config.v1.UpdateSourcePatch
+	5,  // 16: gitplus.config.v1.UpdateSourceResponse.config:type_name -> gitplus.config.v1.ConfigSnapshot
+	4,  // 17: gitplus.config.v1.ReplaceSourceTokenResponse.source:type_name -> gitplus.config.v1.Source
+	5,  // 18: gitplus.config.v1.DeleteSourceResponse.config:type_name -> gitplus.config.v1.ConfigSnapshot
+	9,  // 19: gitplus.config.v1.ConfigService.CheckConfig:input_type -> gitplus.config.v1.CheckConfigRequest
+	11, // 20: gitplus.config.v1.ConfigService.CheckSourceConfig:input_type -> gitplus.config.v1.CheckSourceConfigRequest
+	13, // 21: gitplus.config.v1.ConfigService.GetConfig:input_type -> gitplus.config.v1.GetConfigRequest
+	15, // 22: gitplus.config.v1.ConfigService.UpdateConfig:input_type -> gitplus.config.v1.UpdateConfigRequest
+	17, // 23: gitplus.config.v1.ConfigService.CreateSource:input_type -> gitplus.config.v1.CreateSourceRequest
+	19, // 24: gitplus.config.v1.ConfigService.UpdateSource:input_type -> gitplus.config.v1.UpdateSourceRequest
+	21, // 25: gitplus.config.v1.ConfigService.ReplaceSourceToken:input_type -> gitplus.config.v1.ReplaceSourceTokenRequest
+	23, // 26: gitplus.config.v1.ConfigService.DeleteSource:input_type -> gitplus.config.v1.DeleteSourceRequest
+	10, // 27: gitplus.config.v1.ConfigService.CheckConfig:output_type -> gitplus.config.v1.CheckConfigResponse
+	12, // 28: gitplus.config.v1.ConfigService.CheckSourceConfig:output_type -> gitplus.config.v1.CheckSourceConfigResponse
+	14, // 29: gitplus.config.v1.ConfigService.GetConfig:output_type -> gitplus.config.v1.GetConfigResponse
+	16, // 30: gitplus.config.v1.ConfigService.UpdateConfig:output_type -> gitplus.config.v1.UpdateConfigResponse
+	18, // 31: gitplus.config.v1.ConfigService.CreateSource:output_type -> gitplus.config.v1.CreateSourceResponse
+	20, // 32: gitplus.config.v1.ConfigService.UpdateSource:output_type -> gitplus.config.v1.UpdateSourceResponse
+	22, // 33: gitplus.config.v1.ConfigService.ReplaceSourceToken:output_type -> gitplus.config.v1.ReplaceSourceTokenResponse
+	24, // 34: gitplus.config.v1.ConfigService.DeleteSource:output_type -> gitplus.config.v1.DeleteSourceResponse
+	27, // [27:35] is the sub-list for method output_type
+	19, // [19:27] is the sub-list for method input_type
+	19, // [19:19] is the sub-list for extension type_name
+	19, // [19:19] is the sub-list for extension extendee
+	0,  // [0:19] is the sub-list for field type_name
 }
 
 func init() { file_gitplus_config_v1_config_proto_init() }
@@ -1536,7 +1643,7 @@ func file_gitplus_config_v1_config_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gitplus_config_v1_config_proto_rawDesc), len(file_gitplus_config_v1_config_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   21,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -153,6 +153,15 @@ message GetConfigResponse {
   ConfigSnapshot config = 2;
 }
 
+message UpdateConfigRequest {
+  int32 concurrency = 1 [(buf.validate.field).int32.gt = 0];
+  int32 max_retry_times = 2 [(buf.validate.field).int32.gte = 0];
+}
+
+message UpdateConfigResponse {
+  ConfigSnapshot config = 1;
+}
+
 message CreateSourceRequest {
   CreateSourceInput source = 1 [(buf.validate.field).required = true];
 }
@@ -191,6 +200,7 @@ service ConfigService {
   rpc CheckConfig(CheckConfigRequest) returns (CheckConfigResponse);
   rpc CheckSourceConfig(CheckSourceConfigRequest) returns (CheckSourceConfigResponse);
   rpc GetConfig(GetConfigRequest) returns (GetConfigResponse);
+  rpc UpdateConfig(UpdateConfigRequest) returns (UpdateConfigResponse);
   rpc CreateSource(CreateSourceRequest) returns (CreateSourceResponse);
   rpc UpdateSource(UpdateSourceRequest) returns (UpdateSourceResponse);
   rpc ReplaceSourceToken(ReplaceSourceTokenRequest) returns (ReplaceSourceTokenResponse);
