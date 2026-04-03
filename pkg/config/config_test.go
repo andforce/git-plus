@@ -26,6 +26,9 @@ sources:
 	if loaded.Data.Concurrency != DefaultConcurrency {
 		t.Fatalf("expected default concurrency %d, got %d", DefaultConcurrency, loaded.Data.Concurrency)
 	}
+	if loaded.Data.MaxRetryTimes != DefaultMaxRetryTimes {
+		t.Fatalf("expected default max_retry_times %d, got %d", DefaultMaxRetryTimes, loaded.Data.MaxRetryTimes)
+	}
 	if !loaded.Data.Sources[0].IncludeDefaults {
 		t.Fatal("expected include_defaults to default to true")
 	}
@@ -81,6 +84,7 @@ sources:
     username: octocat
     token: `+encryptedToken+`
 concurrency: 0
+max_retry_times: -1
 `)
 
 	loaded, err := Load(configPath)
@@ -97,6 +101,7 @@ concurrency: 0
 	assertHasIssue(t, issues, "duplicate_source_id", "sources[0].id")
 	assertHasIssue(t, issues, "duplicate_source_id", "sources[1].id")
 	assertHasIssue(t, issues, "invalid_concurrency", "concurrency")
+	assertHasIssue(t, issues, "invalid_max_retry_times", "max_retry_times")
 }
 
 func TestValidateConfigWarnsOnEmptySources(t *testing.T) {

@@ -377,6 +377,7 @@ type ConfigSnapshot struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Concurrency   *int32                 `protobuf:"varint,1,opt,name=concurrency" json:"concurrency,omitempty"`
 	Sources       []*Source              `protobuf:"bytes,2,rep,name=sources" json:"sources,omitempty"`
+	MaxRetryTimes *int32                 `protobuf:"varint,3,opt,name=max_retry_times,json=maxRetryTimes" json:"max_retry_times,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -423,6 +424,13 @@ func (x *ConfigSnapshot) GetSources() []*Source {
 		return x.Sources
 	}
 	return nil
+}
+
+func (x *ConfigSnapshot) GetMaxRetryTimes() int32 {
+	if x != nil && x.MaxRetryTimes != nil {
+		return *x.MaxRetryTimes
+	}
+	return 0
 }
 
 type StringListValue struct {
@@ -1356,10 +1364,11 @@ const file_gitplus_config_v1_config_proto_rawDesc = "" +
 	"\rexclude_repos\x18\x06 \x03(\tB\x0e\xbaH\v\x92\x01\b\x18\x01\"\x04r\x02\x10\x01R\fexcludeRepos\x12)\n" +
 	"\x10include_defaults\x18\a \x01(\bR\x0fincludeDefaults\x12'\n" +
 	"\x0finclude_starred\x18\b \x01(\bR\x0eincludeStarred\x12)\n" +
-	"\x10include_watching\x18\t \x01(\bR\x0fincludeWatching\"p\n" +
+	"\x10include_watching\x18\t \x01(\bR\x0fincludeWatching\"\xa1\x01\n" +
 	"\x0eConfigSnapshot\x12)\n" +
 	"\vconcurrency\x18\x01 \x01(\x05B\a\xbaH\x04\x1a\x02 \x00R\vconcurrency\x123\n" +
-	"\asources\x18\x02 \x03(\v2\x19.gitplus.config.v1.SourceR\asources\"9\n" +
+	"\asources\x18\x02 \x03(\v2\x19.gitplus.config.v1.SourceR\asources\x12/\n" +
+	"\x0fmax_retry_times\x18\x03 \x01(\x05B\a\xbaH\x04\x1a\x02(\x00R\rmaxRetryTimes\"9\n" +
 	"\x0fStringListValue\x12&\n" +
 	"\x06values\x18\x01 \x03(\tB\x0e\xbaH\v\x92\x01\b\x18\x01\"\x04r\x02\x10\x01R\x06values\"\xba\x03\n" +
 	"\x11CreateSourceInput\x12\x17\n" +

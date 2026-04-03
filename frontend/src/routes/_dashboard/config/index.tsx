@@ -40,6 +40,7 @@ function ConfigOverview() {
   const config = configData.config;
   const sourceCount = config?.sources.length ?? 0;
   const concurrency = config?.concurrency ?? 0;
+  const maxRetryTimes = config?.maxRetryTimes ?? 0;
   const errorCount = checkData.summary?.error ?? 0;
   const warningCount = checkData.summary?.warning ?? 0;
   const hasIssues = checkData.issues.length > 0;
@@ -138,6 +139,14 @@ function ConfigOverview() {
             </Text>
             <Text size="sm" fw={600}>
               {concurrency} parallel
+            </Text>
+          </Group>
+          <Group justify="space-between">
+            <Text size="sm" c="dimmed">
+              Max retry times
+            </Text>
+            <Text size="sm" fw={600}>
+              {maxRetryTimes}
             </Text>
           </Group>
         </Stack>

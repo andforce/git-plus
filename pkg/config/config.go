@@ -11,13 +11,15 @@ import (
 const (
 	ConfigFilename         = "config.yaml"
 	DefaultConcurrency     = 5
+	DefaultMaxRetryTimes   = 2
 	TokenPassphraseEnvVar  = "ENCRYPT_PASSPHRASE"
 	DefaultIncludeDefaults = true
 )
 
 type Config struct {
-	Sources     []SourceConfig `yaml:"sources"`
-	Concurrency int            `yaml:"concurrency"`
+	Sources       []SourceConfig `yaml:"sources"`
+	Concurrency   int            `yaml:"concurrency"`
+	MaxRetryTimes int            `yaml:"max_retry_times"`
 }
 
 type SourceConfig struct {
@@ -58,7 +60,8 @@ func Load(path string) (LoadedConfig, error) {
 	}
 
 	cfg := Config{
-		Concurrency: DefaultConcurrency,
+		Concurrency:   DefaultConcurrency,
+		MaxRetryTimes: DefaultMaxRetryTimes,
 	}
 	if err := document.Decode(&cfg); err != nil {
 		return LoadedConfig{}, fmt.Errorf("decode config file: %w", err)

@@ -87,6 +87,7 @@ func ValidateConfig(loaded LoadedConfig, opts ...SecretOptions) []ValidationIssu
 	issues = append(issues, validateUnknownFields(root, "", topLevelFields)...)
 	issues = append(issues, validateSourceCollection(loaded.Data.Sources, root, secretOptions)...)
 	issues = append(issues, validateConcurrency(loaded.Data, root)...)
+	issues = append(issues, validateMaxRetryTimes(loaded.Data, root)...)
 
 	return issues
 }
@@ -127,6 +128,7 @@ func ValidateSource(loaded LoadedConfig, sourceID string, opts ...SecretOptions)
 var topLevelFields = []string{
 	"sources",
 	"concurrency",
+	"max_retry_times",
 }
 
 var sourceFields = []string{
@@ -348,6 +350,31 @@ func validateConcurrency(cfg Config, root *yaml.Node) []ValidationIssue {
 			Code:     "invalid_concurrency",
 			Message:  "concurrency must be greater than 0",
 			Path:     "concurrency",
+			Line:     line,
+		},
+	}
+}
+
+func validateMaxRetryTimes(cfg Config, root *yaml.Node) []ValidationIssue {
+	if !mappingHasKey(root, "max_retry_times") {
+		return nil
+	}
+	if cfg.MaxRetryTimes >= 0 {
+		return nil
+	}
+
+	valueNode, _, _ := mappingValue(root, "max_retry_times")
+	line := 0
+	if valueNode != nil {
+		line = valueNode.Line
+	}
+
+	return []ValidationIssue{
+		{
+			Severity: SeverityError,
+			Code:     "invalid_max_retry_times",
+			Message:  "max_retry_times must be greater than or equal to 0",
+			Path:     "max_retry_times",
 			Line:     line,
 		},
 	}

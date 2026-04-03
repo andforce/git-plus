@@ -24,6 +24,7 @@ sources:
     include_starred: false
     include_watching: false
 concurrency: 5
+max_retry_times: 2
 ```
 
 ## Top-level fields
@@ -60,6 +61,14 @@ Meaning of the include fields:
 - Default: `5`
 - Validation: if explicitly set, it must be greater than `0`
 
+### `max_retry_times`
+
+- Type: integer
+- Required: no
+- Default: `2`
+- Meaning: retry up to 2 times after the first attempt, for a total of up to 3 attempts
+- Validation: if explicitly set, it must be greater than or equal to `0`
+
 ## Validation
 
 Validation issues have three severity levels:
@@ -75,6 +84,7 @@ Validation issues have three severity levels:
 - Unsupported `platform` value
 - Duplicate source `id`
 - `concurrency <= 0`
+- `max_retry_times < 0`
 - Source-specific check requested for a non-existent source ID
 - `token` is plain text instead of `$encrypted$1$...`
 - Encrypted `token` payload is malformed

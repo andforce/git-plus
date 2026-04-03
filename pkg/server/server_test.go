@@ -62,6 +62,7 @@ func TestConfigServiceCheckConfigSummaryMatchesIssues(t *testing.T) {
 	writeConfigFile(t, dataDir, `
 sources: []
 concurrency: 0
+max_retry_times: -1
 `)
 	server := newTestServer(t, dataDir)
 
@@ -73,7 +74,7 @@ concurrency: 0
 		t.Fatalf("check config: %v", err)
 	}
 
-	assertSummaryCounts(t, response.Msg.GetSummary(), 1, 1, 0)
+	assertSummaryCounts(t, response.Msg.GetSummary(), 2, 1, 0)
 }
 
 func TestConfigServiceCheckSourceScopesIssuesToRequestedSource(t *testing.T) {
@@ -184,6 +185,9 @@ func TestConfigServiceGetConfigReturnsDefaultSnapshotWhenMissing(t *testing.T) {
 	}
 	if configSnapshot.GetConcurrency() != int32(appconfig.DefaultConcurrency) {
 		t.Fatalf("unexpected concurrency: %d", configSnapshot.GetConcurrency())
+	}
+	if configSnapshot.GetMaxRetryTimes() != int32(appconfig.DefaultMaxRetryTimes) {
+		t.Fatalf("unexpected max_retry_times: %d", configSnapshot.GetMaxRetryTimes())
 	}
 	if len(configSnapshot.GetSources()) != 0 {
 		t.Fatalf("expected no sources, got %#v", configSnapshot.GetSources())

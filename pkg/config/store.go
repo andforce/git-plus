@@ -13,8 +13,9 @@ import (
 
 func DefaultConfig() Config {
 	return Config{
-		Sources:     []SourceConfig{},
-		Concurrency: DefaultConcurrency,
+		Sources:       []SourceConfig{},
+		Concurrency:   DefaultConcurrency,
+		MaxRetryTimes: DefaultMaxRetryTimes,
 	}
 }
 
@@ -36,6 +37,9 @@ func LoadOrDefault(path string) (LoadedConfig, bool, error) {
 func Save(path string, cfg Config) error {
 	if cfg.Concurrency <= 0 {
 		cfg.Concurrency = DefaultConcurrency
+	}
+	if cfg.MaxRetryTimes < 0 {
+		cfg.MaxRetryTimes = DefaultMaxRetryTimes
 	}
 	if cfg.Sources == nil {
 		cfg.Sources = []SourceConfig{}
