@@ -13,7 +13,7 @@ import {
   Text,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconBrandGithub, IconSettings2 } from '@tabler/icons-react';
+import { IconBrandGithub, IconSettings2, IconTool } from '@tabler/icons-react';
 
 export const Route = createFileRoute('/_dashboard')({
   component: DashboardLayout,
@@ -82,6 +82,19 @@ function DashboardLayout() {
               label="Sources"
               active={location.pathname === '/config/sources'}
               onClick={() => navTo('/config/sources')}
+              styles={childNavStyles}
+            />
+          </NavLink>
+          <NavLink
+            label="Maintenance"
+            leftSection={<IconTool size={16} />}
+            defaultOpened
+            styles={childNavStyles}
+          >
+            <NavLink
+              label="Tasks"
+              active={location.pathname === '/maintenance/tasks'}
+              onClick={() => navTo('/maintenance/tasks')}
               styles={childNavStyles}
             />
           </NavLink>

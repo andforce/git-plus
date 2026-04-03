@@ -12,8 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as DashboardRouteImport } from './routes/_dashboard'
 import { Route as R404RouteImport } from './routes/404'
 import { Route as DashboardIndexRouteImport } from './routes/_dashboard/index'
+import { Route as DashboardMaintenanceRouteImport } from './routes/_dashboard/maintenance'
 import { Route as DashboardConfigRouteImport } from './routes/_dashboard/config'
+import { Route as DashboardMaintenanceIndexRouteImport } from './routes/_dashboard/maintenance/index'
 import { Route as DashboardConfigIndexRouteImport } from './routes/_dashboard/config/index'
+import { Route as DashboardMaintenanceTasksRouteImport } from './routes/_dashboard/maintenance/tasks'
 import { Route as DashboardConfigSourcesRouteImport } from './routes/_dashboard/config/sources'
 
 const DashboardRoute = DashboardRouteImport.update({
@@ -30,16 +33,33 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardMaintenanceRoute = DashboardMaintenanceRouteImport.update({
+  id: '/maintenance',
+  path: '/maintenance',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardConfigRoute = DashboardConfigRouteImport.update({
   id: '/config',
   path: '/config',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardMaintenanceIndexRoute =
+  DashboardMaintenanceIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => DashboardMaintenanceRoute,
+  } as any)
 const DashboardConfigIndexRoute = DashboardConfigIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => DashboardConfigRoute,
 } as any)
+const DashboardMaintenanceTasksRoute =
+  DashboardMaintenanceTasksRouteImport.update({
+    id: '/tasks',
+    path: '/tasks',
+    getParentRoute: () => DashboardMaintenanceRoute,
+  } as any)
 const DashboardConfigSourcesRoute = DashboardConfigSourcesRouteImport.update({
   id: '/sources',
   path: '/sources',
@@ -50,37 +70,62 @@ export interface FileRoutesByFullPath {
   '/404': typeof R404Route
   '/': typeof DashboardIndexRoute
   '/config': typeof DashboardConfigRouteWithChildren
+  '/maintenance': typeof DashboardMaintenanceRouteWithChildren
   '/config/sources': typeof DashboardConfigSourcesRoute
+  '/maintenance/tasks': typeof DashboardMaintenanceTasksRoute
   '/config/': typeof DashboardConfigIndexRoute
+  '/maintenance/': typeof DashboardMaintenanceIndexRoute
 }
 export interface FileRoutesByTo {
   '/404': typeof R404Route
   '/': typeof DashboardIndexRoute
   '/config/sources': typeof DashboardConfigSourcesRoute
+  '/maintenance/tasks': typeof DashboardMaintenanceTasksRoute
   '/config': typeof DashboardConfigIndexRoute
+  '/maintenance': typeof DashboardMaintenanceIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/404': typeof R404Route
   '/_dashboard': typeof DashboardRouteWithChildren
   '/_dashboard/config': typeof DashboardConfigRouteWithChildren
+  '/_dashboard/maintenance': typeof DashboardMaintenanceRouteWithChildren
   '/_dashboard/': typeof DashboardIndexRoute
   '/_dashboard/config/sources': typeof DashboardConfigSourcesRoute
+  '/_dashboard/maintenance/tasks': typeof DashboardMaintenanceTasksRoute
   '/_dashboard/config/': typeof DashboardConfigIndexRoute
+  '/_dashboard/maintenance/': typeof DashboardMaintenanceIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/404' | '/' | '/config' | '/config/sources' | '/config/'
+  fullPaths:
+    | '/404'
+    | '/'
+    | '/config'
+    | '/maintenance'
+    | '/config/sources'
+    | '/maintenance/tasks'
+    | '/config/'
+    | '/maintenance/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/404' | '/' | '/config/sources' | '/config'
+  to:
+    | '/404'
+    | '/'
+    | '/config/sources'
+    | '/maintenance/tasks'
+    | '/config'
+    | '/maintenance'
   id:
     | '__root__'
     | '/404'
     | '/_dashboard'
     | '/_dashboard/config'
+    | '/_dashboard/maintenance'
     | '/_dashboard/'
     | '/_dashboard/config/sources'
+    | '/_dashboard/maintenance/tasks'
     | '/_dashboard/config/'
+    | '/_dashboard/maintenance/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -111,6 +156,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/_dashboard/maintenance': {
+      id: '/_dashboard/maintenance'
+      path: '/maintenance'
+      fullPath: '/maintenance'
+      preLoaderRoute: typeof DashboardMaintenanceRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/_dashboard/config': {
       id: '/_dashboard/config'
       path: '/config'
@@ -118,12 +170,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardConfigRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/_dashboard/maintenance/': {
+      id: '/_dashboard/maintenance/'
+      path: '/'
+      fullPath: '/maintenance/'
+      preLoaderRoute: typeof DashboardMaintenanceIndexRouteImport
+      parentRoute: typeof DashboardMaintenanceRoute
+    }
     '/_dashboard/config/': {
       id: '/_dashboard/config/'
       path: '/'
       fullPath: '/config/'
       preLoaderRoute: typeof DashboardConfigIndexRouteImport
       parentRoute: typeof DashboardConfigRoute
+    }
+    '/_dashboard/maintenance/tasks': {
+      id: '/_dashboard/maintenance/tasks'
+      path: '/tasks'
+      fullPath: '/maintenance/tasks'
+      preLoaderRoute: typeof DashboardMaintenanceTasksRouteImport
+      parentRoute: typeof DashboardMaintenanceRoute
     }
     '/_dashboard/config/sources': {
       id: '/_dashboard/config/sources'
@@ -149,13 +215,28 @@ const DashboardConfigRouteWithChildren = DashboardConfigRoute._addFileChildren(
   DashboardConfigRouteChildren,
 )
 
+interface DashboardMaintenanceRouteChildren {
+  DashboardMaintenanceTasksRoute: typeof DashboardMaintenanceTasksRoute
+  DashboardMaintenanceIndexRoute: typeof DashboardMaintenanceIndexRoute
+}
+
+const DashboardMaintenanceRouteChildren: DashboardMaintenanceRouteChildren = {
+  DashboardMaintenanceTasksRoute: DashboardMaintenanceTasksRoute,
+  DashboardMaintenanceIndexRoute: DashboardMaintenanceIndexRoute,
+}
+
+const DashboardMaintenanceRouteWithChildren =
+  DashboardMaintenanceRoute._addFileChildren(DashboardMaintenanceRouteChildren)
+
 interface DashboardRouteChildren {
   DashboardConfigRoute: typeof DashboardConfigRouteWithChildren
+  DashboardMaintenanceRoute: typeof DashboardMaintenanceRouteWithChildren
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardConfigRoute: DashboardConfigRouteWithChildren,
+  DashboardMaintenanceRoute: DashboardMaintenanceRouteWithChildren,
   DashboardIndexRoute: DashboardIndexRoute,
 }
 

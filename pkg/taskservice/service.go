@@ -19,9 +19,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-const (
-	defaultStubStepDelay = 75 * time.Millisecond
-)
+const defaultStubStepDelay = 75 * time.Millisecond
 
 type serviceServer struct {
 	dataDir   string
@@ -134,6 +132,30 @@ func (s *serviceServer) CancelQueuedTask(
 	}
 }
 
+func (s *serviceServer) EnqueueTestTask(
+	_ context.Context,
+	req *connect.Request[taskv1.EnqueueTestTaskRequest],
+) (*connect.Response[taskv1.EnqueueTestTaskResponse], error) {
+	variant := int(req.Msg.GetVariant())
+	jobID := fmt.Sprintf("test-%d", variant)
+	duration := time.Duration(variant*2) * time.Second
+
+	result, snapshot, err := s.manager.Enqueue(task.Spec{
+		JobID:   jobID,
+		JobType: "test",
+		Name:    fmt.Sprintf("Test task %d (%ds)", variant, variant*2),
+		Run:     testRunner(variant, duration),
+	})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("enqueue test task: %w", err))
+	}
+
+	return connect.NewResponse(&taskv1.EnqueueTestTaskResponse{
+		Result: enqueueResultPtr(toProtoEnqueueResult(result)),
+		Task:   toProtoTask(snapshot),
+	}), nil
+}
+
 func (s *serviceServer) ensureSourceExists(sourceID string) error {
 	loaded, _, err := appconfig.LoadOrDefault(appconfig.PathForDataDir(s.dataDir))
 	if err != nil {
@@ -186,6 +208,23 @@ func (s *serviceServer) stubRunner(jobType string, sourceID string) func(*task.E
 		for _, step := range steps {
 			ctx.SetProgress(step.summary, step.meta)
 			time.Sleep(s.stepDelay)
+		}
+	}
+}
+
+func testRunner(variant int, duration time.Duration) func(*task.ExecutionContext) {
+	return func(ctx *task.ExecutionContext) {
+		totalSeconds := int(duration.Seconds())
+		for i := 1; i <= totalSeconds; i++ {
+			ctx.SetProgress(
+				fmt.Sprintf("Processing (%d/%ds)", i, totalSeconds),
+				map[string]any{
+					"variant": variant,
+					"step":    i,
+					"total":   totalSeconds,
+				},
+			)
+			time.Sleep(time.Second)
 		}
 	}
 }
