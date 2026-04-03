@@ -156,12 +156,6 @@ Set the passphrase with:
 ENCRYPT_PASSPHRASE
 ```
 
-Generate a random passphrase with OpenSSL:
-
-```bash
-openssl rand -base64 32
-```
-
 Generate an encrypted token with the CLI:
 
 ```bash
