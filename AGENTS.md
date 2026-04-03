@@ -10,11 +10,16 @@ This repository is a Go backend plus a Vite/TanStack Router frontend workspace.
   - `main.go` wires the HTTP server and reserved routes (`/api`, `/ready`, `/healthz`)
   - `frontend_dev.go` handles development-mode proxying to the frontend dev server
   - `frontend_embed.go` serves the embedded production frontend when building with `-tags embed`
+- Protobuf and RPC sources live under:
+  - `proto/` for `.proto` contracts managed by Buf
+  - `rpc/` for generated Go protobuf and Connect stubs
 - Frontend source lives in `frontend/`:
   - Vite entry: `frontend/src/main.tsx`
   - Router setup: `frontend/src/router.tsx`
   - Route modules: `frontend/src/routes`
   - Shared UI composites: `frontend/src/components`
+  - Connect/Web generated client types: `frontend/src/rpc`
+  - Shared Connect transport/helpers: `frontend/src/lib/connect`
   - Design primitives/themes: `frontend/src/ui`
   - Global styling: `frontend/src/styles.css`
   - Static assets: `frontend/public`
@@ -26,12 +31,15 @@ Colocate new frontend feature assets with the component or route that consumes t
 - UI: Mantine v8. Use the context7 MCP tool with the library id `/mantine/mantine` to load docs.
 - Routing: TanStack Router. Use context7 with `/websites/tanstack_router` for Router docs.
 - Generated files like `routeTree.gen.ts` are auto-created by `@tanstack/router-plugin`; do not edit.
+- Generated files under `rpc/` and `frontend/src/rpc/` are auto-created by Buf plugins; do not edit them by hand. Update `proto/` files and re-run code generation instead.
 
 ## Build & Development Commands
 
 Use pnpm for workspace tasks and Go tooling for backend compilation/tests.
 
 - `pnpm dev` starts both the frontend dev server and the Go server. The Go server proxies every non-`/api` request to the frontend dev server.
+- `pnpm buf:generate` regenerates Go and TypeScript RPC code from `proto/` into `rpc/` and `frontend/src/rpc/`.
+- `pnpm buf:lint` validates `.proto` files with Buf lint rules.
 - `pnpm build` first builds the frontend into `frontend/dist/`, then builds `dist/git-plus` with `go build -tags embed`, embedding the frontend assets into the binary.
 - `pnpm test` runs `go test ./...` and then frontend Vitest.
 - `pnpm check:types` runs `frontend` type-checking via `tsc --noEmit`.
@@ -61,6 +69,7 @@ Browser Mode notes:
 - If Chromium is missing locally, install it with `pnpm exec playwright install chromium`
 
 Before declaring any Agent task complete, re-run the commands affected by your changes. For full-stack changes, prefer validating with `pnpm test`, `pnpm build`, and `pnpm check:types`.
+If you changed any `.proto` definitions or RPC wiring, also run `pnpm buf:generate` and `pnpm buf:lint`.
 
 ## ESLint
 
@@ -108,6 +117,16 @@ Secrets belong at the repository root in local env files such as `.env` / `.env.
 3. Always use English when writing code, comments, and documentation.
 
 ## Dependencies / Tools
+
+### ConnectRPC + Buf
+
+The backend API under `/api` is implemented with ConnectRPC and generated from protobuf definitions.
+
+- Define API contracts in `proto/`.
+- Generate Go server/client stubs into `rpc/` and TypeScript definitions into `frontend/src/rpc/`.
+- Use Buf for schema linting and code generation via `pnpm buf:generate` and `pnpm buf:lint`.
+- Mount Connect handlers under the `/api` base path. Frontend transports should use `createConnectTransport({ baseUrl: '/api' })`.
+- Prefer changing schemas and regenerating code over editing generated RPC files directly.
 
 ### Mantine
 

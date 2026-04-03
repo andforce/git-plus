@@ -4,11 +4,18 @@
 pre-commit:
   parallel: true
   commands:
+    gofmt:
+      glob: '*.go'
+      exclude: '^rpc/'
+      run: gofmt -s -w -l {staged_files}
+      stage_fixed: true
     prettier:
       glob: '*.{js,jsx,ts,tsx,json,md,css,scss,html,yml,yaml}'
+      exclude: '^(rpc/|frontend/src/rpc/)'
       run: npx prettier --write {staged_files}
       stage_fixed: true
     eslint:
       glob: '*.{js,jsx,ts,tsx}'
+      exclude: '^(rpc/|frontend/src/rpc/)'
       run: npx eslint --fix {staged_files}
       stage_fixed: true

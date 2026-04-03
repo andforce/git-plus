@@ -1,0 +1,22 @@
+version: v2
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/ImSingee/git-plus/rpc
+plugins:
+  - remote: buf.build/protocolbuffers/go
+    out: rpc
+    opt:
+      - paths=source_relative
+  - remote: buf.build/connectrpc/go
+    out: rpc
+    opt:
+      - paths=source_relative
+  - remote: buf.build/bufbuild/es
+    out: frontend/src/rpc
+    include_imports: true
+    opt:
+      - target=ts
+inputs:
+  - directory: proto

@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package gitplus.config.v1;
+
+message ValidationIssue {
+  enum Severity {
+    SEVERITY_UNSPECIFIED = 0;
+    SEVERITY_ERROR = 1;
+    SEVERITY_WARNING = 2;
+    SEVERITY_INFO = 3;
+  }
+
+  Severity severity = 1;
+  string code = 2;
+  string message = 3;
+  string path = 4;
+  string source_id = 5;
+  int32 line = 6;
+}
+
+message IssueSummary {
+  int32 error = 1;
+  int32 warning = 2;
+  int32 info = 3;
+}
+
+message CheckConfigRequest {}
+
+message CheckConfigResponse {
+  string path = 1;
+  bool exists = 2;
+  repeated ValidationIssue issues = 3;
+  IssueSummary summary = 4;
+}
+
+message CheckSourceConfigRequest {
+  string source_id = 1;
+}
+
+message CheckSourceConfigResponse {
+  string path = 1;
+  bool exists = 2;
+  string source_id = 3;
+  repeated ValidationIssue issues = 4;
+  IssueSummary summary = 5;
+}
+
+service ConfigService {
+  rpc CheckConfig(CheckConfigRequest) returns (CheckConfigResponse);
+  rpc CheckSourceConfig(CheckSourceConfigRequest) returns (CheckSourceConfigResponse);
+}

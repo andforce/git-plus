@@ -43,6 +43,8 @@ export default [
       'frontend/playwright-report',
       'frontend/__screenshots__',
       'frontend/.vitest',
+      'rpc',
+      'frontend/src/rpc',
     ],
   },
 ];

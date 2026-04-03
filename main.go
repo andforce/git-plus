@@ -2,16 +2,13 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"path"
 	"strings"
 
-	appconfig "github.com/ImSingee/git-plus/config"
 	appdb "github.com/ImSingee/git-plus/db"
 	"github.com/spf13/cobra"
 )
@@ -154,11 +151,8 @@ func normalizeDataDir(value string) (string, error) {
 
 func newServerHandler(dataDir string, frontendHandler http.Handler) http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api/test", apiTestHandler)
-	mux.HandleFunc("/api/config/check", configCheckHandler(dataDir))
-	mux.HandleFunc("/api/config/sources/", sourceConfigCheckHandler(dataDir))
+	mux.Handle("/api/", newAPIHandler(dataDir))
 	mux.HandleFunc("/api", notFoundAPIHandler)
-	mux.HandleFunc("/api/", notFoundAPIHandler)
 	mux.HandleFunc("/healthz", healthzHandler)
 	mux.HandleFunc("/ready", healthzHandler)
 	mux.Handle("/", frontendHandler)
@@ -174,132 +168,4 @@ func healthzHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write([]byte("ok\n"))
-}
-
-func apiTestHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	_ = json.NewEncoder(w).Encode(map[string]bool{
-		"ok": true,
-	})
-}
-
-type checkSummary struct {
-	Error   int `json:"error"`
-	Warning int `json:"warning"`
-	Info    int `json:"info"`
-}
-
-type configCheckResponse struct {
-	Path     string                      `json:"path"`
-	Exists   bool                        `json:"exists"`
-	Target   string                      `json:"target"`
-	SourceID string                      `json:"source_id,omitempty"`
-	Issues   []appconfig.ValidationIssue `json:"issues"`
-	Summary  checkSummary                `json:"summary"`
-}
-
-func configCheckHandler(dataDir string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		result := appconfig.CheckFile(appconfig.PathForDataDir(dataDir))
-		appconfig.SortIssues(result.Issues)
-		writeJSON(w, configCheckResponse{
-			Path:    result.Path,
-			Exists:  result.Exists,
-			Target:  "config",
-			Issues:  result.Issues,
-			Summary: summarizeIssues(result.Issues),
-		})
-	}
-}
-
-func sourceConfigCheckHandler(dataDir string) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
-
-		sourceID, ok := extractSourceID(r.URL.Path)
-		if !ok {
-			http.NotFound(w, r)
-			return
-		}
-
-		result := appconfig.CheckSource(appconfig.PathForDataDir(dataDir), sourceID)
-		appconfig.SortIssues(result.Issues)
-		writeJSON(w, configCheckResponse{
-			Path:     result.Path,
-			Exists:   result.Exists,
-			Target:   "source",
-			SourceID: sourceID,
-			Issues:   result.Issues,
-			Summary:  summarizeIssues(result.Issues),
-		})
-	}
-}
-
-func extractSourceID(requestPath string) (string, bool) {
-	const prefix = "/api/config/sources/"
-	if !strings.HasPrefix(requestPath, prefix) {
-		return "", false
-	}
-
-	trimmedPath := strings.TrimPrefix(requestPath, prefix)
-	cleanPath := path.Clean("/" + trimmedPath)
-	if !strings.HasSuffix(cleanPath, "/check") {
-		return "", false
-	}
-
-	sourceID := strings.TrimSuffix(strings.TrimPrefix(cleanPath, "/"), "/check")
-	if sourceID == "" || strings.Contains(sourceID, "/") {
-		return "", false
-	}
-
-	return sourceID, true
-}
-
-func summarizeIssues(issues []appconfig.ValidationIssue) checkSummary {
-	summary := appconfig.Summary(issues)
-
-	return checkSummary{
-		Error:   summary[appconfig.SeverityError],
-		Warning: summary[appconfig.SeverityWarning],
-		Info:    summary[appconfig.SeverityInfo],
-	}
-}
-
-func writeJSON(w http.ResponseWriter, payload any) {
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
-	_ = json.NewEncoder(w).Encode(payload)
-}
-
-func logConfigIssuesOnStartup(dataDir string, logger *log.Logger) {
-	result := appconfig.CheckFile(appconfig.PathForDataDir(dataDir))
-	if !result.Exists {
-		return
-	}
-
-	appconfig.SortIssues(result.Issues)
-	for _, issue := range result.Issues {
-		message := fmt.Sprintf("config check %s [%s] %s", issue.Severity, issue.Code, issue.Message)
-		if issue.Path != "" {
-			message += fmt.Sprintf(" (path: %s)", issue.Path)
-		}
-		if issue.Line > 0 {
-			message += fmt.Sprintf(" (line: %d)", issue.Line)
-		}
-
-		logger.Print(message)
-	}
 }

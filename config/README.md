@@ -70,24 +70,39 @@ Validation issues have three severity levels:
 - Unknown fields at the top level or inside a source
 - `sources` is present but empty
 
-## Check APIs
+## Check RPCs
+
+Config checks are exposed through the Connect RPC service:
+
+```text
+gitplus.config.v1.ConfigService
+```
+
+The service is mounted under the `/api` base path.
 
 ### Check the whole config
 
-```http
-GET /api/config/check
-```
+- RPC: `CheckConfig`
+- Generated client path: `/api/gitplus.config.v1.ConfigService/CheckConfig`
+- Request message: `CheckConfigRequest`
+- Response message: `CheckConfigResponse`
 
-Response shape:
+Response fields:
+
+- `path`
+- `exists`
+- `issues`
+- `summary`
+
+Example response shape:
 
 ```json
 {
   "path": "/path/to/data-dir/config.yaml",
   "exists": true,
-  "target": "config",
   "issues": [
     {
-      "severity": "warning",
+      "severity": "SEVERITY_WARNING",
       "code": "unknown_field",
       "message": "field \"unexpected\" is not recognized",
       "path": "sources[0].unexpected",
@@ -104,20 +119,25 @@ Response shape:
 
 ### Check one source
 
-```http
-GET /api/config/sources/{id}/check
-```
+- RPC: `CheckSourceConfig`
+- Generated client path: `/api/gitplus.config.v1.ConfigService/CheckSourceConfig`
+- Request message: `CheckSourceConfigRequest`
+- Required request field: `source_id`
+- Response message: `CheckSourceConfigResponse`
 
-Example:
+Response fields:
 
-```http
-GET /api/config/sources/github/check
-```
+- `path`
+- `exists`
+- `source_id`
+- `issues`
+- `summary`
 
-The response format is the same, with:
+### Frontend usage
 
-- `target: "source"`
-- `source_id` set to the requested source ID
+The frontend should call this service through the generated Connect client and the shared transport in [transport.ts](/Users/wangxuan/Documents/PProjects/git-plus/frontend/src/lib/connect/transport.ts).
+
+Legacy REST-style paths such as `/api/config/check` and `/api/config/sources/{id}/check` are no longer supported.
 
 ## Notes
 
