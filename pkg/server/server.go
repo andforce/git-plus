@@ -8,6 +8,8 @@ import (
 
 	appdb "github.com/ImSingee/git-plus/db"
 	"github.com/ImSingee/git-plus/pkg/configservice"
+	"github.com/ImSingee/git-plus/pkg/task"
+	"github.com/ImSingee/git-plus/pkg/taskservice"
 )
 
 type Config struct {
@@ -19,6 +21,9 @@ type Config struct {
 type FrontendHandlerFactory func() (http.Handler, error)
 
 func Run(ctx context.Context, cfg Config, frontendHandlerFactory FrontendHandlerFactory) error {
+	taskManager := task.NewManager(task.WithLogger(log.Default()))
+	defer taskManager.Close()
+
 	if cfg.AutoMigrate {
 		if err := appdb.Migrate(ctx, cfg.DataDir); err != nil {
 			return fmt.Errorf("run database migrations: %w", err)
@@ -34,12 +39,19 @@ func Run(ctx context.Context, cfg Config, frontendHandlerFactory FrontendHandler
 
 	log.Printf("listening on http://localhost%s", cfg.ListenAddr)
 
-	return http.ListenAndServe(cfg.ListenAddr, NewHandler(cfg.DataDir, frontendHandler))
+	return http.ListenAndServe(cfg.ListenAddr, NewHandler(cfg.DataDir, taskManager, frontendHandler))
 }
 
-func NewHandler(dataDir string, frontendHandler http.Handler) http.Handler {
+func NewHandler(dataDir string, taskManager *task.Manager, frontendHandler http.Handler) http.Handler {
+	if taskManager == nil {
+		taskManager = task.NewManager(task.WithLogger(log.Default()))
+	}
+
 	mux := http.NewServeMux()
-	mux.Handle("/api/", configservice.NewHandler(dataDir))
+	apiMux := http.NewServeMux()
+	configservice.RegisterHandlers(apiMux, dataDir)
+	taskservice.RegisterHandlers(apiMux, dataDir, taskManager)
+	mux.Handle("/api/", http.StripPrefix("/api", apiMux))
 	mux.HandleFunc("/api", notFoundAPIHandler)
 	mux.HandleFunc("/ready", healthzHandler)
 	mux.HandleFunc("/healthz", healthzHandler)

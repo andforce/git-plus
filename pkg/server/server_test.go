@@ -9,11 +9,15 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"connectrpc.com/connect"
 	appconfig "github.com/ImSingee/git-plus/pkg/config"
 	configv1 "github.com/ImSingee/git-plus/pkg/rpc/gitplus/config/v1"
 	"github.com/ImSingee/git-plus/pkg/rpc/gitplus/config/v1/configv1connect"
+	taskv1 "github.com/ImSingee/git-plus/pkg/rpc/gitplus/task/v1"
+	"github.com/ImSingee/git-plus/pkg/rpc/gitplus/task/v1/taskv1connect"
+	"github.com/ImSingee/git-plus/pkg/task"
 )
 
 const serverTestPassphrase = "correct horse battery staple"
@@ -604,6 +608,189 @@ func TestConfigServiceCreateSourceUsesBufValidateInterceptor(t *testing.T) {
 	}
 }
 
+func TestTaskServiceEnqueueFullSyncStartsThenQueuesAndDedupes(t *testing.T) {
+	dataDir := t.TempDir()
+	server := newTestServer(t, dataDir)
+	client := newTaskServiceClient(server.URL)
+
+	firstResponse, err := client.EnqueueFullSync(
+		context.Background(),
+		connect.NewRequest(&taskv1.EnqueueFullSyncRequest{}),
+	)
+	if err != nil {
+		t.Fatalf("enqueue first full sync: %v", err)
+	}
+	if firstResponse.Msg.GetResult() != taskv1.TaskEnqueueResult_TASK_ENQUEUE_RESULT_STARTED {
+		t.Fatalf("unexpected first enqueue result: %s", firstResponse.Msg.GetResult())
+	}
+	assertTaskIdentity(t, firstResponse.Msg.GetTask(), task.JobTypeSyncAll, task.JobIDSyncAll)
+
+	secondResponse, err := client.EnqueueFullSync(
+		context.Background(),
+		connect.NewRequest(&taskv1.EnqueueFullSyncRequest{}),
+	)
+	if err != nil {
+		t.Fatalf("enqueue second full sync: %v", err)
+	}
+	if secondResponse.Msg.GetResult() != taskv1.TaskEnqueueResult_TASK_ENQUEUE_RESULT_QUEUED {
+		t.Fatalf("unexpected second enqueue result: %s", secondResponse.Msg.GetResult())
+	}
+
+	thirdResponse, err := client.EnqueueFullSync(
+		context.Background(),
+		connect.NewRequest(&taskv1.EnqueueFullSyncRequest{}),
+	)
+	if err != nil {
+		t.Fatalf("enqueue third full sync: %v", err)
+	}
+	if thirdResponse.Msg.GetResult() != taskv1.TaskEnqueueResult_TASK_ENQUEUE_RESULT_DEDUPED {
+		t.Fatalf("unexpected third enqueue result: %s", thirdResponse.Msg.GetResult())
+	}
+	if thirdResponse.Msg.GetTask().GetTaskId() != secondResponse.Msg.GetTask().GetTaskId() {
+		t.Fatalf("expected deduped task id %q, got %q", secondResponse.Msg.GetTask().GetTaskId(), thirdResponse.Msg.GetTask().GetTaskId())
+	}
+
+	runtimeResponse, err := client.GetTaskRuntime(
+		context.Background(),
+		connect.NewRequest(&taskv1.GetTaskRuntimeRequest{}),
+	)
+	if err != nil {
+		t.Fatalf("get task runtime: %v", err)
+	}
+
+	if runtimeResponse.Msg.GetRunningTask() == nil {
+		t.Fatal("expected running task")
+	}
+	assertTaskIdentity(t, runtimeResponse.Msg.GetRunningTask(), task.JobTypeSyncAll, task.JobIDSyncAll)
+	if len(runtimeResponse.Msg.GetQueuedTasks()) != 1 {
+		t.Fatalf("expected one queued task, got %d", len(runtimeResponse.Msg.GetQueuedTasks()))
+	}
+	assertTaskIdentity(t, runtimeResponse.Msg.GetQueuedTasks()[0], task.JobTypeSyncAll, task.JobIDSyncAll)
+}
+
+func TestTaskServiceEnqueueSourceSyncValidatesSourceID(t *testing.T) {
+	dataDir := t.TempDir()
+	server := newTestServer(t, dataDir)
+
+	_, err := newTaskServiceClient(server.URL).EnqueueSourceSync(
+		context.Background(),
+		connect.NewRequest(&taskv1.EnqueueSourceSyncRequest{SourceId: testStringPtr("missing")}),
+	)
+	if err == nil {
+		t.Fatal("expected missing source to fail")
+	}
+
+	connectErr := new(connect.Error)
+	if !errors.As(err, &connectErr) {
+		t.Fatalf("expected connect error, got %v", err)
+	}
+	if connectErr.Code() != connect.CodeNotFound {
+		t.Fatalf("expected not found, got %s", connectErr.Code())
+	}
+}
+
+func TestTaskServiceEnqueueSourceSyncUsesExpectedJobIdentity(t *testing.T) {
+	t.Setenv(appconfig.TokenPassphraseEnvVar, serverTestPassphrase)
+	encryptedToken := mustEncryptServerToken(t, "secret")
+	dataDir := t.TempDir()
+	writeConfigFile(t, dataDir, `
+sources:
+  - id: github-main
+    platform: github
+    username: octocat
+    token: `+encryptedToken+`
+`)
+	server := newTestServer(t, dataDir)
+
+	response, err := newTaskServiceClient(server.URL).EnqueueSourceSync(
+		context.Background(),
+		connect.NewRequest(&taskv1.EnqueueSourceSyncRequest{SourceId: testStringPtr("github-main")}),
+	)
+	if err != nil {
+		t.Fatalf("enqueue source sync: %v", err)
+	}
+
+	assertTaskIdentity(t, response.Msg.GetTask(), task.JobTypeSyncSource, "sync-source::github-main")
+}
+
+func TestTaskServiceCancelQueuedTaskRemovesQueuedEntry(t *testing.T) {
+	t.Setenv(appconfig.TokenPassphraseEnvVar, serverTestPassphrase)
+	encryptedToken := mustEncryptServerToken(t, "secret")
+	dataDir := t.TempDir()
+	writeConfigFile(t, dataDir, `
+sources:
+  - id: github-main
+    platform: github
+    username: octocat
+    token: `+encryptedToken+`
+`)
+	server := newTestServer(t, dataDir)
+	client := newTaskServiceClient(server.URL)
+
+	if _, err := client.EnqueueFullSync(context.Background(), connect.NewRequest(&taskv1.EnqueueFullSyncRequest{})); err != nil {
+		t.Fatalf("enqueue full sync: %v", err)
+	}
+	queuedResponse, err := client.EnqueueSourceSync(
+		context.Background(),
+		connect.NewRequest(&taskv1.EnqueueSourceSyncRequest{SourceId: testStringPtr("github-main")}),
+	)
+	if err != nil {
+		t.Fatalf("enqueue source sync: %v", err)
+	}
+
+	cancelResponse, err := client.CancelQueuedTask(
+		context.Background(),
+		connect.NewRequest(&taskv1.CancelQueuedTaskRequest{TaskId: testStringPtr(queuedResponse.Msg.GetTask().GetTaskId())}),
+	)
+	if err != nil {
+		t.Fatalf("cancel queued task: %v", err)
+	}
+	if cancelResponse.Msg.GetTask().GetTaskId() != queuedResponse.Msg.GetTask().GetTaskId() {
+		t.Fatalf("unexpected canceled task id: %q", cancelResponse.Msg.GetTask().GetTaskId())
+	}
+
+	waitUntil(t, func() bool {
+		runtimeResponse, runtimeErr := client.GetTaskRuntime(
+			context.Background(),
+			connect.NewRequest(&taskv1.GetTaskRuntimeRequest{}),
+		)
+		if runtimeErr != nil {
+			t.Fatalf("get task runtime: %v", runtimeErr)
+		}
+		return len(runtimeResponse.Msg.GetQueuedTasks()) == 0
+	}, "queued task removal")
+}
+
+func TestTaskServiceCancelQueuedTaskRejectsRunningTask(t *testing.T) {
+	dataDir := t.TempDir()
+	server := newTestServer(t, dataDir)
+	client := newTaskServiceClient(server.URL)
+
+	enqueueResponse, err := client.EnqueueFullSync(
+		context.Background(),
+		connect.NewRequest(&taskv1.EnqueueFullSyncRequest{}),
+	)
+	if err != nil {
+		t.Fatalf("enqueue full sync: %v", err)
+	}
+
+	_, err = client.CancelQueuedTask(
+		context.Background(),
+		connect.NewRequest(&taskv1.CancelQueuedTaskRequest{TaskId: testStringPtr(enqueueResponse.Msg.GetTask().GetTaskId())}),
+	)
+	if err == nil {
+		t.Fatal("expected canceling running task to fail")
+	}
+
+	connectErr := new(connect.Error)
+	if !errors.As(err, &connectErr) {
+		t.Fatalf("expected connect error, got %v", err)
+	}
+	if connectErr.Code() != connect.CodeFailedPrecondition {
+		t.Fatalf("expected failed precondition, got %s", connectErr.Code())
+	}
+}
+
 func TestServerHandlerRoutesConnectAPIAndKeepsLegacyRoutesGone(t *testing.T) {
 	dataDir := t.TempDir()
 	server := newTestServer(t, dataDir)
@@ -636,7 +823,7 @@ func TestServerHandlerRoutesConnectAPIAndKeepsLegacyRoutesGone(t *testing.T) {
 
 func TestServerHandlerKeepsHealthzReadyAndFrontendRoutes(t *testing.T) {
 	dataDir := t.TempDir()
-	server := httptest.NewServer(NewHandler(dataDir, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(NewHandler(dataDir, task.NewManager(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("frontend-ok"))
 	})))
@@ -682,7 +869,7 @@ func TestServerHandlerKeepsHealthzReadyAndFrontendRoutes(t *testing.T) {
 func newTestServer(t *testing.T, dataDir string) *httptest.Server {
 	t.Helper()
 
-	server := httptest.NewServer(NewHandler(dataDir, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(NewHandler(dataDir, task.NewManager(), http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 	})))
 	t.Cleanup(server.Close)
@@ -692,6 +879,13 @@ func newTestServer(t *testing.T, dataDir string) *httptest.Server {
 
 func newConfigServiceClient(serverURL string) configv1connect.ConfigServiceClient {
 	return configv1connect.NewConfigServiceClient(
+		http.DefaultClient,
+		serverURL+"/api",
+	)
+}
+
+func newTaskServiceClient(serverURL string) taskv1connect.TaskServiceClient {
+	return taskv1connect.NewTaskServiceClient(
 		http.DefaultClient,
 		serverURL+"/api",
 	)
@@ -765,6 +959,34 @@ func assertHasIssue(t *testing.T, issues []*configv1.ValidationIssue, code strin
 	}
 
 	t.Fatalf("expected issue code=%q path=%q, got %#v", code, path, issues)
+}
+
+func assertTaskIdentity(t *testing.T, got *taskv1.Task, jobType string, jobID string) {
+	t.Helper()
+
+	if got == nil {
+		t.Fatal("expected task")
+	}
+	if got.GetJobType() != jobType {
+		t.Fatalf("unexpected job type: %q", got.GetJobType())
+	}
+	if got.GetJobId() != jobID {
+		t.Fatalf("unexpected job id: %q", got.GetJobId())
+	}
+}
+
+func waitUntil(t *testing.T, condition func() bool, description string) {
+	t.Helper()
+
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if condition() {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	t.Fatalf("timed out waiting for %s", description)
 }
 
 func assertNoIssue(t *testing.T, issues []*configv1.ValidationIssue, code string, path string) {

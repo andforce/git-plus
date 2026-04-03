@@ -24,13 +24,16 @@ type serviceServer struct {
 
 func NewHandler(dataDir string) http.Handler {
 	rpcMux := http.NewServeMux()
+	RegisterHandlers(rpcMux, dataDir)
+	return http.StripPrefix("/api", rpcMux)
+}
+
+func RegisterHandlers(mux *http.ServeMux, dataDir string) {
 	path, handler := configv1connect.NewConfigServiceHandler(
 		&serviceServer{dataDir: dataDir},
 		connect.WithInterceptors(mustValidateInterceptor()),
 	)
-	rpcMux.Handle(path, handler)
-
-	return http.StripPrefix("/api", rpcMux)
+	mux.Handle(path, handler)
 }
 
 func (s *serviceServer) CheckConfig(

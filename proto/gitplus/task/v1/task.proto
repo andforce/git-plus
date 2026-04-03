@@ -1,0 +1,79 @@
+edition = "2023";
+
+package gitplus.task.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/go_features.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+option features.(pb.go).api_level = API_OPEN;
+option features.field_presence = EXPLICIT;
+
+enum TaskState {
+  TASK_STATE_UNSPECIFIED = 0;
+  TASK_STATE_QUEUED = 1;
+  TASK_STATE_RUNNING = 2;
+}
+
+enum TaskEnqueueResult {
+  TASK_ENQUEUE_RESULT_UNSPECIFIED = 0;
+  TASK_ENQUEUE_RESULT_STARTED = 1;
+  TASK_ENQUEUE_RESULT_QUEUED = 2;
+  TASK_ENQUEUE_RESULT_DEDUPED = 3;
+}
+
+message TaskProgress {
+  string summary = 1;
+  google.protobuf.Struct meta = 2;
+  google.protobuf.Timestamp updated_at = 3;
+}
+
+message Task {
+  string task_id = 1;
+  string job_id = 2;
+  string job_type = 3;
+  string name = 4;
+  TaskState state = 5;
+  google.protobuf.Timestamp created_at = 6;
+  google.protobuf.Timestamp started_at = 7;
+  TaskProgress progress = 8;
+}
+
+message GetTaskRuntimeRequest {}
+
+message GetTaskRuntimeResponse {
+  Task running_task = 1;
+  repeated Task queued_tasks = 2;
+}
+
+message EnqueueFullSyncRequest {}
+
+message EnqueueFullSyncResponse {
+  TaskEnqueueResult result = 1;
+  Task task = 2;
+}
+
+message EnqueueSourceSyncRequest {
+  string source_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+message EnqueueSourceSyncResponse {
+  TaskEnqueueResult result = 1;
+  Task task = 2;
+}
+
+message CancelQueuedTaskRequest {
+  string task_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+message CancelQueuedTaskResponse {
+  Task task = 1;
+}
+
+service TaskService {
+  rpc GetTaskRuntime(GetTaskRuntimeRequest) returns (GetTaskRuntimeResponse);
+  rpc EnqueueFullSync(EnqueueFullSyncRequest) returns (EnqueueFullSyncResponse);
+  rpc EnqueueSourceSync(EnqueueSourceSyncRequest) returns (EnqueueSourceSyncResponse);
+  rpc CancelQueuedTask(CancelQueuedTaskRequest) returns (CancelQueuedTaskResponse);
+}
