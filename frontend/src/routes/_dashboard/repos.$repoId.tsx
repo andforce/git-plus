@@ -78,6 +78,37 @@ function stripRefPrefix(name: string) {
   return name.replace(/^refs\/(heads|tags)\//, '');
 }
 
+function truncateMessage(msg: string, max = 72) {
+  const firstLine = msg.split('\n')[0];
+  if (firstLine.length <= max) return firstLine;
+  return firstLine.slice(0, max) + '...';
+}
+
+function renderHashDisplay(change: RepoRefChange) {
+  switch (change.action) {
+    case 'create':
+      return <Code>{shortHash(change.newHash)}</Code>;
+    case 'delete':
+      return (
+        <Text size="xs" c="dimmed" span>
+          <Code>{shortHash(change.oldHash)}</Code> (deleted)
+        </Text>
+      );
+    case 'update':
+      return (
+        <Group gap={4}>
+          <Code>{shortHash(change.oldHash)}</Code>
+          <Text size="xs" c="dimmed" span>
+            &rarr;
+          </Text>
+          <Code>{shortHash(change.newHash)}</Code>
+        </Group>
+      );
+    default:
+      return '—';
+  }
+}
+
 function TabFallback() {
   return (
     <Center py="xl">
@@ -271,8 +302,9 @@ function RefsTab({
           <Table.Tr>
             <Table.Th>Name</Table.Th>
             <Table.Th>Hash</Table.Th>
+            <Table.Th>Last Commit</Table.Th>
             {showDeleted && <Table.Th>Status</Table.Th>}
-            <Table.Th>Last Seen</Table.Th>
+            <Table.Th>Updated</Table.Th>
             <Table.Th style={{ width: 1 }} />
           </Table.Tr>
         </Table.Thead>
@@ -353,6 +385,7 @@ function RefHistoryDrawerContent({
             <Table.Th>Time</Table.Th>
             <Table.Th>Action</Table.Th>
             <Table.Th>Hash</Table.Th>
+            <Table.Th>Commit</Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -372,30 +405,7 @@ function RefHistoryDrawerContent({
 }
 
 function RefChangeRow({ change }: { change: RepoRefChange }) {
-  const hashDisplay = (() => {
-    switch (change.action) {
-      case 'create':
-        return <Code>{shortHash(change.newHash)}</Code>;
-      case 'delete':
-        return (
-          <Text size="xs" c="dimmed" span>
-            <Code>{shortHash(change.oldHash)}</Code> (deleted)
-          </Text>
-        );
-      case 'update':
-        return (
-          <Group gap={4}>
-            <Code>{shortHash(change.oldHash)}</Code>
-            <Text size="xs" c="dimmed" span>
-              &rarr;
-            </Text>
-            <Code>{shortHash(change.newHash)}</Code>
-          </Group>
-        );
-      default:
-        return '—';
-    }
-  })();
+  const commit = change.newCommit;
 
   return (
     <Table.Tr>
@@ -411,7 +421,18 @@ function RefChangeRow({ change }: { change: RepoRefChange }) {
           {change.action}
         </Badge>
       </Table.Td>
-      <Table.Td>{hashDisplay}</Table.Td>
+      <Table.Td>{renderHashDisplay(change)}</Table.Td>
+      <Table.Td>
+        {commit?.message ? (
+          <Text size="xs" lineClamp={1}>
+            {truncateMessage(commit.message)}
+          </Text>
+        ) : (
+          <Text size="xs" c="dimmed">
+            —
+          </Text>
+        )}
+      </Table.Td>
     </Table.Tr>
   );
 }
@@ -447,6 +468,7 @@ function ChangesTab({ repoId }: { repoId: string }) {
             <Table.Th>Ref</Table.Th>
             <Table.Th>Action</Table.Th>
             <Table.Th>Hash</Table.Th>
+            <Table.Th>Commit</Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -487,6 +509,8 @@ function RefRow({
   showStatus: boolean;
   onHistory: () => void;
 }) {
+  const commit = ref_.currentCommit;
+
   return (
     <Table.Tr>
       <Table.Td>
@@ -494,6 +518,29 @@ function RefRow({
       </Table.Td>
       <Table.Td>
         <Code>{shortHash(ref_.currentHash)}</Code>
+      </Table.Td>
+      <Table.Td style={{ maxWidth: 360 }}>
+        {commit?.message ? (
+          <>
+            <Text size="xs" lineClamp={1}>
+              {truncateMessage(commit.message)}
+            </Text>
+            {(commit.authorName || commit.committedAt) && (
+              <Text size="xs" c="dimmed">
+                {[
+                  commit.authorName,
+                  commit.committedAt && formatTimeAgo(commit.committedAt),
+                ]
+                  .filter(Boolean)
+                  .join(', ')}
+              </Text>
+            )}
+          </>
+        ) : (
+          <Text size="xs" c="dimmed">
+            —
+          </Text>
+        )}
       </Table.Td>
       {showStatus && (
         <Table.Td>
@@ -508,7 +555,7 @@ function RefRow({
       )}
       <Table.Td>
         <Text size="xs" c="dimmed">
-          {formatTimeAgo(ref_.lastSeenAt)}
+          {formatTimeAgo(ref_.lastHashUpdatedAt ?? ref_.lastSeenAt)}
         </Text>
       </Table.Td>
       <Table.Td>
@@ -521,30 +568,7 @@ function RefRow({
 }
 
 function ChangeRow({ change }: { change: RepoRefChange }) {
-  const hashDisplay = (() => {
-    switch (change.action) {
-      case 'create':
-        return <Code>{shortHash(change.newHash)}</Code>;
-      case 'delete':
-        return (
-          <Text size="xs" c="dimmed" span>
-            <Code>{shortHash(change.oldHash)}</Code> (deleted)
-          </Text>
-        );
-      case 'update':
-        return (
-          <Group gap={4}>
-            <Code>{shortHash(change.oldHash)}</Code>
-            <Text size="xs" c="dimmed" span>
-              &rarr;
-            </Text>
-            <Code>{shortHash(change.newHash)}</Code>
-          </Group>
-        );
-      default:
-        return '—';
-    }
-  })();
+  const commit = change.newCommit;
 
   return (
     <Table.Tr>
@@ -570,7 +594,30 @@ function ChangeRow({ change }: { change: RepoRefChange }) {
           {change.action}
         </Badge>
       </Table.Td>
-      <Table.Td>{hashDisplay}</Table.Td>
+      <Table.Td>{renderHashDisplay(change)}</Table.Td>
+      <Table.Td style={{ maxWidth: 320 }}>
+        {commit?.message ? (
+          <>
+            <Text size="xs" lineClamp={1}>
+              {truncateMessage(commit.message)}
+            </Text>
+            {(commit.authorName || commit.committedAt) && (
+              <Text size="xs" c="dimmed">
+                {[
+                  commit.authorName,
+                  commit.committedAt && formatTimeAgo(commit.committedAt),
+                ]
+                  .filter(Boolean)
+                  .join(', ')}
+              </Text>
+            )}
+          </>
+        ) : (
+          <Text size="xs" c="dimmed">
+            —
+          </Text>
+        )}
+      </Table.Td>
     </Table.Tr>
   );
 }
