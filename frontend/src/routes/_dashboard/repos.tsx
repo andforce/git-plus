@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import {
   ActionIcon,
@@ -7,18 +7,19 @@ import {
   Box,
   Button,
   Card,
+  Center,
   Container,
   Flex,
   Group,
+  Loader,
   Menu,
-  Pagination,
   Select,
   SimpleGrid,
   Text,
   TextInput,
   Title,
 } from '@mantine/core';
-import { useDebouncedValue } from '@mantine/hooks';
+import { useDebouncedValue, useIntersection } from '@mantine/hooks';
 import {
   IconChevronDown,
   IconExternalLink,
@@ -28,12 +29,14 @@ import {
   IconStar,
   IconX,
 } from '@tabler/icons-react';
-import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useQuery,
+  useSuspenseQuery,
+} from '@tanstack/react-query';
 import type { Repository } from '~rpc/gitplus/repo/v1/repo_pb';
 import { configQueryOptions } from '~lib/config-queries';
-import { repoListQueryOptions } from '~lib/repo-queries';
-
-const PAGE_SIZE = 30;
+import { repoCountQueryOptions, repoListQueryOptions } from '~lib/repo-queries';
 
 const SORT_OPTIONS: Array<{
   key: string;
@@ -48,10 +51,7 @@ const SORT_OPTIONS: Array<{
 
 export const Route = createFileRoute('/_dashboard/repos')({
   loader: ({ context: { queryClient } }) =>
-    Promise.all([
-      queryClient.ensureQueryData(configQueryOptions),
-      queryClient.ensureQueryData(repoListQueryOptions(1, PAGE_SIZE, '', '')),
-    ]),
+    queryClient.ensureQueryData(configQueryOptions),
   component: ReposPage,
 });
 
@@ -95,15 +95,35 @@ function languageColor(lang: string): string {
 
 function ReposPage() {
   const { data: configData } = useSuspenseQuery(configQueryOptions);
-  const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [sourceId, setSourceId] = useState('');
   const [sort, setSort] = useState('created_at_desc');
   const [debouncedSearch] = useDebouncedValue(search, 300);
 
-  const { data } = useQuery(
-    repoListQueryOptions(page, PAGE_SIZE, debouncedSearch, sourceId, sort),
+  const { data: countData } = useQuery(repoCountQueryOptions);
+
+  const {
+    data: reposData,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery(repoListQueryOptions(debouncedSearch, sourceId, sort));
+
+  const { ref: loadMoreRef, entry } = useIntersection({ threshold: 0.1 });
+
+  useEffect(() => {
+    if (entry?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [entry?.isIntersecting, fetchNextPage, hasNextPage, isFetchingNextPage]);
+
+  const repos = useMemo(
+    () => reposData?.pages.flatMap((p) => p.repositories) ?? [],
+    [reposData],
   );
+
+  const totalCount =
+    countData?.totalCount ?? reposData?.pages[0]?.totalCount ?? 0;
 
   const sources = configData.config?.sources ?? [];
   const sourceOptions = sources.map((s) => ({
@@ -111,23 +131,16 @@ function ReposPage() {
     label: `${s.id} — @${s.username}`,
   }));
 
-  const repos = data?.repositories ?? [];
-  const totalCount = data?.totalCount ?? 0;
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-
   const handleSearchChange = (value: string) => {
     setSearch(value);
-    setPage(1);
   };
 
   const handleSourceChange = (value: string | null) => {
     setSourceId(value ?? '');
-    setPage(1);
   };
 
   const handleSortChange = (key: string) => {
     setSort(key);
-    setPage(1);
   };
 
   const currentSort =
@@ -139,7 +152,7 @@ function ReposPage() {
         <div>
           <Title order={2}>Repositories</Title>
           <Text c="dimmed" size="sm">
-            {totalCount} repositories synced from your sources
+            {totalCount.toLocaleString()} repositories synced from your sources
           </Text>
         </div>
       </Group>
@@ -228,14 +241,17 @@ function ReposPage() {
           ))}
         </SimpleGrid>
       )}
-      {totalPages > 1 && (
-        <Pagination
-          total={totalPages}
-          value={page}
-          onChange={setPage}
-          size="sm"
-          mt="md"
-        />
+
+      {hasNextPage && (
+        <Center ref={loadMoreRef} py="xl">
+          {isFetchingNextPage ? (
+            <Loader size="sm" />
+          ) : (
+            <Button variant="subtle" onClick={() => fetchNextPage()}>
+              Load More
+            </Button>
+          )}
+        </Center>
       )}
     </Container>
   );

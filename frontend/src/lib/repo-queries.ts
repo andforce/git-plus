@@ -1,4 +1,4 @@
-import { queryOptions } from '@tanstack/react-query';
+import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query';
 import { repoClient } from './connect/client';
 
 function encodePageToken(offset: number): string {
@@ -8,22 +8,41 @@ function encodePageToken(offset: number): string {
     .replace(/=+$/, '');
 }
 
+const PAGE_SIZE = 30;
+
 export function repoListQueryOptions(
-  page: number,
-  pageSize: number,
   search: string,
   sourceId: string,
   sort: string = 'created_at_desc',
 ) {
-  return queryOptions({
-    queryKey: ['repo', 'list', { page, pageSize, search, sourceId, sort }],
-    queryFn: () =>
+  return infiniteQueryOptions({
+    queryKey: ['repo', 'list', { search, sourceId, sort }],
+    queryFn: ({ pageParam = 0 }) =>
       repoClient.listRepositories({
-        pageSize,
-        pageToken: page > 1 ? encodePageToken((page - 1) * pageSize) : '',
+        pageSize: PAGE_SIZE,
+        pageToken: pageParam > 0 ? encodePageToken(pageParam) : '',
         search,
         sourceId,
         sort,
       }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, _allPages, lastPageParam) => {
+      if (lastPage.nextPageToken) {
+        return lastPageParam + PAGE_SIZE;
+      }
+      return undefined;
+    },
   });
 }
+
+export const repoCountQueryOptions = queryOptions({
+  queryKey: ['repo', 'count'],
+  queryFn: () =>
+    repoClient.listRepositories({
+      pageSize: 1,
+      search: '',
+      sourceId: '',
+      sort: 'created_at_desc',
+    }),
+  staleTime: 60_000,
+});
