@@ -46,7 +46,7 @@ type Option func(*serviceServer)
 type SourceSyncReporter = syncsource.ProgressReporter
 
 type SourceSyncExecutor interface {
-	Sync(ctx context.Context, source appconfig.SourceConfig, reporter SourceSyncReporter) error
+	Sync(ctx context.Context, request syncsource.SyncRequest, reporter SourceSyncReporter) error
 }
 
 func NewHandler(dataDir string, manager *task.Manager, options ...Option) http.Handler {
@@ -462,7 +462,7 @@ func (s *serviceServer) syncAllRunnerWithLogger(logger *log.Logger) func(*task.E
 
 func (s *serviceServer) sourceSyncRunner(sourceID string) func(*task.ExecutionContext) error {
 	return func(ctx *task.ExecutionContext) error {
-		source, err := s.loadResolvedSource(sourceID)
+		request, err := s.loadSourceSyncRequest(sourceID, ctx.TaskID())
 		if err != nil {
 			return err
 		}
@@ -471,14 +471,20 @@ func (s *serviceServer) sourceSyncRunner(sourceID string) func(*task.ExecutionCo
 			return fmt.Errorf("source sync executor is required")
 		}
 
-		return s.sourceSyncExecutor.Sync(context.Background(), source, ctx)
+		return s.sourceSyncExecutor.Sync(context.Background(), request, ctx)
 	}
 }
 
-func (s *serviceServer) loadResolvedSource(sourceID string) (appconfig.SourceConfig, error) {
+func (s *serviceServer) loadSourceSyncRequest(sourceID string, runID string) (syncsource.SyncRequest, error) {
 	loaded, err := appconfig.Load(appconfig.PathForDataDir(s.dataDir))
 	if err != nil {
-		return appconfig.SourceConfig{}, fmt.Errorf("load config: %w", err)
+		return syncsource.SyncRequest{}, fmt.Errorf("load config: %w", err)
+	}
+
+	request := syncsource.SyncRequest{
+		RunID:         runID,
+		Concurrency:   loaded.Data.Concurrency,
+		MaxRetryTimes: loaded.Data.MaxRetryTimes,
 	}
 
 	for _, source := range loaded.Data.Sources {
@@ -488,15 +494,16 @@ func (s *serviceServer) loadResolvedSource(sourceID string) (appconfig.SourceCon
 
 		plaintextToken, err := appconfig.DecryptToken(source.Token, os.Getenv(appconfig.TokenPassphraseEnvVar))
 		if err != nil {
-			return appconfig.SourceConfig{}, fmt.Errorf("decrypt source %q token: %w", sourceID, err)
+			return syncsource.SyncRequest{}, fmt.Errorf("decrypt source %q token: %w", sourceID, err)
 		}
 
 		resolvedSource := source
 		resolvedSource.Token = plaintextToken
-		return resolvedSource, nil
+		request.Source = resolvedSource
+		return request, nil
 	}
 
-	return appconfig.SourceConfig{}, fmt.Errorf("source %q was not found", sourceID)
+	return syncsource.SyncRequest{}, fmt.Errorf("source %q was not found", sourceID)
 }
 
 func (s *serviceServer) openTaskQueries(ctx context.Context) (*dbsqlc.Queries, func(), error) {

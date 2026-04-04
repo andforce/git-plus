@@ -16,6 +16,13 @@ type ProgressReporter interface {
 	SetProgress(summary string, meta map[string]any) error
 }
 
+type SyncRequest struct {
+	RunID         string
+	Source        appconfig.SourceConfig
+	Concurrency   int
+	MaxRetryTimes int
+}
+
 type ResolvedRepo struct {
 	SourceID      string
 	Platform      string
@@ -43,6 +50,18 @@ type SnapshotResult struct {
 	Updated       int
 	Reactivated   int
 	AutoExcluded  int
+}
+
+type ArchiveResult struct {
+	TargetTotal     int
+	Processed       int
+	Succeeded       int
+	Failed          int
+	Retried         int
+	ChangeCount     int
+	CreatedRefCount int
+	UpdatedRefCount int
+	DeletedRefCount int
 }
 
 type githubPage struct {

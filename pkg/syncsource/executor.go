@@ -24,8 +24,10 @@ type Executor struct {
 	db           *sql.DB
 	perPage      int
 	now          func() time.Time
+	sleep        func(context.Context, time.Duration) error
 	openDB       func(context.Context, string) (*sql.DB, error)
 	githubClient githubClient
+	repoArchiver repositoryArchiver
 }
 
 type progressUpdate struct {
@@ -38,8 +40,10 @@ func NewExecutor(dataDir string, options ...Option) *Executor {
 		dataDir:      dataDir,
 		perPage:      defaultGitHubPerPage,
 		now:          time.Now,
+		sleep:        sleepWithContext,
 		openDB:       appdb.Open,
 		githubClient: newGitHubAPIClient(defaultGitHubAPIBaseURL, nil),
+		repoArchiver: &goGitRepositoryArchiver{},
 	}
 
 	for _, option := range options {
@@ -77,6 +81,14 @@ func WithNow(now func() time.Time) Option {
 	}
 }
 
+func WithSleep(sleep func(context.Context, time.Duration) error) Option {
+	return func(executor *Executor) {
+		if sleep != nil {
+			executor.sleep = sleep
+		}
+	}
+}
+
 func WithPerPage(perPage int) Option {
 	return func(executor *Executor) {
 		if perPage > 0 {
@@ -109,11 +121,20 @@ func WithDatabase(db *sql.DB) Option {
 	}
 }
 
-func (executor *Executor) Sync(ctx context.Context, source appconfig.SourceConfig, reporter ProgressReporter) error {
+func WithRepositoryArchiver(repoArchiver repositoryArchiver) Option {
+	return func(executor *Executor) {
+		if repoArchiver != nil {
+			executor.repoArchiver = repoArchiver
+		}
+	}
+}
+
+func (executor *Executor) Sync(ctx context.Context, request SyncRequest, reporter ProgressReporter) error {
 	if executor == nil {
 		return fmt.Errorf("sync executor is required")
 	}
 
+	source := request.Source
 	if err := reportProgress(reporter, "Loaded source configuration", map[string]any{
 		"phase":            "load_source",
 		"platform":         source.Platform,
@@ -158,13 +179,24 @@ func (executor *Executor) Sync(ctx context.Context, source appconfig.SourceConfi
 		return err
 	}
 
-	return reportProgress(reporter, fmt.Sprintf("Resolved %d repositories", result.ResolvedTotal), map[string]any{
-		"phase":          "done",
-		"resolved_total": result.ResolvedTotal,
-		"inserted":       result.Inserted,
-		"updated":        result.Updated,
-		"reactivated":    result.Reactivated,
-		"auto_excluded":  result.AutoExcluded,
+	archiveResult, err := executor.syncActiveRepos(ctx, db, request, reporter)
+	if err != nil {
+		return err
+	}
+
+	return reportProgress(reporter, fmt.Sprintf("Archived %d repositories", archiveResult.Succeeded), map[string]any{
+		"phase":             "done",
+		"resolved_total":    result.ResolvedTotal,
+		"inserted":          result.Inserted,
+		"updated":           result.Updated,
+		"reactivated":       result.Reactivated,
+		"auto_excluded":     result.AutoExcluded,
+		"archived_total":    archiveResult.Succeeded,
+		"failed_total":      archiveResult.Failed,
+		"change_count":      archiveResult.ChangeCount,
+		"created_ref_count": archiveResult.CreatedRefCount,
+		"updated_ref_count": archiveResult.UpdatedRefCount,
+		"deleted_ref_count": archiveResult.DeletedRefCount,
 	})
 }
 

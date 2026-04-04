@@ -27,6 +27,36 @@ FROM repos
 WHERE source_id = ?1
 ORDER BY ref_id;
 
+-- name: ListActiveReposForSource :many
+SELECT
+  id,
+  source_id,
+  platform,
+  ref_id,
+  status,
+  name,
+  full_name,
+  owner,
+  description,
+  html_url,
+  clone_url,
+  ssh_url,
+  default_branch,
+  visibility,
+  is_private,
+  is_fork,
+  is_archived,
+  origin,
+  meta,
+  last_seen_at,
+  disabled_at,
+  created_at,
+  updated_at
+FROM repos
+WHERE source_id = ?1
+  AND status = 'active'
+ORDER BY id;
+
 -- name: CreateRepo :exec
 INSERT INTO repos (
   source_id,

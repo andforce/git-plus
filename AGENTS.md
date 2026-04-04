@@ -64,7 +64,9 @@ Database schema workflow:
 - Do not handwrite or manually edit `db/migrations/*/migration.sql`.
 - Do not handwrite or manually edit Drizzle snapshot files such as `db/migrations/*/snapshot.json`.
 - Do not handwrite or manually edit `db/schema.sql`.
-- When the database schema changes, update `db/src/schema.ts` first, then regenerate `db/migrations` with Drizzle, regenerate `db/schema.sql` via `pnpm db:generate:schema-sql`, and regenerate `sqlc` output.
+- When the database schema changes, update `db/src/schema.ts` first, then regenerate artifacts in order: `pnpm db:generate:drizzle`, `pnpm db:generate:schema-sql`, `pnpm db:generate:sqlc`.
+- Always use `pnpm db:generate:schema-sql` to update `db/schema.sql`; do not edit it manually.
+- Do not run `db/schema.sql` generation and `sqlc` generation in parallel. `sqlc` must read the freshly generated `db/schema.sql`.
 - `db/schema.sql` is a generated downstream schema artifact for SQL tooling; do not treat it as the primary schema definition.
 - Raw SQL execution is allowed only in the migration runner. All non-migration database reads and writes in application code must go through `sqlc`-generated queries defined in `db/queries/*.sql`.
 - After changing database queries or any schema used by application code, regenerate database artifacts with `pnpm db:generate` unless you intentionally need only one sub-step.

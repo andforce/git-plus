@@ -28,6 +28,7 @@ import (
 	"github.com/ImSingee/git-plus/pkg/rpc/gitplus/event/v1/eventv1connect"
 	taskv1 "github.com/ImSingee/git-plus/pkg/rpc/gitplus/task/v1"
 	"github.com/ImSingee/git-plus/pkg/rpc/gitplus/task/v1/taskv1connect"
+	"github.com/ImSingee/git-plus/pkg/syncsource"
 	"github.com/ImSingee/git-plus/pkg/task"
 	"github.com/ImSingee/git-plus/pkg/taskservice"
 	"github.com/ImSingee/git-plus/pkg/taskstore"
@@ -1811,7 +1812,7 @@ func newInstantSourceSyncExecutor() *instantSourceSyncExecutor {
 	return &instantSourceSyncExecutor{}
 }
 
-func (executor *testSourceSyncExecutor) Sync(_ context.Context, _ appconfig.SourceConfig, reporter taskservice.SourceSyncReporter) error {
+func (executor *testSourceSyncExecutor) Sync(_ context.Context, _ syncsource.SyncRequest, reporter taskservice.SourceSyncReporter) error {
 	totalSeconds := int(executor.duration / time.Second)
 	if totalSeconds < 1 {
 		totalSeconds = 1
@@ -1833,7 +1834,7 @@ func (executor *testSourceSyncExecutor) Sync(_ context.Context, _ appconfig.Sour
 	return nil
 }
 
-func (executor *instantSourceSyncExecutor) Sync(_ context.Context, _ appconfig.SourceConfig, _ taskservice.SourceSyncReporter) error {
+func (executor *instantSourceSyncExecutor) Sync(_ context.Context, _ syncsource.SyncRequest, _ taskservice.SourceSyncReporter) error {
 	return nil
 }
 

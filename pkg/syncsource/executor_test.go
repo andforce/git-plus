@@ -8,12 +8,15 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"path"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
 	"time"
 
 	appdb "github.com/ImSingee/git-plus/db"
+	dbsqlc "github.com/ImSingee/git-plus/db/sqlc"
+	"github.com/ImSingee/git-plus/pkg/archivegit"
 	appconfig "github.com/ImSingee/git-plus/pkg/config"
 )
 
@@ -67,6 +70,7 @@ func TestExecutorSyncFetchesFiltersAndPersistsRepositories(t *testing.T) {
 		WithGitHubAPIBaseURL(server.URL),
 		WithHTTPClient(server.Client()),
 		WithPerPage(2),
+		WithRepositoryArchiver(stubRepositoryArchiver{}),
 		WithNow(func() time.Time {
 			return time.Date(2026, time.April, 4, 8, 0, 0, 0, time.UTC)
 		}),
@@ -83,7 +87,7 @@ func TestExecutorSyncFetchesFiltersAndPersistsRepositories(t *testing.T) {
 		ExcludeRepos:     []string{"acme/excluded"},
 	}
 
-	if err := executor.Sync(context.Background(), source, reporter); err != nil {
+	if err := executor.Sync(context.Background(), SyncRequest{Source: source, Concurrency: 1}, reporter); err != nil {
 		t.Fatalf("sync source: %v", err)
 	}
 
@@ -131,11 +135,17 @@ func TestExecutorSyncFetchesFiltersAndPersistsRepositories(t *testing.T) {
 		"after_exclude_total":      2,
 	})
 	assertProgressMeta(t, reporter.progresses, "done", map[string]any{
-		"resolved_total": 2,
-		"inserted":       2,
-		"updated":        0,
-		"reactivated":    0,
-		"auto_excluded":  0,
+		"resolved_total":    2,
+		"inserted":          2,
+		"updated":           0,
+		"reactivated":       0,
+		"auto_excluded":     0,
+		"archived_total":    2,
+		"failed_total":      0,
+		"change_count":      0,
+		"created_ref_count": 0,
+		"updated_ref_count": 0,
+		"deleted_ref_count": 0,
 	})
 }
 
@@ -299,6 +309,7 @@ func TestExecutorSyncWithSharedDatabaseDoesNotCloseIt(t *testing.T) {
 				},
 			},
 		}),
+		WithRepositoryArchiver(stubRepositoryArchiver{}),
 		WithNow(func() time.Time {
 			return time.Date(2026, time.April, 4, 8, 0, 0, 0, time.UTC)
 		}),
@@ -311,7 +322,7 @@ func TestExecutorSyncWithSharedDatabaseDoesNotCloseIt(t *testing.T) {
 		IncludeDefaults: true,
 	}
 
-	if err := executor.Sync(context.Background(), source, &recordingReporter{}); err != nil {
+	if err := executor.Sync(context.Background(), SyncRequest{Source: source, Concurrency: 1}, &recordingReporter{}); err != nil {
 		t.Fatalf("sync source with shared database: %v", err)
 	}
 
@@ -323,6 +334,297 @@ func TestExecutorSyncWithSharedDatabaseDoesNotCloseIt(t *testing.T) {
 	if len(repos) != 1 {
 		t.Fatalf("expected 1 repo, got %d", len(repos))
 	}
+}
+
+func TestExecutorSyncActiveReposRetriesPersistsRefsAndLogsFailures(t *testing.T) {
+	dataDir := t.TempDir()
+	if err := appdb.Migrate(context.Background(), dataDir); err != nil {
+		t.Fatalf("migrate database: %v", err)
+	}
+
+	sqliteDB, err := appdb.Open(context.Background(), dataDir)
+	if err != nil {
+		t.Fatalf("open database: %v", err)
+	}
+	defer sqliteDB.Close()
+
+	runSnapshotSync(t, sqliteDB, "source-a", []ResolvedRepo{
+		testResolvedRepo("source-a", "1", "acme/core", []string{"default"}, "Core repo"),
+		testResolvedRepo("source-a", "2", "acme/fail", []string{"default"}, "Fail repo"),
+		testResolvedRepo("source-a", "3", "acme/skip", []string{"default"}, "Skip repo"),
+	}, "2026-04-04T08:00:00Z")
+	runSnapshotSync(t, sqliteDB, "source-a", []ResolvedRepo{
+		testResolvedRepo("source-a", "1", "acme/core", []string{"default"}, "Core repo"),
+		testResolvedRepo("source-a", "2", "acme/fail", []string{"default"}, "Fail repo"),
+	}, "2026-04-04T09:00:00Z")
+
+	queries := dbsqlc.New(sqliteDB)
+	repos, err := queries.ListReposForSource(context.Background(), "source-a")
+	if err != nil {
+		t.Fatalf("list repos for source: %v", err)
+	}
+
+	repoByRefID := make(map[string]dbsqlc.Repo, len(repos))
+	for _, repo := range repos {
+		repoByRefID[repo.RefID] = repo
+	}
+
+	coreRepo := repoByRefID["1"]
+	skipRepo := repoByRefID["3"]
+	if skipRepo.Status != StatusAutoExcluded {
+		t.Fatalf("expected repo 3 to be auto excluded, got %q", skipRepo.Status)
+	}
+
+	if err := queries.UpsertRepoRefCurrent(context.Background(), dbsqlc.UpsertRepoRefCurrentParams{
+		RepoID:         coreRepo.ID,
+		RefName:        "refs/heads/main",
+		RefKind:        "head",
+		CurrentHash:    strings.Repeat("1", 40),
+		Status:         "active",
+		ArchiveRefName: nullableString("refs/archive/heads/main/" + strings.Repeat("1", 40)),
+		FirstSeenAt:    "2026-04-04T08:00:00Z",
+		LastSeenAt:     "2026-04-04T08:00:00Z",
+		DeletedAt:      sql.NullString{},
+		CreatedAt:      "2026-04-04T08:00:00Z",
+		UpdatedAt:      "2026-04-04T08:00:00Z",
+	}); err != nil {
+		t.Fatalf("seed main ref: %v", err)
+	}
+	if err := queries.UpsertRepoRefCurrent(context.Background(), dbsqlc.UpsertRepoRefCurrentParams{
+		RepoID:         coreRepo.ID,
+		RefName:        "refs/heads/legacy",
+		RefKind:        "head",
+		CurrentHash:    strings.Repeat("2", 40),
+		Status:         "active",
+		ArchiveRefName: nullableString("refs/archive/heads/legacy/" + strings.Repeat("2", 40)),
+		FirstSeenAt:    "2026-04-04T08:00:00Z",
+		LastSeenAt:     "2026-04-04T08:00:00Z",
+		DeletedAt:      sql.NullString{},
+		CreatedAt:      "2026-04-04T08:00:00Z",
+		UpdatedAt:      "2026-04-04T08:00:00Z",
+	}); err != nil {
+		t.Fatalf("seed legacy ref: %v", err)
+	}
+	if err := queries.CreateTaskRun(context.Background(), dbsqlc.CreateTaskRunParams{
+		TaskID:               "task-sync-1",
+		ParentTaskID:         sql.NullString{},
+		JobID:                "sync-source:source-a",
+		JobType:              "sync-source",
+		Name:                 "Sync source source-a",
+		ArgsJson:             sql.NullString{},
+		Status:               "running",
+		CreatedAt:            "2026-04-04T10:00:00Z",
+		StartedAt:            "2026-04-04T10:00:00Z",
+		FinishedAt:           sql.NullString{},
+		ErrorMessage:         sql.NullString{},
+		LastProgressSummary:  sql.NullString{},
+		LastProgressMetaJson: sql.NullString{},
+		UpdatedAt:            "2026-04-04T10:00:00Z",
+	}); err != nil {
+		t.Fatalf("create task run: %v", err)
+	}
+
+	attempts := map[string]int{}
+	var recordedSleeps []time.Duration
+	reporter := &recordingReporter{}
+	executor := NewExecutor(
+		dataDir,
+		WithDatabase(sqliteDB),
+		WithRepositoryArchiver(stubRepositoryArchiver{
+			sync: func(_ context.Context, request repositoryArchiveRequest) (repositoryArchiveResult, error) {
+				refID := filepath.Base(request.Path)
+				attempts[refID]++
+
+				switch refID {
+				case "1":
+					if attempts[refID] == 1 {
+						return repositoryArchiveResult{}, fmt.Errorf("temporary network error")
+					}
+
+					return repositoryArchiveResult{
+						CurrentRefs: []archivegit.RemoteRef{
+							{
+								Name: "refs/heads/main",
+								Kind: archivegit.RefKindHead,
+								Hash: strings.Repeat("3", 40),
+							},
+							{
+								Name: "refs/tags/v1.0.0",
+								Kind: archivegit.RefKindTag,
+								Hash: strings.Repeat("4", 40),
+							},
+						},
+						Changes: []archivegit.Change{
+							{
+								RefName: "refs/heads/legacy",
+								RefKind: archivegit.RefKindHead,
+								OldHash: strings.Repeat("2", 40),
+								Action:  archivegit.ChangeActionDelete,
+							},
+							{
+								RefName:        "refs/heads/main",
+								RefKind:        archivegit.RefKindHead,
+								OldHash:        strings.Repeat("1", 40),
+								NewHash:        strings.Repeat("3", 40),
+								Action:         archivegit.ChangeActionUpdate,
+								ArchiveRefName: "refs/archive/heads/main/" + strings.Repeat("3", 40),
+							},
+							{
+								RefName:        "refs/tags/v1.0.0",
+								RefKind:        archivegit.RefKindTag,
+								NewHash:        strings.Repeat("4", 40),
+								Action:         archivegit.ChangeActionCreate,
+								ArchiveRefName: "refs/archive/tags/v1.0.0/" + strings.Repeat("4", 40),
+							},
+						},
+					}, nil
+				case "2":
+					return repositoryArchiveResult{}, fmt.Errorf("permanent auth error")
+				default:
+					t.Fatalf("unexpected archive request for repo path %q", request.Path)
+					return repositoryArchiveResult{}, nil
+				}
+			},
+		}),
+		WithSleep(func(_ context.Context, delay time.Duration) error {
+			recordedSleeps = append(recordedSleeps, delay)
+			return nil
+		}),
+		WithNow(func() time.Time {
+			return time.Date(2026, time.April, 4, 10, 0, 0, 0, time.UTC)
+		}),
+	)
+
+	result, err := executor.syncActiveRepos(context.Background(), sqliteDB, SyncRequest{
+		RunID:         "task-sync-1",
+		Source:        appconfig.SourceConfig{ID: "source-a", Username: "octocat", Token: "plain-token"},
+		Concurrency:   2,
+		MaxRetryTimes: 2,
+	}, reporter)
+	if err != nil {
+		t.Fatalf("sync active repos: %v", err)
+	}
+
+	if result.TargetTotal != 2 || result.Processed != 2 || result.Succeeded != 1 || result.Failed != 1 {
+		t.Fatalf("unexpected archive result: %#v", result)
+	}
+	if result.Retried != 3 {
+		t.Fatalf("expected total retries to be 3, got %#v", result)
+	}
+	if result.ChangeCount != 3 || result.CreatedRefCount != 1 || result.UpdatedRefCount != 1 || result.DeletedRefCount != 1 {
+		t.Fatalf("unexpected change counters: %#v", result)
+	}
+
+	expectedSleeps := []time.Duration{10 * time.Second, 10 * time.Second, 20 * time.Second}
+	if !slices.Equal(recordedSleeps, expectedSleeps) {
+		t.Fatalf("unexpected retry delays: got %v want %v", recordedSleeps, expectedSleeps)
+	}
+
+	currentRefs, err := queries.ListRepoRefsCurrentByRepoID(context.Background(), coreRepo.ID)
+	if err != nil {
+		t.Fatalf("list current refs: %v", err)
+	}
+	currentByName := make(map[string]dbsqlc.RepoRefsCurrent, len(currentRefs))
+	for _, currentRef := range currentRefs {
+		currentByName[currentRef.RefName] = currentRef
+	}
+
+	if currentByName["refs/heads/main"].CurrentHash != strings.Repeat("3", 40) {
+		t.Fatalf("unexpected main hash: %#v", currentByName["refs/heads/main"])
+	}
+	if currentByName["refs/heads/legacy"].Status != archivegit.RefStatusDeleted {
+		t.Fatalf("expected legacy branch to be deleted, got %#v", currentByName["refs/heads/legacy"])
+	}
+	if currentByName["refs/tags/v1.0.0"].Status != archivegit.RefStatusActive {
+		t.Fatalf("expected tag to be active, got %#v", currentByName["refs/tags/v1.0.0"])
+	}
+
+	rows, err := sqliteDB.Query(`
+		SELECT ref_name, action
+		FROM repo_ref_changes
+		WHERE repo_id = ?
+		ORDER BY ref_name, action
+	`, coreRepo.ID)
+	if err != nil {
+		t.Fatalf("query repo ref changes: %v", err)
+	}
+	defer rows.Close()
+
+	var changePairs []string
+	for rows.Next() {
+		var refName string
+		var action string
+		if err := rows.Scan(&refName, &action); err != nil {
+			t.Fatalf("scan repo ref change: %v", err)
+		}
+		changePairs = append(changePairs, refName+":"+action)
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("iterate repo ref changes: %v", err)
+	}
+	if !slices.Equal(changePairs, []string{
+		"refs/heads/legacy:delete",
+		"refs/heads/main:update",
+		"refs/tags/v1.0.0:create",
+	}) {
+		t.Fatalf("unexpected repo ref changes: %v", changePairs)
+	}
+
+	logRows, err := sqliteDB.Query(`
+		SELECT event_type, meta_json, error_message
+		FROM task_run_logs
+		WHERE task_id = ?
+		ORDER BY id
+	`, "task-sync-1")
+	if err != nil {
+		t.Fatalf("query task logs: %v", err)
+	}
+	defer logRows.Close()
+
+	var failureLogCount int
+	for logRows.Next() {
+		var eventType string
+		var metaJSON sql.NullString
+		var errorMessage sql.NullString
+		if err := logRows.Scan(&eventType, &metaJSON, &errorMessage); err != nil {
+			t.Fatalf("scan task log: %v", err)
+		}
+		if eventType != taskLogEventRepoSyncFailed {
+			continue
+		}
+		failureLogCount++
+
+		var meta map[string]any
+		if err := json.Unmarshal([]byte(metaJSON.String), &meta); err != nil {
+			t.Fatalf("decode task log meta: %v", err)
+		}
+		if meta["ref_id"] != "2" {
+			t.Fatalf("unexpected failure log meta: %#v", meta)
+		}
+		if meta["attempts"] != float64(3) {
+			t.Fatalf("expected attempts=3 in failure log, got %#v", meta)
+		}
+		if !strings.Contains(errorMessage.String, "permanent auth error") {
+			t.Fatalf("unexpected failure log error: %q", errorMessage.String)
+		}
+	}
+	if err := logRows.Err(); err != nil {
+		t.Fatalf("iterate task logs: %v", err)
+	}
+	if failureLogCount != 1 {
+		t.Fatalf("expected one failure task log, got %d", failureLogCount)
+	}
+
+	assertProgressMeta(t, reporter.progresses, "load_active_repos", map[string]any{
+		"target_total": 2,
+	})
+	assertProgressMeta(t, reporter.progresses, "sync_active_repos", map[string]any{
+		"target_total": 2,
+		"processed":    2,
+		"succeeded":    1,
+		"failed":       1,
+		"retried":      3,
+	})
 }
 
 type recordingReporter struct {
@@ -350,6 +652,18 @@ func (client stubGitHubClient) ListWatchingRepositories(_ context.Context, _ app
 type progressRecord struct {
 	summary string
 	meta    map[string]any
+}
+
+type stubRepositoryArchiver struct {
+	sync func(context.Context, repositoryArchiveRequest) (repositoryArchiveResult, error)
+}
+
+func (archiver stubRepositoryArchiver) SyncRepository(ctx context.Context, request repositoryArchiveRequest) (repositoryArchiveResult, error) {
+	if archiver.sync != nil {
+		return archiver.sync(ctx, request)
+	}
+
+	return repositoryArchiveResult{}, nil
 }
 
 func (reporter *recordingReporter) SetProgress(summary string, meta map[string]any) error {

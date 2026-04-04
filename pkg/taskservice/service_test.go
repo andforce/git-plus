@@ -12,7 +12,7 @@ import (
 
 const serviceTestPassphrase = "correct horse battery staple"
 
-func TestLoadResolvedSourceDecryptsOnlyRequestedSource(t *testing.T) {
+func TestLoadSourceSyncRequestDecryptsOnlyRequestedSource(t *testing.T) {
 	t.Setenv(appconfig.TokenPassphraseEnvVar, serviceTestPassphrase)
 
 	validToken, err := appconfig.EncryptToken("good-token", serviceTestPassphrase)
@@ -49,20 +49,23 @@ func TestLoadResolvedSourceDecryptsOnlyRequestedSource(t *testing.T) {
 	}
 
 	server := newServiceServer(dataDir, nil)
-	source, err := server.loadResolvedSource("healthy")
+	request, err := server.loadSourceSyncRequest("healthy", "task-1")
 	if err != nil {
-		t.Fatalf("load resolved source: %v", err)
+		t.Fatalf("load source sync request: %v", err)
 	}
 
-	if source.ID != "healthy" {
-		t.Fatalf("unexpected source id: %q", source.ID)
+	if request.RunID != "task-1" {
+		t.Fatalf("unexpected run id: %q", request.RunID)
 	}
-	if source.Token != "good-token" {
-		t.Fatalf("expected decrypted token, got %q", source.Token)
+	if request.Source.ID != "healthy" {
+		t.Fatalf("unexpected source id: %q", request.Source.ID)
+	}
+	if request.Source.Token != "good-token" {
+		t.Fatalf("expected decrypted token, got %q", request.Source.Token)
 	}
 }
 
-func TestLoadResolvedSourceReturnsNotFoundWhenSourceMissing(t *testing.T) {
+func TestLoadSourceSyncRequestReturnsNotFoundWhenSourceMissing(t *testing.T) {
 	t.Setenv(appconfig.TokenPassphraseEnvVar, serviceTestPassphrase)
 
 	dataDir := t.TempDir()
@@ -85,7 +88,7 @@ func TestLoadResolvedSourceReturnsNotFoundWhenSourceMissing(t *testing.T) {
 	}
 
 	server := newServiceServer(dataDir, nil)
-	if _, err := server.loadResolvedSource("missing"); err == nil {
+	if _, err := server.loadSourceSyncRequest("missing", "task-1"); err == nil {
 		t.Fatal("expected missing source to fail")
 	}
 }

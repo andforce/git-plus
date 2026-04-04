@@ -57,6 +57,46 @@ export const repos = sqliteTable(
   ],
 );
 
+export const repoRefsCurrent = sqliteTable(
+  'repo_refs_current',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    repoId: integer('repo_id')
+      .notNull()
+      .references(() => repos.id, { onDelete: 'cascade' }),
+    refName: text('ref_name').notNull(),
+    refKind: text('ref_kind').notNull(),
+    currentHash: text('current_hash').notNull(),
+    status: text('status').notNull(),
+    archiveRefName: text('archive_ref_name'),
+    firstSeenAt: text('first_seen_at').notNull(),
+    lastSeenAt: text('last_seen_at').notNull(),
+    deletedAt: text('deleted_at'),
+    createdAt: text('created_at')
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text('updated_at')
+      .notNull()
+      .default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    uniqueIndex('repo_refs_current_repo_ref_unique').on(
+      table.repoId,
+      table.refName,
+    ),
+    index('repo_refs_current_repo_status_idx').on(table.repoId, table.status),
+    index('repo_refs_current_repo_kind_idx').on(table.repoId, table.refKind),
+    check(
+      'repo_refs_current_kind_check',
+      sql`${table.refKind} IN ('head', 'tag')`,
+    ),
+    check(
+      'repo_refs_current_status_check',
+      sql`${table.status} IN ('active', 'deleted')`,
+    ),
+  ],
+);
+
 export const taskRuns = sqliteTable(
   'task_runs',
   {
@@ -79,6 +119,51 @@ export const taskRuns = sqliteTable(
     index('task_runs_started_at_idx').on(table.startedAt),
     index('task_runs_job_type_idx').on(table.jobType),
     index('task_runs_parent_task_id_idx').on(table.parentTaskId),
+  ],
+);
+
+export const repoRefChanges = sqliteTable(
+  'repo_ref_changes',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    repoId: integer('repo_id')
+      .notNull()
+      .references(() => repos.id, { onDelete: 'cascade' }),
+    taskRunId: text('task_run_id')
+      .notNull()
+      .references(() => taskRuns.taskId, { onDelete: 'cascade' }),
+    refName: text('ref_name').notNull(),
+    refKind: text('ref_kind').notNull(),
+    action: text('action').notNull(),
+    oldHash: text('old_hash'),
+    newHash: text('new_hash'),
+    archiveRefName: text('archive_ref_name'),
+    createdAt: text('created_at').notNull(),
+  },
+  (table) => [
+    uniqueIndex('repo_ref_changes_repo_run_ref_unique').on(
+      table.repoId,
+      table.taskRunId,
+      table.refName,
+    ),
+    index('repo_ref_changes_repo_created_at_idx').on(
+      table.repoId,
+      table.createdAt,
+    ),
+    index('repo_ref_changes_task_run_id_idx').on(table.taskRunId),
+    index('repo_ref_changes_repo_ref_created_at_idx').on(
+      table.repoId,
+      table.refName,
+      table.createdAt,
+    ),
+    check(
+      'repo_ref_changes_kind_check',
+      sql`${table.refKind} IN ('head', 'tag')`,
+    ),
+    check(
+      'repo_ref_changes_action_check',
+      sql`${table.action} IN ('create', 'update', 'delete')`,
+    ),
   ],
 );
 

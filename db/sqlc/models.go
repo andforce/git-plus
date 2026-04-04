@@ -39,6 +39,34 @@ type Repo struct {
 	UpdatedAt     string
 }
 
+type RepoRefChange struct {
+	ID             int64
+	RepoID         int64
+	TaskRunID      string
+	RefName        string
+	RefKind        string
+	Action         string
+	OldHash        sql.NullString
+	NewHash        sql.NullString
+	ArchiveRefName sql.NullString
+	CreatedAt      string
+}
+
+type RepoRefsCurrent struct {
+	ID             int64
+	RepoID         int64
+	RefName        string
+	RefKind        string
+	CurrentHash    string
+	Status         string
+	ArchiveRefName sql.NullString
+	FirstSeenAt    string
+	LastSeenAt     string
+	DeletedAt      sql.NullString
+	CreatedAt      string
+	UpdatedAt      string
+}
+
 type TaskRun struct {
 	TaskID               string
 	ParentTaskID         sql.NullString
