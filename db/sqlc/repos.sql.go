@@ -217,23 +217,30 @@ SELECT
 FROM repos
 WHERE (?1 IS NULL OR source_id = ?1)
   AND (?2 IS NULL OR (full_name LIKE '%' || ?2 || '%' OR description LIKE '%' || ?2 || '%'))
-ORDER BY full_name
-LIMIT ?3 OFFSET ?4
+  AND ?3 IS NOT NULL
+ORDER BY
+  CASE WHEN ?3 ='created_at_desc' THEN created_at END DESC,
+  CASE WHEN ?3 ='created_at_asc'  THEN created_at END ASC,
+  CASE WHEN ?3 ='name_asc'   THEN name  END ASC,
+  CASE WHEN ?3 ='name_desc'  THEN name  END DESC
+LIMIT ?5 OFFSET ?4
 `
 
 type ListReposFilteredParams struct {
-	Column1 interface{}
-	Column2 interface{}
-	Limit   int64
-	Offset  int64
+	SourceID interface{}
+	Search   interface{}
+	Sort     interface{}
+	Offset   int64
+	Limit    int64
 }
 
 func (q *Queries) ListReposFiltered(ctx context.Context, arg ListReposFilteredParams) ([]Repo, error) {
 	rows, err := q.db.QueryContext(ctx, listReposFiltered,
-		arg.Column1,
-		arg.Column2,
-		arg.Limit,
+		arg.SourceID,
+		arg.Search,
+		arg.Sort,
 		arg.Offset,
+		arg.Limit,
 	)
 	if err != nil {
 		return nil, err

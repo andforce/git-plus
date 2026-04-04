@@ -222,11 +222,15 @@ func (x *Repository) GetMeta() *structpb.Struct {
 }
 
 type ListRepositoriesRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	PageSize      *int32                 `protobuf:"varint,1,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
-	PageToken     *string                `protobuf:"bytes,2,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
-	Search        *string                `protobuf:"bytes,3,opt,name=search" json:"search,omitempty"`
-	SourceId      *string                `protobuf:"bytes,4,opt,name=source_id,json=sourceId" json:"source_id,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	PageSize  *int32                 `protobuf:"varint,1,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageToken *string                `protobuf:"bytes,2,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	Search    *string                `protobuf:"bytes,3,opt,name=search" json:"search,omitempty"`
+	SourceId  *string                `protobuf:"bytes,4,opt,name=source_id,json=sourceId" json:"source_id,omitempty"`
+	// Sort key combining field and direction.
+	// Accepted values: "created_at_desc" (default), "created_at_asc",
+	// "full_name_asc", "full_name_desc".
+	Sort          *string `protobuf:"bytes,5,opt,name=sort" json:"sort,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -285,6 +289,13 @@ func (x *ListRepositoriesRequest) GetSearch() string {
 func (x *ListRepositoriesRequest) GetSourceId() string {
 	if x != nil && x.SourceId != nil {
 		return *x.SourceId
+	}
+	return ""
+}
+
+func (x *ListRepositoriesRequest) GetSort() string {
+	if x != nil && x.Sort != nil {
+		return *x.Sort
 	}
 	return ""
 }
@@ -383,13 +394,14 @@ const file_gitplus_repo_v1_repo_proto_rawDesc = "" +
 	"created_at\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
 	"updated_at\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12+\n" +
-	"\x04meta\x18\x14 \x01(\v2\x17.google.protobuf.StructR\x04meta\"\x95\x01\n" +
+	"\x04meta\x18\x14 \x01(\v2\x17.google.protobuf.StructR\x04meta\"\xa9\x01\n" +
 	"\x17ListRepositoriesRequest\x12&\n" +
 	"\tpage_size\x18\x01 \x01(\x05B\t\xbaH\x06\x1a\x04\x18d(\x01R\bpageSize\x12\x1d\n" +
 	"\n" +
 	"page_token\x18\x02 \x01(\tR\tpageToken\x12\x16\n" +
 	"\x06search\x18\x03 \x01(\tR\x06search\x12\x1b\n" +
-	"\tsource_id\x18\x04 \x01(\tR\bsourceId\"\xa4\x01\n" +
+	"\tsource_id\x18\x04 \x01(\tR\bsourceId\x12\x12\n" +
+	"\x04sort\x18\x05 \x01(\tR\x04sort\"\xa4\x01\n" +
 	"\x18ListRepositoriesResponse\x12?\n" +
 	"\frepositories\x18\x01 \x03(\v2\x1b.gitplus.repo.v1.RepositoryR\frepositories\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n" +

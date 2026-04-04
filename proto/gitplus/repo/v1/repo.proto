@@ -41,6 +41,10 @@ message ListRepositoriesRequest {
   string page_token = 2;
   string search = 3;
   string source_id = 4;
+  // Sort key combining field and direction.
+  // Accepted values: "created_at_desc" (default), "created_at_asc",
+  // "full_name_asc", "full_name_desc".
+  string sort = 5;
 }
 
 message ListRepositoriesResponse {

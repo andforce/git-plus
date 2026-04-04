@@ -5,10 +5,12 @@ import {
   Anchor,
   Avatar,
   Box,
+  Button,
   Card,
   Container,
   Flex,
   Group,
+  Menu,
   Pagination,
   Select,
   SimpleGrid,
@@ -18,19 +20,31 @@ import {
 } from '@mantine/core';
 import { useDebouncedValue } from '@mantine/hooks';
 import {
+  IconChevronDown,
   IconExternalLink,
   IconSearch,
+  IconSortAscending,
+  IconSortDescending,
   IconStar,
   IconX,
 } from '@tabler/icons-react';
 import { useQuery, useSuspenseQuery } from '@tanstack/react-query';
-import { timestampDate } from '@bufbuild/protobuf/wkt';
-import dayjs from 'dayjs';
 import type { Repository } from '~rpc/gitplus/repo/v1/repo_pb';
 import { configQueryOptions } from '~lib/config-queries';
 import { repoListQueryOptions } from '~lib/repo-queries';
 
 const PAGE_SIZE = 30;
+
+const SORT_OPTIONS: Array<{
+  key: string;
+  label: string;
+  order: 'asc' | 'desc';
+}> = [
+  { key: 'created_at_desc', label: 'Found (Newest)', order: 'desc' },
+  { key: 'created_at_asc', label: 'Found (Oldest)', order: 'asc' },
+  { key: 'name_asc', label: 'Name (A-Z)', order: 'asc' },
+  { key: 'name_desc', label: 'Name (Z-A)', order: 'desc' },
+];
 
 export const Route = createFileRoute('/_dashboard/repos')({
   loader: ({ context: { queryClient } }) =>
@@ -40,11 +54,6 @@ export const Route = createFileRoute('/_dashboard/repos')({
     ]),
   component: ReposPage,
 });
-
-function formatTime(ts: Parameters<typeof timestampDate>[0] | undefined) {
-  if (!ts) return '';
-  return dayjs(timestampDate(ts)).fromNow();
-}
 
 const LANGUAGE_COLORS: Record<string, string> = {
   JavaScript: '#f1e05a',
@@ -89,10 +98,11 @@ function ReposPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [sourceId, setSourceId] = useState('');
+  const [sort, setSort] = useState('created_at_desc');
   const [debouncedSearch] = useDebouncedValue(search, 300);
 
   const { data } = useQuery(
-    repoListQueryOptions(page, PAGE_SIZE, debouncedSearch, sourceId),
+    repoListQueryOptions(page, PAGE_SIZE, debouncedSearch, sourceId, sort),
   );
 
   const sources = configData.config?.sources ?? [];
@@ -114,6 +124,14 @@ function ReposPage() {
     setSourceId(value ?? '');
     setPage(1);
   };
+
+  const handleSortChange = (key: string) => {
+    setSort(key);
+    setPage(1);
+  };
+
+  const currentSort =
+    SORT_OPTIONS.find((o) => o.key === sort) ?? SORT_OPTIONS[0];
 
   return (
     <Container fluid py="xl" px="xl">
@@ -154,6 +172,47 @@ function ReposPage() {
           w={240}
           style={{ flexShrink: 0 }}
         />
+        <Menu shadow="md" width={180}>
+          <Menu.Target>
+            <Button
+              variant="default"
+              rightSection={<IconChevronDown size={14} />}
+              leftSection={
+                currentSort.order === 'asc' ? (
+                  <IconSortAscending size={16} />
+                ) : (
+                  <IconSortDescending size={16} />
+                )
+              }
+              style={{ flexShrink: 0 }}
+            >
+              {currentSort.label}
+            </Button>
+          </Menu.Target>
+          <Menu.Dropdown>
+            {SORT_OPTIONS.map((option) => (
+              <Menu.Item
+                key={option.key}
+                onClick={() => handleSortChange(option.key)}
+                leftSection={
+                  option.order === 'asc' ? (
+                    <IconSortAscending size={14} />
+                  ) : (
+                    <IconSortDescending size={14} />
+                  )
+                }
+                style={{
+                  backgroundColor:
+                    sort === option.key
+                      ? 'var(--mantine-color-blue-light)'
+                      : undefined,
+                }}
+              >
+                {option.label}
+              </Menu.Item>
+            ))}
+          </Menu.Dropdown>
+        </Menu>
       </Group>
 
       {repos.length === 0 ? (

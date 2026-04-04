@@ -149,7 +149,12 @@ SELECT
   created_at,
   updated_at
 FROM repos
-WHERE (?1 IS NULL OR source_id = ?1)
-  AND (?2 IS NULL OR (full_name LIKE '%' || ?2 || '%' OR description LIKE '%' || ?2 || '%'))
-ORDER BY full_name
-LIMIT ?3 OFFSET ?4;
+WHERE (@source_id IS NULL OR source_id = @source_id)
+  AND (@search IS NULL OR (full_name LIKE '%' || @search || '%' OR description LIKE '%' || @search || '%'))
+  AND @sort IS NOT NULL
+ORDER BY
+  CASE WHEN @sort = 'created_at_desc' THEN created_at END DESC,
+  CASE WHEN @sort = 'created_at_asc'  THEN created_at END ASC,
+  CASE WHEN @sort = 'name_asc'   THEN name  END ASC,
+  CASE WHEN @sort = 'name_desc'  THEN name  END DESC
+LIMIT @limit OFFSET @offset;

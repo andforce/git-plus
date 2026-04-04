@@ -13,15 +13,17 @@ export function repoListQueryOptions(
   pageSize: number,
   search: string,
   sourceId: string,
+  sort: string = 'created_at_desc',
 ) {
   return queryOptions({
-    queryKey: ['repo', 'list', { page, pageSize, search, sourceId }],
+    queryKey: ['repo', 'list', { page, pageSize, search, sourceId, sort }],
     queryFn: () =>
       repoClient.listRepositories({
         pageSize,
         pageToken: page > 1 ? encodePageToken((page - 1) * pageSize) : '',
         search,
         sourceId,
+        sort,
       }),
   });
 }

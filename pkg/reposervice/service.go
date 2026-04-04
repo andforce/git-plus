@@ -79,6 +79,7 @@ func (s *serviceServer) ListRepositories(
 
 	sourceID := optionalFilter(req.Msg.GetSourceId())
 	search := optionalFilter(req.Msg.GetSearch())
+	sort := normalizeSortKey(req.Msg.GetSort())
 
 	queries, cleanup, err := s.openQueries(ctx)
 	if err != nil {
@@ -95,10 +96,11 @@ func (s *serviceServer) ListRepositories(
 	}
 
 	repos, err := queries.ListReposFiltered(ctx, dbsqlc.ListReposFilteredParams{
-		Column1: sourceID,
-		Column2: search,
-		Limit:   int64(pageSize),
-		Offset:  int64(offset),
+		SourceID: sourceID,
+		Search:   search,
+		Sort:     sort,
+		Limit:    int64(pageSize),
+		Offset:   int64(offset),
 	})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list repos: %w", err))
@@ -215,6 +217,20 @@ func mustValidateInterceptor() connect.Interceptor {
 	}
 
 	return interceptor
+}
+
+var validSortKeys = map[string]bool{
+	"created_at_desc": true,
+	"created_at_asc":  true,
+	"name_asc":        true,
+	"name_desc":       true,
+}
+
+func normalizeSortKey(value string) string {
+	if validSortKeys[value] {
+		return value
+	}
+	return "created_at_desc"
 }
 
 func optionalFilter(value string) any {
