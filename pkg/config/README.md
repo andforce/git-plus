@@ -180,17 +180,17 @@ $encrypted$1$<payload>
 Set the passphrase with:
 
 ```text
-ENCRYPT_PASSPHRASE
+ENCRYPTION_PASSPHRASE
 ```
 
 Generate an encrypted token with the CLI:
 
 ```bash
-printf '%s' 'ghp_xxx' | ENCRYPT_PASSPHRASE='your passphrase' git-plus config encrypt-token
+printf '%s' 'ghp_xxx' | ENCRYPTION_PASSPHRASE='your passphrase' git-plus config encrypt-token
 ```
 
 The command reads the plain token from standard input and prints an encrypted token that can be pasted into `config.yaml`.
-The `git-plus` server command also requires `ENCRYPT_PASSPHRASE` to be present before startup begins; if it is missing, the Cobra command exits immediately.
+The `git-plus` server command also requires `ENCRYPTION_PASSPHRASE` to be present before startup begins; if it is missing, the Cobra command exits immediately.
 
 ### Token-related error codes
 

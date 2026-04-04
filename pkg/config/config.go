@@ -12,7 +12,7 @@ const (
 	ConfigFilename         = "config.yaml"
 	DefaultConcurrency     = 5
 	DefaultMaxRetryTimes   = 2
-	TokenPassphraseEnvVar  = "ENCRYPT_PASSPHRASE"
+	TokenPassphraseEnvVar  = "ENCRYPTION_PASSPHRASE"
 	DefaultIncludeDefaults = true
 )
 

@@ -15,7 +15,7 @@ openssl rand -base64 32
 2. Export the passphrase:
 
 ```bash
-export ENCRYPT_PASSPHRASE='paste-the-generated-value'
+export ENCRYPTION_PASSPHRASE='paste-the-generated-value'
 ```
 
 3. Export an API password:
@@ -67,7 +67,7 @@ Subcommands:
 
 ### Required for server startup
 
-- `ENCRYPT_PASSPHRASE`
+- `ENCRYPTION_PASSPHRASE`
   - Required before the server command starts.
   - Used to validate encrypted tokens in `<data-dir>/config.yaml`.
 - `PASSWORD`
