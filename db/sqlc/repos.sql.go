@@ -10,6 +10,25 @@ import (
 	"database/sql"
 )
 
+const countReposFiltered = `-- name: CountReposFiltered :one
+SELECT COUNT(1)
+FROM repos
+WHERE (?1 IS NULL OR source_id = ?1)
+  AND (?2 IS NULL OR (full_name LIKE '%' || ?2 || '%' OR description LIKE '%' || ?2 || '%'))
+`
+
+type CountReposFilteredParams struct {
+	Column1 interface{}
+	Column2 interface{}
+}
+
+func (q *Queries) CountReposFiltered(ctx context.Context, arg CountReposFilteredParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countReposFiltered, arg.Column1, arg.Column2)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createRepo = `-- name: CreateRepo :exec
 INSERT INTO repos (
   source_id,
@@ -125,6 +144,97 @@ ORDER BY id
 
 func (q *Queries) ListActiveReposForSource(ctx context.Context, sourceID string) ([]Repo, error) {
 	rows, err := q.db.QueryContext(ctx, listActiveReposForSource, sourceID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Repo
+	for rows.Next() {
+		var i Repo
+		if err := rows.Scan(
+			&i.ID,
+			&i.SourceID,
+			&i.Platform,
+			&i.RefID,
+			&i.Status,
+			&i.Name,
+			&i.FullName,
+			&i.Owner,
+			&i.Description,
+			&i.HtmlUrl,
+			&i.CloneUrl,
+			&i.SshUrl,
+			&i.DefaultBranch,
+			&i.Visibility,
+			&i.IsPrivate,
+			&i.IsFork,
+			&i.IsArchived,
+			&i.Origin,
+			&i.Meta,
+			&i.LastSeenAt,
+			&i.DisabledAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listReposFiltered = `-- name: ListReposFiltered :many
+SELECT
+  id,
+  source_id,
+  platform,
+  ref_id,
+  status,
+  name,
+  full_name,
+  owner,
+  description,
+  html_url,
+  clone_url,
+  ssh_url,
+  default_branch,
+  visibility,
+  is_private,
+  is_fork,
+  is_archived,
+  origin,
+  meta,
+  last_seen_at,
+  disabled_at,
+  created_at,
+  updated_at
+FROM repos
+WHERE (?1 IS NULL OR source_id = ?1)
+  AND (?2 IS NULL OR (full_name LIKE '%' || ?2 || '%' OR description LIKE '%' || ?2 || '%'))
+ORDER BY full_name
+LIMIT ?3 OFFSET ?4
+`
+
+type ListReposFilteredParams struct {
+	Column1 interface{}
+	Column2 interface{}
+	Limit   int64
+	Offset  int64
+}
+
+func (q *Queries) ListReposFiltered(ctx context.Context, arg ListReposFilteredParams) ([]Repo, error) {
+	rows, err := q.db.QueryContext(ctx, listReposFiltered,
+		arg.Column1,
+		arg.Column2,
+		arg.Limit,
+		arg.Offset,
+	)
 	if err != nil {
 		return nil, err
 	}

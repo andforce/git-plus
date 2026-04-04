@@ -13,7 +13,12 @@ import {
   Text,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconBrandGithub, IconSettings2, IconTool } from '@tabler/icons-react';
+import {
+  IconBrandGithub,
+  IconDatabase,
+  IconSettings2,
+  IconTool,
+} from '@tabler/icons-react';
 
 export const Route = createFileRoute('/_dashboard')({
   component: DashboardLayout,
@@ -66,6 +71,13 @@ function DashboardLayout() {
         </AppShell.Section>
 
         <AppShell.Section grow component={ScrollArea} px="xs" pt="xs">
+          <NavLink
+            label="Repositories"
+            leftSection={<IconDatabase size={16} />}
+            active={location.pathname === '/repos'}
+            onClick={() => navTo('/repos')}
+            styles={childNavStyles}
+          />
           <NavLink
             label="Configuration"
             leftSection={<IconSettings2 size={16} />}

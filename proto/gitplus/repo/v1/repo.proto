@@ -1,0 +1,54 @@
+edition = "2023";
+
+package gitplus.repo.v1;
+
+import "buf/validate/validate.proto";
+import "google/protobuf/go_features.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+
+option features.(pb.go).api_level = API_OPEN;
+option features.field_presence = EXPLICIT;
+
+message Repository {
+  int64 id = 1;
+  string source_id = 2;
+  string platform = 3;
+  string name = 4;
+  string full_name = 5;
+  string owner = 6;
+  string description = 7;
+  string html_url = 8;
+  string clone_url = 9;
+  string ssh_url = 10;
+  string default_branch = 11;
+  string visibility = 12;
+  bool is_private = 13;
+  bool is_fork = 14;
+  bool is_archived = 15;
+  string status = 16;
+  google.protobuf.Timestamp last_seen_at = 17;
+  google.protobuf.Timestamp created_at = 18;
+  google.protobuf.Timestamp updated_at = 19;
+  google.protobuf.Struct meta = 20;
+}
+
+message ListRepositoriesRequest {
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 1
+    lte: 100
+  }];
+  string page_token = 2;
+  string search = 3;
+  string source_id = 4;
+}
+
+message ListRepositoriesResponse {
+  repeated Repository repositories = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+service RepoService {
+  rpc ListRepositories(ListRepositoriesRequest) returns (ListRepositoriesResponse);
+}

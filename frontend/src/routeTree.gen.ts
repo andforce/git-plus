@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as DashboardRouteImport } from './routes/_dashboard'
 import { Route as R404RouteImport } from './routes/404'
 import { Route as DashboardIndexRouteImport } from './routes/_dashboard/index'
+import { Route as DashboardReposRouteImport } from './routes/_dashboard/repos'
 import { Route as DashboardMaintenanceRouteImport } from './routes/_dashboard/maintenance'
 import { Route as DashboardConfigRouteImport } from './routes/_dashboard/config'
 import { Route as DashboardMaintenanceIndexRouteImport } from './routes/_dashboard/maintenance/index'
@@ -33,6 +34,11 @@ const R404Route = R404RouteImport.update({
 const DashboardIndexRoute = DashboardIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardReposRoute = DashboardReposRouteImport.update({
+  id: '/repos',
+  path: '/repos',
   getParentRoute: () => DashboardRoute,
 } as any)
 const DashboardMaintenanceRoute = DashboardMaintenanceRouteImport.update({
@@ -84,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/': typeof DashboardIndexRoute
   '/config': typeof DashboardConfigRouteWithChildren
   '/maintenance': typeof DashboardMaintenanceRouteWithChildren
+  '/repos': typeof DashboardReposRoute
   '/config/cron': typeof DashboardConfigCronRoute
   '/config/sources': typeof DashboardConfigSourcesRoute
   '/config/': typeof DashboardConfigIndexRoute
@@ -93,6 +100,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/404': typeof R404Route
+  '/repos': typeof DashboardReposRoute
   '/': typeof DashboardIndexRoute
   '/config/cron': typeof DashboardConfigCronRoute
   '/config/sources': typeof DashboardConfigSourcesRoute
@@ -107,6 +115,7 @@ export interface FileRoutesById {
   '/_dashboard': typeof DashboardRouteWithChildren
   '/_dashboard/config': typeof DashboardConfigRouteWithChildren
   '/_dashboard/maintenance': typeof DashboardMaintenanceRouteWithChildren
+  '/_dashboard/repos': typeof DashboardReposRoute
   '/_dashboard/': typeof DashboardIndexRoute
   '/_dashboard/config/cron': typeof DashboardConfigCronRoute
   '/_dashboard/config/sources': typeof DashboardConfigSourcesRoute
@@ -122,6 +131,7 @@ export interface FileRouteTypes {
     | '/'
     | '/config'
     | '/maintenance'
+    | '/repos'
     | '/config/cron'
     | '/config/sources'
     | '/config/'
@@ -131,6 +141,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/404'
+    | '/repos'
     | '/'
     | '/config/cron'
     | '/config/sources'
@@ -144,6 +155,7 @@ export interface FileRouteTypes {
     | '/_dashboard'
     | '/_dashboard/config'
     | '/_dashboard/maintenance'
+    | '/_dashboard/repos'
     | '/_dashboard/'
     | '/_dashboard/config/cron'
     | '/_dashboard/config/sources'
@@ -179,6 +191,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/_dashboard/repos': {
+      id: '/_dashboard/repos'
+      path: '/repos'
+      fullPath: '/repos'
+      preLoaderRoute: typeof DashboardReposRouteImport
       parentRoute: typeof DashboardRoute
     }
     '/_dashboard/maintenance': {
@@ -274,12 +293,14 @@ const DashboardMaintenanceRouteWithChildren =
 interface DashboardRouteChildren {
   DashboardConfigRoute: typeof DashboardConfigRouteWithChildren
   DashboardMaintenanceRoute: typeof DashboardMaintenanceRouteWithChildren
+  DashboardReposRoute: typeof DashboardReposRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardConfigRoute: DashboardConfigRouteWithChildren,
   DashboardMaintenanceRoute: DashboardMaintenanceRouteWithChildren,
+  DashboardReposRoute: DashboardReposRoute,
   DashboardIndexRoute: DashboardIndexRoute,
 }
 

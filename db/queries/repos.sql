@@ -116,3 +116,40 @@ SET
   disabled_at = CASE WHEN disabled_at IS NULL THEN ?4 ELSE disabled_at END,
   updated_at = ?5
 WHERE source_id = ?1 AND ref_id = ?2 AND status <> ?3;
+
+-- name: CountReposFiltered :one
+SELECT COUNT(1)
+FROM repos
+WHERE (?1 IS NULL OR source_id = ?1)
+  AND (?2 IS NULL OR (full_name LIKE '%' || ?2 || '%' OR description LIKE '%' || ?2 || '%'));
+
+-- name: ListReposFiltered :many
+SELECT
+  id,
+  source_id,
+  platform,
+  ref_id,
+  status,
+  name,
+  full_name,
+  owner,
+  description,
+  html_url,
+  clone_url,
+  ssh_url,
+  default_branch,
+  visibility,
+  is_private,
+  is_fork,
+  is_archived,
+  origin,
+  meta,
+  last_seen_at,
+  disabled_at,
+  created_at,
+  updated_at
+FROM repos
+WHERE (?1 IS NULL OR source_id = ?1)
+  AND (?2 IS NULL OR (full_name LIKE '%' || ?2 || '%' OR description LIKE '%' || ?2 || '%'))
+ORDER BY full_name
+LIMIT ?3 OFFSET ?4;

@@ -14,6 +14,7 @@ import (
 	"github.com/ImSingee/git-plus/pkg/cronservice"
 	"github.com/ImSingee/git-plus/pkg/eventbus"
 	"github.com/ImSingee/git-plus/pkg/eventservice"
+	"github.com/ImSingee/git-plus/pkg/reposervice"
 	"github.com/ImSingee/git-plus/pkg/task"
 	"github.com/ImSingee/git-plus/pkg/taskservice"
 	"github.com/ImSingee/git-plus/pkg/taskstore"
@@ -101,6 +102,7 @@ func NewHandler(dataDir string, sqliteDB *sql.DB, taskManager *task.Manager, bus
 	cronservice.RegisterHandlers(apiMux, dataDir, cronRuntime)
 	taskServiceOptions = append(taskServiceOptions, taskservice.WithDatabase(sqliteDB))
 	taskservice.RegisterHandlers(apiMux, dataDir, taskManager, taskServiceOptions...)
+	reposervice.RegisterHandlers(apiMux, dataDir, reposervice.WithDatabase(sqliteDB))
 	eventservice.RegisterHandlers(apiMux, bus)
 	mux.Handle("/api/", apiAuthMiddleware(http.StripPrefix("/api", apiMux)))
 	mux.HandleFunc("/api", notFoundAPIHandler)
