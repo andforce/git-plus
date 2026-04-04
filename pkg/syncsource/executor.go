@@ -333,17 +333,19 @@ func syncSnapshotTx(ctx context.Context, tx *sql.Tx, sourceID string, repos []Re
 			inserted++
 		}
 
-		updates = append(updates, progressUpdate{
-			summary: fmt.Sprintf("Persisting repositories (%d/%d)", index+1, len(repos)),
-			meta: map[string]any{
-				"phase":        "persist_upserts",
-				"target_total": len(repos),
-				"processed":    index + 1,
-				"inserted":     inserted,
-				"updated":      updated,
-				"reactivated":  reactivated,
-			},
-		})
+		if shouldReportPersistProgress(index+1, len(repos)) {
+			updates = append(updates, progressUpdate{
+				summary: fmt.Sprintf("Persisting repositories (%d/%d)", index+1, len(repos)),
+				meta: map[string]any{
+					"phase":        "persist_upserts",
+					"target_total": len(repos),
+					"processed":    index + 1,
+					"inserted":     inserted,
+					"updated":      updated,
+					"reactivated":  reactivated,
+				},
+			})
+		}
 	}
 
 	autoExcluded := 0
@@ -384,6 +386,18 @@ func syncSnapshotTx(ctx context.Context, tx *sql.Tx, sourceID string, repos []Re
 		Reactivated:   reactivated,
 		AutoExcluded:  autoExcluded,
 	}, updates, nil
+}
+
+func shouldReportPersistProgress(processed int, total int) bool {
+	if processed <= 0 || total <= 0 {
+		return false
+	}
+
+	if processed == 1 || processed == total {
+		return true
+	}
+
+	return (processed-1)%100 == 0
 }
 
 func buildCreateRepoParams(repo ResolvedRepo, now string) (dbsqlc.CreateRepoParams, error) {

@@ -246,6 +246,37 @@ func TestExecutorSyncSnapshotReportsProgressAfterTransactionCommit(t *testing.T)
 	}
 }
 
+func TestShouldReportPersistProgress(t *testing.T) {
+	tests := []struct {
+		name      string
+		processed int
+		total     int
+		want      bool
+	}{
+		{name: "invalid processed", processed: 0, total: 10, want: false},
+		{name: "first item", processed: 1, total: 805, want: true},
+		{name: "not every item", processed: 21, total: 805, want: false},
+		{name: "hundred plus one", processed: 101, total: 805, want: true},
+		{name: "next hundred plus one", processed: 201, total: 805, want: true},
+		{name: "not exact hundred", processed: 200, total: 805, want: false},
+		{name: "last item", processed: 805, total: 805, want: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := shouldReportPersistProgress(tt.processed, tt.total); got != tt.want {
+				t.Fatalf(
+					"shouldReportPersistProgress(%d, %d) = %v, want %v",
+					tt.processed,
+					tt.total,
+					got,
+					tt.want,
+				)
+			}
+		})
+	}
+}
+
 func TestExecutorSyncWithSharedDatabaseDoesNotCloseIt(t *testing.T) {
 	dataDir := t.TempDir()
 	if err := appdb.Migrate(context.Background(), dataDir); err != nil {
