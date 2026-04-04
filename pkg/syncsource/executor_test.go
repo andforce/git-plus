@@ -566,8 +566,13 @@ func TestExecutorSyncActiveReposRetriesPersistsRefsAndLogsFailures(t *testing.T)
 		t.Fatalf("unexpected change counters: %#v", result)
 	}
 
+	// Worker concurrency makes the cross-repo retry order nondeterministic even
+	// though the per-attempt backoff values are still deterministic.
 	expectedSleeps := []time.Duration{10 * time.Second, 10 * time.Second, 20 * time.Second}
-	if !slices.Equal(recordedSleeps, expectedSleeps) {
+	actualSleeps := slices.Clone(recordedSleeps)
+	slices.Sort(actualSleeps)
+	slices.Sort(expectedSleeps)
+	if !slices.Equal(actualSleeps, expectedSleeps) {
 		t.Fatalf("unexpected retry delays: got %v want %v", recordedSleeps, expectedSleeps)
 	}
 
