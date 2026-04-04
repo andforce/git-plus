@@ -123,9 +123,12 @@ func TestCronRunNowEnqueuesSyncAllTask(t *testing.T) {
 	runtime, err := New(
 		filepath.Join(t.TempDir(), appconfig.ConfigFilename),
 		manager,
-		WithSyncAllRun(func(ctx *task.ExecutionContext) {
-			ctx.SetProgress("Running cron task", map[string]any{"trigger": "cron"})
+		WithSyncAllRun(func(ctx *task.ExecutionContext) error {
+			if err := ctx.SetProgress("Running cron task", map[string]any{"trigger": "cron"}); err != nil {
+				return err
+			}
 			time.Sleep(50 * time.Millisecond)
+			return nil
 		}),
 	)
 	if err != nil {

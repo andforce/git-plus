@@ -197,6 +197,7 @@ type Task struct {
 	StartedAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=started_at,json=startedAt" json:"started_at,omitempty"`
 	Progress      *TaskProgress          `protobuf:"bytes,8,opt,name=progress" json:"progress,omitempty"`
 	ParentTaskId  *string                `protobuf:"bytes,9,opt,name=parent_task_id,json=parentTaskId" json:"parent_task_id,omitempty"`
+	Args          *structpb.Struct       `protobuf:"bytes,10,opt,name=args" json:"args,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -292,6 +293,13 @@ func (x *Task) GetParentTaskId() string {
 		return *x.ParentTaskId
 	}
 	return ""
+}
+
+func (x *Task) GetArgs() *structpb.Struct {
+	if x != nil {
+		return x.Args
+	}
+	return nil
 }
 
 type GetTaskRuntimeRequest struct {
@@ -759,7 +767,7 @@ const file_gitplus_task_v1_task_proto_rawDesc = "" +
 	"\asummary\x18\x01 \x01(\tR\asummary\x12+\n" +
 	"\x04meta\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x04meta\x129\n" +
 	"\n" +
-	"updated_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xee\x02\n" +
+	"updated_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\x9b\x03\n" +
 	"\x04Task\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x15\n" +
 	"\x06job_id\x18\x02 \x01(\tR\x05jobId\x12\x19\n" +
@@ -771,7 +779,9 @@ const file_gitplus_task_v1_task_proto_rawDesc = "" +
 	"\n" +
 	"started_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x129\n" +
 	"\bprogress\x18\b \x01(\v2\x1d.gitplus.task.v1.TaskProgressR\bprogress\x12$\n" +
-	"\x0eparent_task_id\x18\t \x01(\tR\fparentTaskId\"\x17\n" +
+	"\x0eparent_task_id\x18\t \x01(\tR\fparentTaskId\x12+\n" +
+	"\x04args\x18\n" +
+	" \x01(\v2\x17.google.protobuf.StructR\x04args\"\x17\n" +
 	"\x15GetTaskRuntimeRequest\"\x8c\x01\n" +
 	"\x16GetTaskRuntimeResponse\x128\n" +
 	"\frunning_task\x18\x01 \x01(\v2\x15.gitplus.task.v1.TaskR\vrunningTask\x128\n" +
@@ -850,30 +860,31 @@ var file_gitplus_task_v1_task_proto_depIdxs = []int32{
 	15, // 3: gitplus.task.v1.Task.created_at:type_name -> google.protobuf.Timestamp
 	15, // 4: gitplus.task.v1.Task.started_at:type_name -> google.protobuf.Timestamp
 	2,  // 5: gitplus.task.v1.Task.progress:type_name -> gitplus.task.v1.TaskProgress
-	3,  // 6: gitplus.task.v1.GetTaskRuntimeResponse.running_task:type_name -> gitplus.task.v1.Task
-	3,  // 7: gitplus.task.v1.GetTaskRuntimeResponse.queued_tasks:type_name -> gitplus.task.v1.Task
-	1,  // 8: gitplus.task.v1.EnqueueFullSyncResponse.result:type_name -> gitplus.task.v1.TaskEnqueueResult
-	3,  // 9: gitplus.task.v1.EnqueueFullSyncResponse.task:type_name -> gitplus.task.v1.Task
-	1,  // 10: gitplus.task.v1.EnqueueSourceSyncResponse.result:type_name -> gitplus.task.v1.TaskEnqueueResult
-	3,  // 11: gitplus.task.v1.EnqueueSourceSyncResponse.task:type_name -> gitplus.task.v1.Task
-	3,  // 12: gitplus.task.v1.CancelQueuedTaskResponse.task:type_name -> gitplus.task.v1.Task
-	1,  // 13: gitplus.task.v1.EnqueueTestTaskResponse.result:type_name -> gitplus.task.v1.TaskEnqueueResult
-	3,  // 14: gitplus.task.v1.EnqueueTestTaskResponse.task:type_name -> gitplus.task.v1.Task
-	4,  // 15: gitplus.task.v1.TaskService.GetTaskRuntime:input_type -> gitplus.task.v1.GetTaskRuntimeRequest
-	6,  // 16: gitplus.task.v1.TaskService.EnqueueFullSync:input_type -> gitplus.task.v1.EnqueueFullSyncRequest
-	8,  // 17: gitplus.task.v1.TaskService.EnqueueSourceSync:input_type -> gitplus.task.v1.EnqueueSourceSyncRequest
-	10, // 18: gitplus.task.v1.TaskService.CancelQueuedTask:input_type -> gitplus.task.v1.CancelQueuedTaskRequest
-	12, // 19: gitplus.task.v1.TaskService.EnqueueTestTask:input_type -> gitplus.task.v1.EnqueueTestTaskRequest
-	5,  // 20: gitplus.task.v1.TaskService.GetTaskRuntime:output_type -> gitplus.task.v1.GetTaskRuntimeResponse
-	7,  // 21: gitplus.task.v1.TaskService.EnqueueFullSync:output_type -> gitplus.task.v1.EnqueueFullSyncResponse
-	9,  // 22: gitplus.task.v1.TaskService.EnqueueSourceSync:output_type -> gitplus.task.v1.EnqueueSourceSyncResponse
-	11, // 23: gitplus.task.v1.TaskService.CancelQueuedTask:output_type -> gitplus.task.v1.CancelQueuedTaskResponse
-	13, // 24: gitplus.task.v1.TaskService.EnqueueTestTask:output_type -> gitplus.task.v1.EnqueueTestTaskResponse
-	20, // [20:25] is the sub-list for method output_type
-	15, // [15:20] is the sub-list for method input_type
-	15, // [15:15] is the sub-list for extension type_name
-	15, // [15:15] is the sub-list for extension extendee
-	0,  // [0:15] is the sub-list for field type_name
+	14, // 6: gitplus.task.v1.Task.args:type_name -> google.protobuf.Struct
+	3,  // 7: gitplus.task.v1.GetTaskRuntimeResponse.running_task:type_name -> gitplus.task.v1.Task
+	3,  // 8: gitplus.task.v1.GetTaskRuntimeResponse.queued_tasks:type_name -> gitplus.task.v1.Task
+	1,  // 9: gitplus.task.v1.EnqueueFullSyncResponse.result:type_name -> gitplus.task.v1.TaskEnqueueResult
+	3,  // 10: gitplus.task.v1.EnqueueFullSyncResponse.task:type_name -> gitplus.task.v1.Task
+	1,  // 11: gitplus.task.v1.EnqueueSourceSyncResponse.result:type_name -> gitplus.task.v1.TaskEnqueueResult
+	3,  // 12: gitplus.task.v1.EnqueueSourceSyncResponse.task:type_name -> gitplus.task.v1.Task
+	3,  // 13: gitplus.task.v1.CancelQueuedTaskResponse.task:type_name -> gitplus.task.v1.Task
+	1,  // 14: gitplus.task.v1.EnqueueTestTaskResponse.result:type_name -> gitplus.task.v1.TaskEnqueueResult
+	3,  // 15: gitplus.task.v1.EnqueueTestTaskResponse.task:type_name -> gitplus.task.v1.Task
+	4,  // 16: gitplus.task.v1.TaskService.GetTaskRuntime:input_type -> gitplus.task.v1.GetTaskRuntimeRequest
+	6,  // 17: gitplus.task.v1.TaskService.EnqueueFullSync:input_type -> gitplus.task.v1.EnqueueFullSyncRequest
+	8,  // 18: gitplus.task.v1.TaskService.EnqueueSourceSync:input_type -> gitplus.task.v1.EnqueueSourceSyncRequest
+	10, // 19: gitplus.task.v1.TaskService.CancelQueuedTask:input_type -> gitplus.task.v1.CancelQueuedTaskRequest
+	12, // 20: gitplus.task.v1.TaskService.EnqueueTestTask:input_type -> gitplus.task.v1.EnqueueTestTaskRequest
+	5,  // 21: gitplus.task.v1.TaskService.GetTaskRuntime:output_type -> gitplus.task.v1.GetTaskRuntimeResponse
+	7,  // 22: gitplus.task.v1.TaskService.EnqueueFullSync:output_type -> gitplus.task.v1.EnqueueFullSyncResponse
+	9,  // 23: gitplus.task.v1.TaskService.EnqueueSourceSync:output_type -> gitplus.task.v1.EnqueueSourceSyncResponse
+	11, // 24: gitplus.task.v1.TaskService.CancelQueuedTask:output_type -> gitplus.task.v1.CancelQueuedTaskResponse
+	13, // 25: gitplus.task.v1.TaskService.EnqueueTestTask:output_type -> gitplus.task.v1.EnqueueTestTaskResponse
+	21, // [21:26] is the sub-list for method output_type
+	16, // [16:21] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_gitplus_task_v1_task_proto_init() }

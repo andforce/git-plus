@@ -29,19 +29,11 @@ func Migrate(ctx context.Context, dataDir string) error {
 		return fmt.Errorf("create data dir: %w", err)
 	}
 
-	sqliteDB, err := sql.Open("sqlite", filepath.Join(normalizedDataDir, sqliteFilename))
+	sqliteDB, err := openSQLite(filepath.Join(normalizedDataDir, sqliteFilename))
 	if err != nil {
-		return fmt.Errorf("open sqlite database: %w", err)
+		return err
 	}
 	defer sqliteDB.Close()
-
-	if err := sqliteDB.PingContext(ctx); err != nil {
-		return fmt.Errorf("ping sqlite database: %w", err)
-	}
-
-	if _, err := sqliteDB.ExecContext(ctx, "PRAGMA foreign_keys = ON;"); err != nil {
-		return fmt.Errorf("enable foreign keys: %w", err)
-	}
 
 	if err := ensureMigrationsTable(ctx, sqliteDB); err != nil {
 		return err
@@ -112,6 +104,29 @@ func Migrate(ctx context.Context, dataDir string) error {
 	log.Printf("database: migrations complete, applied=%d", appliedCount)
 
 	return nil
+}
+
+func Open(ctx context.Context, dataDir string) (*sql.DB, error) {
+	normalizedDataDir, err := normalizeDataDir(dataDir)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := os.MkdirAll(normalizedDataDir, 0o755); err != nil {
+		return nil, fmt.Errorf("create data dir: %w", err)
+	}
+
+	sqliteDB, err := openSQLite(filepath.Join(normalizedDataDir, sqliteFilename))
+	if err != nil {
+		return nil, err
+	}
+
+	if err := sqliteDB.PingContext(ctx); err != nil {
+		sqliteDB.Close()
+		return nil, fmt.Errorf("ping sqlite database: %w", err)
+	}
+
+	return sqliteDB, nil
 }
 
 func migrationsUpToDate(ctx context.Context, sqliteDB *sql.DB, migrationDirs []string) (bool, error) {
@@ -205,4 +220,18 @@ func migrationApplied(ctx context.Context, sqliteDB *sql.DB, filename string) (b
 	}
 
 	return count > 0, nil
+}
+
+func openSQLite(path string) (*sql.DB, error) {
+	sqliteDB, err := sql.Open("sqlite", path)
+	if err != nil {
+		return nil, fmt.Errorf("open sqlite database: %w", err)
+	}
+
+	if _, err := sqliteDB.Exec("PRAGMA foreign_keys = ON;"); err != nil {
+		sqliteDB.Close()
+		return nil, fmt.Errorf("enable foreign keys: %w", err)
+	}
+
+	return sqliteDB, nil
 }

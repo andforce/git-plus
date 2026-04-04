@@ -24,6 +24,7 @@ const (
 	StateQueued   State = "queued"
 	StateRunning  State = "running"
 	StateFinished State = "finished"
+	StateFailed   State = "failed"
 )
 
 type EventName string
@@ -34,6 +35,7 @@ const (
 	EventTaskProgress EventName = "task.progress"
 	EventTaskCanceled EventName = "task.canceled"
 	EventTaskFinished EventName = "task.finished"
+	EventTaskFailed   EventName = "task.failed"
 )
 
 var (
@@ -66,16 +68,20 @@ type Snapshot struct {
 	JobID        string
 	JobType      string
 	Name         string
+	Args         map[string]any
 	State        State
 	CreatedAt    time.Time
 	StartedAt    *time.Time
+	FinishedAt   *time.Time
+	ErrorMessage string
 	Progress     *Progress
 }
 
 type Event struct {
-	Name       EventName
-	Task       Snapshot
-	OccurredAt time.Time
+	Name         EventName
+	Task         Snapshot
+	OccurredAt   time.Time
+	ErrorMessage string
 }
 
 type RuntimeSnapshot struct {
@@ -88,12 +94,20 @@ type Spec struct {
 	JobID        string
 	JobType      string
 	Name         string
-	Run          func(*ExecutionContext)
+	Args         map[string]any
+	Run          func(*ExecutionContext) error
 }
 
 type ExecutionContext struct {
 	manager *Manager
 	taskID  string
+}
+
+type Recorder interface {
+	RecordStarted(snapshot Snapshot) error
+	RecordProgress(snapshot Snapshot) error
+	RecordFinished(snapshot Snapshot) error
+	RecordFailed(snapshot Snapshot, cause error) error
 }
 
 type Observer func(Event)
@@ -109,6 +123,7 @@ type Manager struct {
 	idGen          func() string
 	logger         *log.Logger
 	bus            *eventbus.Bus
+	recorder       Recorder
 	nextObserverID uint64
 	observers      map[uint64]Observer
 }
@@ -119,11 +134,14 @@ type entry struct {
 	jobID        string
 	jobType      string
 	name         string
+	args         map[string]any
 	state        State
 	createdAt    time.Time
 	startedAt    *time.Time
+	finishedAt   *time.Time
+	errorMessage string
 	progress     *Progress
-	run          func(*ExecutionContext)
+	run          func(*ExecutionContext) error
 }
 
 func NewManager(options ...Option) *Manager {
@@ -168,11 +186,24 @@ func WithEventBus(bus *eventbus.Bus) Option {
 	}
 }
 
+func WithRecorder(recorder Recorder) Option {
+	return func(manager *Manager) {
+		manager.recorder = recorder
+	}
+}
+
 func (manager *Manager) SetEventBus(bus *eventbus.Bus) {
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
 
 	manager.bus = bus
+}
+
+func (manager *Manager) SetRecorder(recorder Recorder) {
+	manager.mu.Lock()
+	defer manager.mu.Unlock()
+
+	manager.recorder = recorder
 }
 
 func WithObserver(observer Observer) Option {
@@ -230,6 +261,7 @@ func (manager *Manager) Enqueue(spec Spec) (EnqueueResult, Snapshot, error) {
 		jobID:        spec.JobID,
 		jobType:      spec.JobType,
 		name:         spec.Name,
+		args:         cloneMeta(spec.Args),
 		state:        StateQueued,
 		createdAt:    createdAt,
 		run:          spec.Run,
@@ -239,6 +271,10 @@ func (manager *Manager) Enqueue(spec Spec) (EnqueueResult, Snapshot, error) {
 	if manager.running == nil {
 		startedSnapshot := manager.startTaskLocked(taskEntry)
 		manager.mu.Unlock()
+		if err := manager.recordTaskStarted(startedSnapshot); err != nil {
+			manager.failToStartTask(taskEntry.taskID, err)
+			return 0, Snapshot{}, err
+		}
 		manager.dispatch(Event{
 			Name:       EventTaskEnqueued,
 			Task:       enqueuedSnapshot,
@@ -310,12 +346,12 @@ func (manager *Manager) Close() {
 	manager.closed = true
 }
 
-func (ctx *ExecutionContext) SetProgress(summary string, meta map[string]any) {
+func (ctx *ExecutionContext) SetProgress(summary string, meta map[string]any) error {
 	if ctx == nil || ctx.manager == nil {
-		return
+		return nil
 	}
 
-	ctx.manager.setProgress(ctx.taskID, summary, meta)
+	return ctx.manager.setProgress(ctx.taskID, summary, meta)
 }
 
 func (ctx *ExecutionContext) TaskID() string {
@@ -355,29 +391,174 @@ func (manager *Manager) launchTask(taskEntry *entry) {
 }
 
 func (manager *Manager) runTask(taskEntry *entry) {
+	var runErr error
+
 	defer func() {
-		if recovered := recover(); recovered != nil && manager.logger != nil {
-			manager.logger.Printf("task panic [%s]: %v", taskEntry.taskID, recovered)
+		if recovered := recover(); recovered != nil {
+			runErr = fmt.Errorf("panic: %v", recovered)
+			if manager.logger != nil {
+				manager.logger.Printf("task panic [%s]: %v", taskEntry.taskID, recovered)
+			}
 		}
-		manager.finishTask(taskEntry.taskID)
+		manager.completeTask(taskEntry.taskID, runErr)
 	}()
 
-	taskEntry.run(&ExecutionContext{
+	runErr = taskEntry.run(&ExecutionContext{
 		manager: manager,
 		taskID:  taskEntry.taskID,
 	})
 }
 
-func (manager *Manager) finishTask(taskID string) {
+func (manager *Manager) completeTask(taskID string, cause error) {
 	manager.mu.Lock()
 	if manager.running == nil || manager.running.taskID != taskID {
 		manager.mu.Unlock()
 		return
 	}
 
-	finishedSnapshot := manager.running.snapshot()
-	finishedSnapshot.State = StateFinished
+	terminalSnapshot := manager.running.snapshot()
 	finishedAt := manager.now()
+	terminalSnapshot.FinishedAt = &finishedAt
+	if cause == nil {
+		terminalSnapshot.State = StateFinished
+		terminalSnapshot.ErrorMessage = ""
+	} else {
+		terminalSnapshot.State = StateFailed
+		terminalSnapshot.ErrorMessage = cause.Error()
+	}
+	manager.mu.Unlock()
+
+	terminalSnapshot, eventName, eventCause, persisted := manager.persistTerminalSnapshot(taskID, terminalSnapshot, cause)
+	manager.mu.Lock()
+	if manager.running == nil || manager.running.taskID != taskID {
+		manager.mu.Unlock()
+		return
+	}
+	manager.running = nil
+	var startedSnapshot *Snapshot
+	var nextTask *entry
+	if len(manager.queue) > 0 {
+		nextTask = manager.queue[0]
+		manager.queue = manager.queue[1:]
+		snapshot := manager.startTaskLocked(nextTask)
+		startedSnapshot = &snapshot
+	}
+	manager.mu.Unlock()
+
+	if persisted {
+		if eventName == EventTaskFinished {
+			manager.dispatch(Event{
+				Name:       eventName,
+				Task:       terminalSnapshot,
+				OccurredAt: finishedAt,
+			})
+		} else {
+			manager.dispatch(Event{
+				Name:         eventName,
+				Task:         terminalSnapshot,
+				OccurredAt:   finishedAt,
+				ErrorMessage: eventCause.Error(),
+			})
+		}
+	}
+
+	manager.startNextTask(startedSnapshot, nextTask)
+}
+
+func (manager *Manager) persistTerminalSnapshot(taskID string, terminalSnapshot Snapshot, cause error) (Snapshot, EventName, error, bool) {
+	if cause != nil {
+		if err := manager.recordTaskFailed(terminalSnapshot, cause); err != nil {
+			if manager.logger != nil {
+				manager.logger.Printf("record task failed [%s]: %v", taskID, err)
+			}
+			return Snapshot{}, "", nil, false
+		}
+
+		return terminalSnapshot, EventTaskFailed, cause, true
+	}
+
+	if err := manager.recordTaskFinished(terminalSnapshot); err == nil {
+		return terminalSnapshot, EventTaskFinished, nil, true
+	} else {
+		if manager.logger != nil {
+			manager.logger.Printf("record task finished [%s]: %v", taskID, err)
+		}
+
+		fallbackErr := fmt.Errorf("persist finished state: %w", err)
+		terminalSnapshot.State = StateFailed
+		terminalSnapshot.ErrorMessage = fallbackErr.Error()
+		if fallbackRecordErr := manager.recordTaskFailed(terminalSnapshot, fallbackErr); fallbackRecordErr != nil {
+			if manager.logger != nil {
+				manager.logger.Printf("record fallback failed state [%s]: %v", taskID, fallbackRecordErr)
+			}
+			return Snapshot{}, "", nil, false
+		}
+
+		return terminalSnapshot, EventTaskFailed, fallbackErr, true
+	}
+}
+
+func (manager *Manager) setProgress(taskID string, summary string, meta map[string]any) error {
+	manager.mu.Lock()
+	if manager.running == nil || manager.running.taskID != taskID {
+		manager.mu.Unlock()
+		return nil
+	}
+
+	manager.running.progress = &Progress{
+		Summary:   summary,
+		Meta:      cloneMeta(meta),
+		UpdatedAt: manager.now(),
+	}
+	progressSnapshot := manager.running.snapshot()
+	manager.mu.Unlock()
+
+	if err := manager.recordTaskProgress(progressSnapshot); err != nil {
+		return err
+	}
+
+	manager.dispatch(Event{
+		Name:       EventTaskProgress,
+		Task:       progressSnapshot,
+		OccurredAt: progressSnapshot.Progress.UpdatedAt,
+	})
+
+	return nil
+}
+
+func (manager *Manager) startNextTask(startedSnapshot *Snapshot, nextTask *entry) {
+	if startedSnapshot == nil || nextTask == nil {
+		return
+	}
+
+	if err := manager.recordTaskStarted(*startedSnapshot); err != nil {
+		if manager.logger != nil {
+			manager.logger.Printf("record task start [%s]: %v", nextTask.taskID, err)
+		}
+		manager.failToStartTask(nextTask.taskID, err)
+		return
+	}
+
+	manager.dispatch(Event{
+		Name:       EventTaskStarted,
+		Task:       *startedSnapshot,
+		OccurredAt: startedSnapshot.StartedAtValue(),
+	})
+	manager.launchTask(nextTask)
+}
+
+func (manager *Manager) failToStartTask(taskID string, cause error) {
+	manager.mu.Lock()
+	if manager.running == nil || manager.running.taskID != taskID {
+		manager.mu.Unlock()
+		return
+	}
+
+	failedSnapshot := manager.running.snapshot()
+	finishedAt := manager.now()
+	failedSnapshot.State = StateFailed
+	failedSnapshot.FinishedAt = &finishedAt
+	failedSnapshot.ErrorMessage = cause.Error()
 	manager.running = nil
 
 	var startedSnapshot *Snapshot
@@ -390,41 +571,66 @@ func (manager *Manager) finishTask(taskID string) {
 	}
 	manager.mu.Unlock()
 
-	manager.dispatch(Event{
-		Name:       EventTaskFinished,
-		Task:       finishedSnapshot,
-		OccurredAt: finishedAt,
-	})
-	if startedSnapshot != nil {
-		manager.dispatch(Event{
-			Name:       EventTaskStarted,
-			Task:       *startedSnapshot,
-			OccurredAt: startedSnapshot.StartedAtValue(),
-		})
-		manager.launchTask(nextTask)
+	if manager.logger != nil {
+		manager.logger.Printf("task start failed [%s]: %v", taskID, cause)
 	}
+
+	manager.dispatch(Event{
+		Name:         EventTaskFailed,
+		Task:         failedSnapshot,
+		OccurredAt:   finishedAt,
+		ErrorMessage: cause.Error(),
+	})
+
+	manager.startNextTask(startedSnapshot, nextTask)
 }
 
-func (manager *Manager) setProgress(taskID string, summary string, meta map[string]any) {
+func (manager *Manager) recordTaskStarted(snapshot Snapshot) error {
 	manager.mu.Lock()
-	if manager.running == nil || manager.running.taskID != taskID {
-		manager.mu.Unlock()
-		return
-	}
-
-	manager.running.progress = &Progress{
-		Summary:   summary,
-		Meta:      cloneMeta(meta),
-		UpdatedAt: manager.now(),
-	}
-	progressSnapshot := manager.running.snapshot()
+	recorder := manager.recorder
 	manager.mu.Unlock()
 
-	manager.dispatch(Event{
-		Name:       EventTaskProgress,
-		Task:       progressSnapshot,
-		OccurredAt: progressSnapshot.Progress.UpdatedAt,
-	})
+	if recorder == nil {
+		return nil
+	}
+
+	return recorder.RecordStarted(snapshot)
+}
+
+func (manager *Manager) recordTaskProgress(snapshot Snapshot) error {
+	manager.mu.Lock()
+	recorder := manager.recorder
+	manager.mu.Unlock()
+
+	if recorder == nil {
+		return nil
+	}
+
+	return recorder.RecordProgress(snapshot)
+}
+
+func (manager *Manager) recordTaskFinished(snapshot Snapshot) error {
+	manager.mu.Lock()
+	recorder := manager.recorder
+	manager.mu.Unlock()
+
+	if recorder == nil {
+		return nil
+	}
+
+	return recorder.RecordFinished(snapshot)
+}
+
+func (manager *Manager) recordTaskFailed(snapshot Snapshot, cause error) error {
+	manager.mu.Lock()
+	recorder := manager.recorder
+	manager.mu.Unlock()
+
+	if recorder == nil {
+		return nil
+	}
+
+	return recorder.RecordFailed(snapshot, cause)
 }
 
 func (manager *Manager) runtimeLocked() RuntimeSnapshot {
@@ -468,9 +674,12 @@ func (taskEntry *entry) snapshot() Snapshot {
 		JobID:        taskEntry.jobID,
 		JobType:      taskEntry.jobType,
 		Name:         taskEntry.name,
+		Args:         cloneMeta(taskEntry.args),
 		State:        taskEntry.state,
 		CreatedAt:    taskEntry.createdAt,
 		StartedAt:    cloneTimePointer(taskEntry.startedAt),
+		FinishedAt:   cloneTimePointer(taskEntry.finishedAt),
+		ErrorMessage: taskEntry.errorMessage,
 		Progress:     cloneProgress(taskEntry.progress),
 	}
 }
@@ -481,6 +690,14 @@ func (snapshot Snapshot) StartedAtValue() time.Time {
 	}
 
 	return *snapshot.StartedAt
+}
+
+func (snapshot Snapshot) FinishedAtValue() time.Time {
+	if snapshot.FinishedAt == nil {
+		return snapshot.StartedAtValue()
+	}
+
+	return *snapshot.FinishedAt
 }
 
 func cloneProgress(progress *Progress) *Progress {
@@ -522,7 +739,7 @@ func BuildSourceSyncJobID(sourceID string) string {
 }
 
 func taskEventEnvelope(event Event) map[string]any {
-	return map[string]any{
+	envelope := map[string]any{
 		"event_name":     string(event.Name),
 		"channel":        TaskChannel,
 		"occurred_at":    event.OccurredAt.Format(time.RFC3339Nano),
@@ -534,6 +751,11 @@ func taskEventEnvelope(event Event) map[string]any {
 			"task": taskSnapshotValue(event.Task),
 		},
 	}
+	if event.ErrorMessage != "" {
+		envelope["error_message"] = event.ErrorMessage
+	}
+
+	return envelope
 }
 
 func taskSnapshotValue(snapshot Snapshot) map[string]any {
@@ -543,11 +765,18 @@ func taskSnapshotValue(snapshot Snapshot) map[string]any {
 		"job_id":         snapshot.JobID,
 		"job_type":       snapshot.JobType,
 		"name":           snapshot.Name,
+		"args":           cloneMeta(snapshot.Args),
 		"state":          string(snapshot.State),
 		"created_at":     snapshot.CreatedAt.Format(time.RFC3339Nano),
 	}
 	if snapshot.StartedAt != nil {
 		value["started_at"] = snapshot.StartedAt.Format(time.RFC3339Nano)
+	}
+	if snapshot.FinishedAt != nil {
+		value["finished_at"] = snapshot.FinishedAt.Format(time.RFC3339Nano)
+	}
+	if snapshot.ErrorMessage != "" {
+		value["error_message"] = snapshot.ErrorMessage
 	}
 	if snapshot.Progress != nil {
 		progress := map[string]any{

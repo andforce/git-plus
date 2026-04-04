@@ -42,7 +42,7 @@ func TestMigrateCreatesSQLiteFileAndIsIdempotent(t *testing.T) {
 	if err := sqliteDB.QueryRow("SELECT COUNT(1) FROM schema_migrations").Scan(&migrationCount); err != nil {
 		t.Fatalf("query schema_migrations: %v", err)
 	}
-	if migrationCount != 1 {
-		t.Fatalf("expected one applied migration, got %d", migrationCount)
+	if migrationCount != 3 {
+		t.Fatalf("expected three applied migrations, got %d", migrationCount)
 	}
 }

@@ -106,6 +106,7 @@ func (s *serviceServer) EnqueueFullSync(
 		JobID:   task.JobIDSyncAll,
 		JobType: task.JobTypeSyncAll,
 		Name:    "Sync all sources",
+		Args:    nil,
 		Run:     s.syncAllRunner(),
 	})
 	if err != nil {
@@ -138,7 +139,7 @@ func (s *serviceServer) EnqueueSourceSync(
 	}), nil
 }
 
-func NewSyncAllRun(dataDir string, manager *task.Manager, logger *log.Logger) func(*task.ExecutionContext) {
+func NewSyncAllRun(dataDir string, manager *task.Manager, logger *log.Logger) func(*task.ExecutionContext) error {
 	server := newServiceServer(dataDir, manager)
 
 	return server.syncAllRunnerWithLogger(logger)
@@ -177,7 +178,10 @@ func (s *serviceServer) EnqueueTestTask(
 		JobID:   jobID,
 		JobType: "test",
 		Name:    fmt.Sprintf("Test task %d (%ds)", variant, variant*2),
-		Run:     testRunner(variant, duration),
+		Args: map[string]any{
+			"variant": variant,
+		},
+		Run: testRunner(variant, duration),
 	})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("enqueue test task: %w", err))
@@ -210,44 +214,53 @@ func (s *serviceServer) sourceSyncSpec(sourceID string, parentTaskID string) tas
 		JobID:        task.BuildSourceSyncJobID(sourceID),
 		JobType:      task.JobTypeSyncSource,
 		Name:         fmt.Sprintf("Sync source %s", sourceID),
-		Run:          s.sourceSyncRunner(sourceID),
+		Args: map[string]any{
+			"source_id": sourceID,
+		},
+		Run: s.sourceSyncRunner(sourceID),
 	}
 }
 
-func (s *serviceServer) syncAllRunner() func(*task.ExecutionContext) {
+func (s *serviceServer) syncAllRunner() func(*task.ExecutionContext) error {
 	return s.syncAllRunnerWithLogger(log.Default())
 }
 
-func (s *serviceServer) syncAllRunnerWithLogger(logger *log.Logger) func(*task.ExecutionContext) {
+func (s *serviceServer) syncAllRunnerWithLogger(logger *log.Logger) func(*task.ExecutionContext) error {
 	if logger == nil {
 		logger = log.Default()
 	}
 
-	return func(ctx *task.ExecutionContext) {
-		ctx.SetProgress("Loading sources", map[string]any{
+	return func(ctx *task.ExecutionContext) error {
+		if err := ctx.SetProgress("Loading sources", map[string]any{
 			"job_type": task.JobTypeSyncAll,
 			"phase":    "load_sources",
-		})
+		}); err != nil {
+			return err
+		}
 
 		loaded, _, err := appconfig.LoadOrDefault(appconfig.PathForDataDir(s.dataDir))
 		if err != nil {
-			ctx.SetProgress("Failed to load sources", map[string]any{
+			if progressErr := ctx.SetProgress("Failed to load sources", map[string]any{
 				"job_type": task.JobTypeSyncAll,
 				"phase":    "load_sources",
 				"error":    err.Error(),
-			})
+			}); progressErr != nil {
+				return progressErr
+			}
 			logger.Printf("sync-all load config failed: %v", err)
-			return
+			return nil
 		}
 
 		total := len(loaded.Data.Sources)
 		if total == 0 {
-			ctx.SetProgress("No source configured", map[string]any{
+			if err := ctx.SetProgress("No source configured", map[string]any{
 				"job_type": task.JobTypeSyncAll,
 				"phase":    "enqueue_sources",
 				"total":    0,
-			})
-			return
+			}); err != nil {
+				return err
+			}
+			return nil
 		}
 
 		startedCount := 0
@@ -256,13 +269,15 @@ func (s *serviceServer) syncAllRunnerWithLogger(logger *log.Logger) func(*task.E
 		failedCount := 0
 
 		for index, source := range loaded.Data.Sources {
-			ctx.SetProgress(fmt.Sprintf("Queueing source %s (%d/%d)", source.ID, index+1, total), map[string]any{
+			if err := ctx.SetProgress(fmt.Sprintf("Queueing source %s (%d/%d)", source.ID, index+1, total), map[string]any{
 				"job_type":  task.JobTypeSyncAll,
 				"phase":     "enqueue_sources",
 				"source_id": source.ID,
 				"index":     index + 1,
 				"total":     total,
-			})
+			}); err != nil {
+				return err
+			}
 
 			result, _, enqueueErr := s.manager.Enqueue(s.sourceSyncSpec(source.ID, ctx.TaskID()))
 			if enqueueErr != nil {
@@ -281,7 +296,7 @@ func (s *serviceServer) syncAllRunnerWithLogger(logger *log.Logger) func(*task.E
 			}
 		}
 
-		ctx.SetProgress("Queued source sync tasks", map[string]any{
+		if err := ctx.SetProgress("Queued source sync tasks", map[string]any{
 			"job_type": task.JobTypeSyncAll,
 			"phase":    "done",
 			"total":    total,
@@ -289,12 +304,16 @@ func (s *serviceServer) syncAllRunnerWithLogger(logger *log.Logger) func(*task.E
 			"queued":   queuedCount,
 			"deduped":  dedupedCount,
 			"failed":   failedCount,
-		})
+		}); err != nil {
+			return err
+		}
+
+		return nil
 	}
 }
 
-func (s *serviceServer) sourceSyncRunner(sourceID string) func(*task.ExecutionContext) {
-	return func(ctx *task.ExecutionContext) {
+func (s *serviceServer) sourceSyncRunner(sourceID string) func(*task.ExecutionContext) error {
+	return func(ctx *task.ExecutionContext) error {
 		duration := s.sourceSyncDuration()
 		totalSeconds := int(duration / time.Second)
 		if totalSeconds < 1 {
@@ -302,7 +321,7 @@ func (s *serviceServer) sourceSyncRunner(sourceID string) func(*task.ExecutionCo
 		}
 
 		for i := 1; i <= totalSeconds; i++ {
-			ctx.SetProgress(
+			if err := ctx.SetProgress(
 				fmt.Sprintf("Processing (%d/%ds)", i, totalSeconds),
 				map[string]any{
 					"job_type":  task.JobTypeSyncSource,
@@ -310,9 +329,13 @@ func (s *serviceServer) sourceSyncRunner(sourceID string) func(*task.ExecutionCo
 					"step":      i,
 					"total":     totalSeconds,
 				},
-			)
+			); err != nil {
+				return err
+			}
 			time.Sleep(s.progressTick)
 		}
+
+		return nil
 	}
 }
 
@@ -320,20 +343,24 @@ func randomSourceSyncDuration() time.Duration {
 	return time.Duration(rand.IntN(9)+2) * time.Second
 }
 
-func testRunner(variant int, duration time.Duration) func(*task.ExecutionContext) {
-	return func(ctx *task.ExecutionContext) {
+func testRunner(variant int, duration time.Duration) func(*task.ExecutionContext) error {
+	return func(ctx *task.ExecutionContext) error {
 		totalSeconds := int(duration.Seconds())
 		for i := 1; i <= totalSeconds; i++ {
-			ctx.SetProgress(
+			if err := ctx.SetProgress(
 				fmt.Sprintf("Processing (%d/%ds)", i, totalSeconds),
 				map[string]any{
 					"variant": variant,
 					"step":    i,
 					"total":   totalSeconds,
 				},
-			)
+			); err != nil {
+				return err
+			}
 			time.Sleep(time.Second)
 		}
+
+		return nil
 	}
 }
 
@@ -347,6 +374,9 @@ func toProtoTask(snapshot task.Snapshot) *taskv1.Task {
 		State:        taskStatePtr(toProtoTaskState(snapshot.State)),
 		CreatedAt:    timestamppb.New(snapshot.CreatedAt),
 	}
+	if args := toProtoStruct(snapshot.Args); args != nil {
+		protoTask.Args = args
+	}
 	if snapshot.StartedAt != nil {
 		protoTask.StartedAt = timestamppb.New(*snapshot.StartedAt)
 	}
@@ -358,17 +388,25 @@ func toProtoTask(snapshot task.Snapshot) *taskv1.Task {
 }
 
 func toProtoProgress(progress task.Progress) *taskv1.TaskProgress {
-	meta, err := structpb.NewStruct(progress.Meta)
-	if err != nil {
-		log.Printf("task progress metadata conversion failed: %v", err)
-		meta = nil
-	}
-
 	return &taskv1.TaskProgress{
 		Summary:   stringPtr(progress.Summary),
-		Meta:      meta,
+		Meta:      toProtoStruct(progress.Meta),
 		UpdatedAt: timestamppb.New(progress.UpdatedAt),
 	}
+}
+
+func toProtoStruct(meta map[string]any) *structpb.Struct {
+	if len(meta) == 0 {
+		return nil
+	}
+
+	value, err := structpb.NewStruct(meta)
+	if err != nil {
+		log.Printf("task metadata conversion failed: %v", err)
+		return nil
+	}
+
+	return value
 }
 
 func toProtoTaskState(state task.State) taskv1.TaskState {

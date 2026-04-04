@@ -17,8 +17,9 @@ func TestEnqueueStartsTaskImmediatelyWhenIdle(t *testing.T) {
 		JobID:   JobIDSyncAll,
 		JobType: JobTypeSyncAll,
 		Name:    "Sync all sources",
-		Run: func(*ExecutionContext) {
+		Run: func(*ExecutionContext) error {
 			<-block
+			return nil
 		},
 	})
 	if err != nil {
@@ -197,11 +198,16 @@ func TestSetProgressKeepsOnlyLastUpdate(t *testing.T) {
 		JobID:   JobIDSyncAll,
 		JobType: JobTypeSyncAll,
 		Name:    "Sync all sources",
-		Run: func(ctx *ExecutionContext) {
-			ctx.SetProgress("phase 1", map[string]any{"step": float64(1)})
-			ctx.SetProgress("phase 2", map[string]any{"step": float64(2)})
+		Run: func(ctx *ExecutionContext) error {
+			if err := ctx.SetProgress("phase 1", map[string]any{"step": float64(1)}); err != nil {
+				return err
+			}
+			if err := ctx.SetProgress("phase 2", map[string]any{"step": float64(2)}); err != nil {
+				return err
+			}
 			close(started)
 			<-release
+			return nil
 		},
 	}); err != nil {
 		t.Fatalf("enqueue task: %v", err)
@@ -229,8 +235,9 @@ func TestQueuedTaskStartsAfterRunningTaskCompletes(t *testing.T) {
 		JobID:   JobIDSyncAll,
 		JobType: JobTypeSyncAll,
 		Name:    "Sync all sources",
-		Run: func(*ExecutionContext) {
+		Run: func(*ExecutionContext) error {
 			close(firstDone)
+			return nil
 		},
 	}); err != nil {
 		t.Fatalf("enqueue first task: %v", err)
@@ -240,8 +247,9 @@ func TestQueuedTaskStartsAfterRunningTaskCompletes(t *testing.T) {
 		JobID:   BuildSourceSyncJobID("github"),
 		JobType: JobTypeSyncSource,
 		Name:    "Sync source github",
-		Run: func(*ExecutionContext) {
+		Run: func(*ExecutionContext) error {
 			close(secondStarted)
+			return nil
 		},
 	}); err != nil {
 		t.Fatalf("enqueue second task: %v", err)
@@ -271,10 +279,13 @@ func TestSnapshotsAreSafeCopies(t *testing.T) {
 		JobID:   JobIDSyncAll,
 		JobType: JobTypeSyncAll,
 		Name:    "Sync all sources",
-		Run: func(ctx *ExecutionContext) {
-			ctx.SetProgress("phase", map[string]any{"step": float64(1)})
+		Run: func(ctx *ExecutionContext) error {
+			if err := ctx.SetProgress("phase", map[string]any{"step": float64(1)}); err != nil {
+				return err
+			}
 			close(started)
 			<-release
+			return nil
 		},
 	}); err != nil {
 		t.Fatalf("enqueue task: %v", err)
@@ -305,8 +316,9 @@ func blockingSpec(jobID string, jobType string, name string, block <-chan struct
 		JobID:   jobID,
 		JobType: jobType,
 		Name:    name,
-		Run: func(*ExecutionContext) {
+		Run: func(*ExecutionContext) error {
 			<-block
+			return nil
 		},
 	}
 }
@@ -379,9 +391,12 @@ func TestManagerEmitsTaskLifecycleEvents(t *testing.T) {
 		JobID:   JobIDSyncAll,
 		JobType: JobTypeSyncAll,
 		Name:    "Sync all sources",
-		Run: func(ctx *ExecutionContext) {
-			ctx.SetProgress("Running", map[string]any{"phase": "sync"})
+		Run: func(ctx *ExecutionContext) error {
+			if err := ctx.SetProgress("Running", map[string]any{"phase": "sync"}); err != nil {
+				return err
+			}
 			<-release
+			return nil
 		},
 	}); err != nil {
 		t.Fatalf("enqueue task: %v", err)
@@ -433,6 +448,324 @@ func TestManagerEmitsCanceledEvent(t *testing.T) {
 		t.Fatalf("unexpected leading events: %v", received)
 	}
 	assertEventName(t, receiveTaskEvent(t, events), EventTaskCanceled)
+}
+
+func TestQueuedTasksDoNotHitRecorderUntilStarted(t *testing.T) {
+	recorder := &stubRecorder{}
+	manager := NewManager(
+		WithRecorder(recorder),
+		WithIDGenerator(func() string { return "task-1" }),
+	)
+	block := make(chan struct{})
+	defer close(block)
+
+	if _, _, err := manager.Enqueue(Spec{
+		JobID:   JobIDSyncAll,
+		JobType: JobTypeSyncAll,
+		Name:    "Sync all sources",
+		Run: func(*ExecutionContext) error {
+			<-block
+			return nil
+		},
+	}); err != nil {
+		t.Fatalf("enqueue running task: %v", err)
+	}
+
+	if _, _, err := manager.Enqueue(Spec{
+		JobID:   BuildSourceSyncJobID("github"),
+		JobType: JobTypeSyncSource,
+		Name:    "Sync source github",
+		Run: func(*ExecutionContext) error {
+			return nil
+		},
+	}); err != nil {
+		t.Fatalf("enqueue queued task: %v", err)
+	}
+
+	if len(recorder.started) != 1 {
+		t.Fatalf("expected only running task to be recorded, got %d", len(recorder.started))
+	}
+}
+
+func TestRecordStartedFailurePreventsTaskExecution(t *testing.T) {
+	recorder := &stubRecorder{
+		recordStartedErr: errors.New("db unavailable"),
+	}
+	executed := false
+	manager := NewManager(WithRecorder(recorder))
+
+	_, _, err := manager.Enqueue(Spec{
+		JobID:   JobIDSyncAll,
+		JobType: JobTypeSyncAll,
+		Name:    "Sync all sources",
+		Run: func(*ExecutionContext) error {
+			executed = true
+			return nil
+		},
+	})
+	if err == nil {
+		t.Fatal("expected enqueue to fail when record started fails")
+	}
+	if executed {
+		t.Fatal("expected task run function not to execute")
+	}
+	if runtime := manager.Runtime(); runtime.Running != nil || len(runtime.Queued) != 0 {
+		t.Fatalf("expected manager to stay idle, got %#v", runtime)
+	}
+}
+
+func TestRecordProgressFailureFailsTask(t *testing.T) {
+	events := make(chan Event, 8)
+	recorder := &stubRecorder{
+		recordProgressErr: errors.New("write progress failed"),
+	}
+	manager := NewManager(
+		WithRecorder(recorder),
+		WithObserver(func(event Event) {
+			events <- event
+		}),
+	)
+
+	if _, _, err := manager.Enqueue(Spec{
+		JobID:   JobIDSyncAll,
+		JobType: JobTypeSyncAll,
+		Name:    "Sync all sources",
+		Run: func(ctx *ExecutionContext) error {
+			return ctx.SetProgress("phase 1", map[string]any{"step": float64(1)})
+		},
+	}); err != nil {
+		t.Fatalf("enqueue task: %v", err)
+	}
+
+	assertEventName(t, receiveTaskEvent(t, events), EventTaskEnqueued)
+	assertEventName(t, receiveTaskEvent(t, events), EventTaskStarted)
+	failedEvent := receiveTaskEvent(t, events)
+	assertEventName(t, failedEvent, EventTaskFailed)
+	if failedEvent.Task.State != StateFailed {
+		t.Fatalf("expected failed state, got %q", failedEvent.Task.State)
+	}
+	if len(recorder.failed) != 1 {
+		t.Fatalf("expected one failed record, got %d", len(recorder.failed))
+	}
+}
+
+func TestFinishedRecorderFailureFallsBackToFailedTerminalState(t *testing.T) {
+	events := make(chan Event, 8)
+	recorder := &stubRecorder{
+		recordFinishedErr: errors.New("finish write failed"),
+	}
+	manager := NewManager(
+		WithRecorder(recorder),
+		WithObserver(func(event Event) {
+			events <- event
+		}),
+	)
+
+	if _, _, err := manager.Enqueue(Spec{
+		JobID:   JobIDSyncAll,
+		JobType: JobTypeSyncAll,
+		Name:    "Sync all sources",
+		Run: func(*ExecutionContext) error {
+			return nil
+		},
+	}); err != nil {
+		t.Fatalf("enqueue task: %v", err)
+	}
+
+	assertEventName(t, receiveTaskEvent(t, events), EventTaskEnqueued)
+	assertEventName(t, receiveTaskEvent(t, events), EventTaskStarted)
+	failedEvent := receiveTaskEvent(t, events)
+	assertEventName(t, failedEvent, EventTaskFailed)
+	if failedEvent.Task.State != StateFailed {
+		t.Fatalf("expected failed terminal state, got %q", failedEvent.Task.State)
+	}
+	if len(recorder.failed) != 1 {
+		t.Fatalf("expected fallback failed record, got %d", len(recorder.failed))
+	}
+	waitUntil(t, func() bool {
+		runtime := manager.Runtime()
+		return runtime.Running == nil && len(runtime.Queued) == 0
+	}, "manager to drain after fallback failure persist")
+}
+
+func TestTerminalRecorderFailureDoesNotPublishCompletionButStillAdvancesQueue(t *testing.T) {
+	events := make(chan Event, 8)
+	recorder := &stubRecorder{
+		recordFinishedErr: errors.New("finish write failed"),
+		recordFailedErr:   errors.New("failed write also failed"),
+	}
+	manager := NewManager(
+		WithRecorder(recorder),
+		WithObserver(func(event Event) {
+			events <- event
+		}),
+	)
+
+	firstDone := make(chan struct{})
+	secondStarted := make(chan struct{})
+
+	if _, _, err := manager.Enqueue(Spec{
+		JobID:   JobIDSyncAll,
+		JobType: JobTypeSyncAll,
+		Name:    "Sync all sources",
+		Run: func(*ExecutionContext) error {
+			close(firstDone)
+			return nil
+		},
+	}); err != nil {
+		t.Fatalf("enqueue first task: %v", err)
+	}
+	if _, _, err := manager.Enqueue(Spec{
+		JobID:   BuildSourceSyncJobID("github"),
+		JobType: JobTypeSyncSource,
+		Name:    "Sync source github",
+		Run: func(*ExecutionContext) error {
+			close(secondStarted)
+			return nil
+		},
+	}); err != nil {
+		t.Fatalf("enqueue second task: %v", err)
+	}
+
+	assertEventName(t, receiveTaskEvent(t, events), EventTaskEnqueued)
+	assertEventName(t, receiveTaskEvent(t, events), EventTaskStarted)
+	assertEventName(t, receiveTaskEvent(t, events), EventTaskEnqueued)
+	waitFor(t, firstDone, "first task completion")
+	time.Sleep(50 * time.Millisecond)
+
+	select {
+	case event := <-events:
+		if event.Name != EventTaskStarted {
+			t.Fatalf("expected only next task start event, got %q", event.Name)
+		}
+	default:
+		t.Fatal("expected next queued task to start")
+	}
+	waitFor(t, secondStarted, "queued task start after terminal recorder failure")
+	waitUntil(t, func() bool {
+		runtime := manager.Runtime()
+		return runtime.Running == nil && len(runtime.Queued) == 0
+	}, "manager to drain after terminal recorder failure")
+}
+
+func TestStartFailureFallsThroughToNextQueuedTask(t *testing.T) {
+	recorder := &stubRecorder{
+		failStartedCalls: map[int]error{
+			2: errors.New("second task start failed"),
+		},
+	}
+	manager := NewManager(
+		WithRecorder(recorder),
+		WithIDGenerator(func() string {
+			recorder.generated++
+			return fmt.Sprintf("task-%d", recorder.generated)
+		}),
+	)
+	runningBlock := make(chan struct{})
+	secondStarted := make(chan struct{})
+	thirdStarted := make(chan struct{})
+
+	if _, _, err := manager.Enqueue(Spec{
+		JobID:   JobIDSyncAll,
+		JobType: JobTypeSyncAll,
+		Name:    "Sync all sources",
+		Run: func(*ExecutionContext) error {
+			<-runningBlock
+			return nil
+		},
+	}); err != nil {
+		t.Fatalf("enqueue first task: %v", err)
+	}
+
+	if _, _, err := manager.Enqueue(Spec{
+		JobID:   BuildSourceSyncJobID("second"),
+		JobType: JobTypeSyncSource,
+		Name:    "Sync source second",
+		Run: func(*ExecutionContext) error {
+			close(secondStarted)
+			return nil
+		},
+	}); err != nil {
+		t.Fatalf("enqueue second task: %v", err)
+	}
+
+	if _, _, err := manager.Enqueue(Spec{
+		JobID:   BuildSourceSyncJobID("third"),
+		JobType: JobTypeSyncSource,
+		Name:    "Sync source third",
+		Run: func(*ExecutionContext) error {
+			close(thirdStarted)
+			return nil
+		},
+	}); err != nil {
+		t.Fatalf("enqueue third task: %v", err)
+	}
+
+	close(runningBlock)
+	waitFor(t, thirdStarted, "third task start after second fails to start")
+
+	select {
+	case <-secondStarted:
+		t.Fatal("expected second task not to run")
+	default:
+	}
+
+	waitUntil(t, func() bool {
+		runtime := manager.Runtime()
+		return runtime.Running == nil && len(runtime.Queued) == 0
+	}, "queue to drain")
+}
+
+type stubRecorder struct {
+	started           []Snapshot
+	progressed        []Snapshot
+	finished          []Snapshot
+	failed            []Snapshot
+	recordStartedErr  error
+	recordProgressErr error
+	recordFinishedErr error
+	recordFailedErr   error
+	failStartedCalls  map[int]error
+	startCalls        int
+	generated         int
+}
+
+func (recorder *stubRecorder) RecordStarted(snapshot Snapshot) error {
+	recorder.startCalls++
+	if recorder.failStartedCalls != nil {
+		if err, ok := recorder.failStartedCalls[recorder.startCalls]; ok {
+			return err
+		}
+	}
+	if recorder.recordStartedErr != nil {
+		return recorder.recordStartedErr
+	}
+	recorder.started = append(recorder.started, snapshot)
+	return nil
+}
+
+func (recorder *stubRecorder) RecordProgress(snapshot Snapshot) error {
+	if recorder.recordProgressErr != nil {
+		return recorder.recordProgressErr
+	}
+	recorder.progressed = append(recorder.progressed, snapshot)
+	return nil
+}
+
+func (recorder *stubRecorder) RecordFinished(snapshot Snapshot) error {
+	if recorder.recordFinishedErr != nil {
+		return recorder.recordFinishedErr
+	}
+	recorder.finished = append(recorder.finished, snapshot)
+	return nil
+}
+
+func (recorder *stubRecorder) RecordFailed(snapshot Snapshot, _ error) error {
+	if recorder.recordFailedErr != nil {
+		return recorder.recordFailedErr
+	}
+	recorder.failed = append(recorder.failed, snapshot)
+	return nil
 }
 
 func receiveTaskEvent(t *testing.T, events <-chan Event) Event {

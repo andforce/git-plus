@@ -15,6 +15,7 @@ import (
 	"github.com/ImSingee/git-plus/pkg/eventservice"
 	"github.com/ImSingee/git-plus/pkg/task"
 	"github.com/ImSingee/git-plus/pkg/taskservice"
+	"github.com/ImSingee/git-plus/pkg/taskstore"
 )
 
 type Config struct {
@@ -44,6 +45,13 @@ func Run(ctx context.Context, cfg Config, frontendHandlerFactory FrontendHandler
 			return fmt.Errorf("run database migrations: %w", err)
 		}
 	}
+
+	sqliteDB, err := appdb.Open(ctx, cfg.DataDir)
+	if err != nil {
+		return fmt.Errorf("open database: %w", err)
+	}
+	defer sqliteDB.Close()
+	taskManager.SetRecorder(taskstore.NewRecorder(sqliteDB))
 
 	configservice.LogIssuesOnStartup(cfg.DataDir, log.Default())
 	if err := cronRuntime.LoadFromFileAndApply(); err != nil {

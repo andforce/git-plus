@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -13,6 +14,8 @@ import (
 	"time"
 
 	"connectrpc.com/connect"
+	appdb "github.com/ImSingee/git-plus/db"
+	dbsqlc "github.com/ImSingee/git-plus/db/sqlc"
 	appconfig "github.com/ImSingee/git-plus/pkg/config"
 	"github.com/ImSingee/git-plus/pkg/cronruntime"
 	"github.com/ImSingee/git-plus/pkg/eventbus"
@@ -26,6 +29,7 @@ import (
 	"github.com/ImSingee/git-plus/pkg/rpc/gitplus/task/v1/taskv1connect"
 	"github.com/ImSingee/git-plus/pkg/task"
 	"github.com/ImSingee/git-plus/pkg/taskservice"
+	"github.com/ImSingee/git-plus/pkg/taskstore"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -957,6 +961,9 @@ sources:
 	if response.Msg.GetTask().GetParentTaskId() != "" {
 		t.Fatalf("expected sync-all to have no parent task id, got %q", response.Msg.GetTask().GetParentTaskId())
 	}
+	if response.Msg.GetTask().GetArgs() != nil {
+		t.Fatalf("expected sync-all args to be empty, got %#v", response.Msg.GetTask().GetArgs())
+	}
 
 	waitUntil(t, func() bool {
 		runtimeResponse, runtimeErr := client.GetTaskRuntime(
@@ -982,6 +989,68 @@ sources:
 			queuedTasks[0].GetJobId() == task.BuildSourceSyncJobID("source-b") &&
 			queuedTasks[0].GetParentTaskId() == response.Msg.GetTask().GetTaskId()
 	}, "sync-all to enqueue source sync tasks in config order")
+}
+
+func TestTaskServicePersistsStartedTasksToSQLite(t *testing.T) {
+	t.Setenv(appconfig.TokenPassphraseEnvVar, serverTestPassphrase)
+	encryptedToken := mustEncryptServerToken(t, "secret")
+	dataDir := t.TempDir()
+	writeConfigFile(t, dataDir, `
+sources:
+  - id: source-a
+    platform: github
+    username: octocat
+    token: `+encryptedToken+`
+  - id: source-b
+    platform: github
+    username: hubot
+    token: `+encryptedToken+`
+`)
+
+	server, queries := newPersistentTestServer(t, dataDir)
+	client := newTaskServiceClient(server.URL)
+
+	response, err := client.EnqueueFullSync(
+		context.Background(),
+		connect.NewRequest(&taskv1.EnqueueFullSyncRequest{}),
+	)
+	if err != nil {
+		t.Fatalf("enqueue full sync: %v", err)
+	}
+
+	waitUntil(t, func() bool {
+		parentRun, parentErr := queries.GetTaskRun(context.Background(), response.Msg.GetTask().GetTaskId())
+		if parentErr != nil {
+			return false
+		}
+		if parentRun.Status != string(task.StateFinished) {
+			return false
+		}
+
+		childA, childAErr := queries.GetTaskRun(context.Background(), "task-2")
+		childB, childBErr := queries.GetTaskRun(context.Background(), "task-3")
+		if childAErr != nil || childBErr != nil {
+			return false
+		}
+		return childA.ParentTaskID.Valid &&
+			childA.ParentTaskID.String == response.Msg.GetTask().GetTaskId() &&
+			childB.ParentTaskID.Valid &&
+			childB.ParentTaskID.String == response.Msg.GetTask().GetTaskId() &&
+			childA.ArgsJson.Valid &&
+			childA.ArgsJson.String == `{"source_id":"source-a"}` &&
+			childB.ArgsJson.Valid &&
+			childB.ArgsJson.String == `{"source_id":"source-b"}` &&
+			childA.Status == string(task.StateFinished) &&
+			childB.Status == string(task.StateFinished)
+	}, "task runs to persist to sqlite")
+
+	logs, err := queries.ListTaskRunLogs(context.Background(), response.Msg.GetTask().GetTaskId())
+	if err != nil {
+		t.Fatalf("list parent task logs: %v", err)
+	}
+	if len(logs) < 2 {
+		t.Fatalf("expected parent task logs to be persisted, got %d", len(logs))
+	}
 }
 
 func TestTaskServiceEnqueueSourceSyncValidatesSourceID(t *testing.T) {
@@ -1029,6 +1098,9 @@ sources:
 	assertTaskIdentity(t, response.Msg.GetTask(), task.JobTypeSyncSource, "sync-source::github-main")
 	if response.Msg.GetTask().GetParentTaskId() != "" {
 		t.Fatalf("expected direct source sync to have no parent task id, got %q", response.Msg.GetTask().GetParentTaskId())
+	}
+	if response.Msg.GetTask().GetArgs().GetFields()["source_id"].GetStringValue() != "github-main" {
+		t.Fatalf("expected source_id in args, got %#v", response.Msg.GetTask().GetArgs())
 	}
 }
 
@@ -1435,6 +1507,47 @@ func newTestServerWithPassword(t *testing.T, dataDir string, password string) *h
 	t.Cleanup(server.Close)
 
 	return server
+}
+
+func newPersistentTestServer(t *testing.T, dataDir string) (*httptest.Server, *dbsqlc.Queries) {
+	t.Helper()
+	t.Setenv(PasswordEnvVar, InsecureNoAuthPassword)
+
+	if err := appdb.Migrate(context.Background(), dataDir); err != nil {
+		t.Fatalf("migrate persistent test db: %v", err)
+	}
+
+	sqliteDB, err := appdb.Open(context.Background(), dataDir)
+	if err != nil {
+		t.Fatalf("open persistent test db: %v", err)
+	}
+	t.Cleanup(func() {
+		_ = sqliteDB.Close()
+	})
+
+	counter := 0
+	taskManager := task.NewManager(
+		task.WithRecorder(taskstore.NewRecorder(sqliteDB)),
+		task.WithIDGenerator(func() string {
+			counter++
+			return fmt.Sprintf("task-%d", counter)
+		}),
+	)
+	t.Cleanup(taskManager.Close)
+
+	bus := eventbus.New()
+	t.Cleanup(bus.Close)
+	cron := mustNewTestCronRuntime(t, dataDir, taskManager)
+
+	server := httptest.NewServer(NewHandler(dataDir, taskManager, bus, cron, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.NotFound(w, r)
+	}),
+		taskservice.WithSourceSyncDuration(func() time.Duration { return 2 * time.Second }),
+		taskservice.WithProgressTick(10*time.Millisecond),
+	))
+	t.Cleanup(server.Close)
+
+	return server, dbsqlc.New(sqliteDB)
 }
 
 func newConfigServiceClient(serverURL string) configv1connect.ConfigServiceClient {

@@ -33,7 +33,7 @@ type Runtime struct {
 	scheduler  gocron.Scheduler
 	job        gocron.Job
 	logger     *log.Logger
-	syncAllRun func(*task.ExecutionContext)
+	syncAllRun func(*task.ExecutionContext) error
 	cron       string
 	lastError  string
 }
@@ -65,7 +65,7 @@ func WithLogger(logger *log.Logger) Option {
 	}
 }
 
-func WithSyncAllRun(run func(*task.ExecutionContext)) Option {
+func WithSyncAllRun(run func(*task.ExecutionContext) error) Option {
 	return func(runtime *Runtime) {
 		if run != nil {
 			runtime.syncAllRun = run
@@ -239,7 +239,7 @@ func (runtime *Runtime) enqueueSyncAll() {
 	}
 }
 
-func defaultSyncAllRun(ctx *task.ExecutionContext) {
+func defaultSyncAllRun(ctx *task.ExecutionContext) error {
 	steps := []struct {
 		summary string
 		phase   string
@@ -250,11 +250,15 @@ func defaultSyncAllRun(ctx *task.ExecutionContext) {
 	}
 
 	for _, step := range steps {
-		ctx.SetProgress(step.summary, map[string]any{
+		if err := ctx.SetProgress(step.summary, map[string]any{
 			"job_type": task.JobTypeSyncAll,
 			"phase":    step.phase,
 			"trigger":  "cron",
-		})
+		}); err != nil {
+			return err
+		}
 		time.Sleep(75 * time.Millisecond)
 	}
+
+	return nil
 }
