@@ -1,6 +1,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import {
+  ActionIcon,
   Anchor,
   Avatar,
   Badge,
@@ -10,6 +11,7 @@ import {
   Checkbox,
   Code,
   Container,
+  Drawer,
   Group,
   Loader,
   SimpleGrid,
@@ -248,6 +250,7 @@ function RefsTab({
   emptyLabel: string;
 }) {
   const [showDeleted, setShowDeleted] = useState(false);
+  const [historyRefName, setHistoryRefName] = useState<string | null>(null);
   const { data } = useSuspenseQuery(
     repoRefsQueryOptions(repoId, refKind, showDeleted),
   );
@@ -270,11 +273,17 @@ function RefsTab({
             <Table.Th>Hash</Table.Th>
             {showDeleted && <Table.Th>Status</Table.Th>}
             <Table.Th>Last Seen</Table.Th>
+            <Table.Th style={{ width: 1 }} />
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
           {refs.map((r) => (
-            <RefRow key={r.id.toString()} ref_={r} showStatus={showDeleted} />
+            <RefRow
+              key={r.id.toString()}
+              ref_={r}
+              showStatus={showDeleted}
+              onHistory={() => setHistoryRefName(r.refName)}
+            />
           ))}
         </Table.Tbody>
       </Table>
@@ -284,7 +293,126 @@ function RefsTab({
         checked={showDeleted}
         onChange={(e) => setShowDeleted(e.currentTarget.checked)}
       />
+      <Drawer
+        opened={historyRefName !== null}
+        onClose={() => setHistoryRefName(null)}
+        title={
+          <Group gap="xs">
+            <IconHistory size={16} />
+            <Text fw={600}>
+              {historyRefName && stripRefPrefix(historyRefName)}
+            </Text>
+          </Group>
+        }
+        position="right"
+        size="lg"
+      >
+        {historyRefName && (
+          <Suspense fallback={<TabFallback />}>
+            <RefHistoryDrawerContent repoId={repoId} refName={historyRefName} />
+          </Suspense>
+        )}
+      </Drawer>
     </>
+  );
+}
+
+function RefHistoryDrawerContent({
+  repoId,
+  refName,
+}: {
+  repoId: string;
+  refName: string;
+}) {
+  const { data, hasNextPage, fetchNextPage, isFetchingNextPage } =
+    useSuspenseInfiniteQuery(repoRefChangesQueryOptions(repoId, refName));
+
+  const { ref: sentinelRef, entry } = useIntersection({ threshold: 0 });
+
+  useEffect(() => {
+    if (entry?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [entry?.isIntersecting, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const changes = data.pages.flatMap((p) => p.changes);
+
+  if (changes.length === 0) {
+    return (
+      <Text size="sm" c="dimmed">
+        No changes recorded for this ref.
+      </Text>
+    );
+  }
+
+  return (
+    <>
+      <Table striped highlightOnHover>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>Time</Table.Th>
+            <Table.Th>Action</Table.Th>
+            <Table.Th>Hash</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {changes.map((c) => (
+            <RefChangeRow key={c.id.toString()} change={c} />
+          ))}
+        </Table.Tbody>
+      </Table>
+      <div ref={sentinelRef} style={{ height: 1 }} />
+      {isFetchingNextPage && (
+        <Center mt="md">
+          <Loader size="sm" />
+        </Center>
+      )}
+    </>
+  );
+}
+
+function RefChangeRow({ change }: { change: RepoRefChange }) {
+  const hashDisplay = (() => {
+    switch (change.action) {
+      case 'create':
+        return <Code>{shortHash(change.newHash)}</Code>;
+      case 'delete':
+        return (
+          <Text size="xs" c="dimmed" span>
+            <Code>{shortHash(change.oldHash)}</Code> (deleted)
+          </Text>
+        );
+      case 'update':
+        return (
+          <Group gap={4}>
+            <Code>{shortHash(change.oldHash)}</Code>
+            <Text size="xs" c="dimmed" span>
+              &rarr;
+            </Text>
+            <Code>{shortHash(change.newHash)}</Code>
+          </Group>
+        );
+      default:
+        return '—';
+    }
+  })();
+
+  return (
+    <Table.Tr>
+      <Table.Td>
+        <Text size="xs">{formatTime(change.createdAt)}</Text>
+      </Table.Td>
+      <Table.Td>
+        <Badge
+          variant="light"
+          color={actionBadgeColor(change.action)}
+          size="sm"
+        >
+          {change.action}
+        </Badge>
+      </Table.Td>
+      <Table.Td>{hashDisplay}</Table.Td>
+    </Table.Tr>
   );
 }
 
@@ -350,7 +478,15 @@ function InfoCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function RefRow({ ref_, showStatus }: { ref_: RepoRef; showStatus: boolean }) {
+function RefRow({
+  ref_,
+  showStatus,
+  onHistory,
+}: {
+  ref_: RepoRef;
+  showStatus: boolean;
+  onHistory: () => void;
+}) {
   return (
     <Table.Tr>
       <Table.Td>
@@ -374,6 +510,11 @@ function RefRow({ ref_, showStatus }: { ref_: RepoRef; showStatus: boolean }) {
         <Text size="xs" c="dimmed">
           {formatTimeAgo(ref_.lastSeenAt)}
         </Text>
+      </Table.Td>
+      <Table.Td>
+        <ActionIcon variant="subtle" size="sm" onClick={onHistory}>
+          <IconHistory size={14} />
+        </ActionIcon>
       </Table.Td>
     </Table.Tr>
   );
