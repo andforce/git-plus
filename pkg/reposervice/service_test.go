@@ -66,6 +66,74 @@ func TestListRefsReturnsLastHashUpdatedAtAndCurrentCommit(t *testing.T) {
 	}
 }
 
+func TestRepositoryResponsesIncludeArchiveRepoSizeBytes(t *testing.T) {
+	sqliteDB := openRepoServiceTestDB(t)
+	defer sqliteDB.Close()
+
+	repoID := seedRepoServiceRepoData(t, sqliteDB)
+	if _, err := sqliteDB.ExecContext(context.Background(), `UPDATE repos SET archive_repo_size_bytes = ? WHERE id = ?`, 12345, repoID); err != nil {
+		t.Fatalf("seed archive repo size bytes: %v", err)
+	}
+
+	server := newServiceServer(t.TempDir(), WithDatabase(sqliteDB))
+
+	getResponse, err := server.GetRepository(context.Background(), connect.NewRequest(&repov1.GetRepositoryRequest{
+		Id: &repoID,
+	}))
+	if err != nil {
+		t.Fatalf("get repository: %v", err)
+	}
+	if getResponse.Msg.GetRepository().GetArchiveRepoSizeBytes() == nil {
+		t.Fatal("expected get repository archive size bytes to be present")
+	}
+	if got := getResponse.Msg.GetRepository().GetArchiveRepoSizeBytes().GetValue(); got != 12345 {
+		t.Fatalf("unexpected get repository archive size bytes: %d", got)
+	}
+
+	listResponse, err := server.ListRepositories(context.Background(), connect.NewRequest(&repov1.ListRepositoriesRequest{}))
+	if err != nil {
+		t.Fatalf("list repositories: %v", err)
+	}
+	if len(listResponse.Msg.GetRepositories()) != 1 {
+		t.Fatalf("expected one repository, got %d", len(listResponse.Msg.GetRepositories()))
+	}
+	if listResponse.Msg.GetRepositories()[0].GetArchiveRepoSizeBytes() == nil {
+		t.Fatal("expected list repository archive size bytes to be present")
+	}
+	if got := listResponse.Msg.GetRepositories()[0].GetArchiveRepoSizeBytes().GetValue(); got != 12345 {
+		t.Fatalf("unexpected list repository archive size bytes: %d", got)
+	}
+}
+
+func TestRepositoryResponsesKeepArchiveRepoSizeBytesNilWhenUnknown(t *testing.T) {
+	sqliteDB := openRepoServiceTestDB(t)
+	defer sqliteDB.Close()
+
+	repoID := seedRepoServiceRepoData(t, sqliteDB)
+	server := newServiceServer(t.TempDir(), WithDatabase(sqliteDB))
+
+	getResponse, err := server.GetRepository(context.Background(), connect.NewRequest(&repov1.GetRepositoryRequest{
+		Id: &repoID,
+	}))
+	if err != nil {
+		t.Fatalf("get repository: %v", err)
+	}
+	if getResponse.Msg.GetRepository().GetArchiveRepoSizeBytes() != nil {
+		t.Fatalf("expected unknown archive size to stay nil, got %#v", getResponse.Msg.GetRepository().GetArchiveRepoSizeBytes())
+	}
+
+	listResponse, err := server.ListRepositories(context.Background(), connect.NewRequest(&repov1.ListRepositoriesRequest{}))
+	if err != nil {
+		t.Fatalf("list repositories: %v", err)
+	}
+	if len(listResponse.Msg.GetRepositories()) != 1 {
+		t.Fatalf("expected one repository, got %d", len(listResponse.Msg.GetRepositories()))
+	}
+	if listResponse.Msg.GetRepositories()[0].GetArchiveRepoSizeBytes() != nil {
+		t.Fatalf("expected unknown list archive size to stay nil, got %#v", listResponse.Msg.GetRepositories()[0].GetArchiveRepoSizeBytes())
+	}
+}
+
 func TestListRefChangesReturnsNewCommitAndKeepsDeleteEmpty(t *testing.T) {
 	sqliteDB := openRepoServiceTestDB(t)
 	defer sqliteDB.Close()

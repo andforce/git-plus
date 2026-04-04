@@ -35,6 +35,7 @@ export const repos = sqliteTable(
     isArchived: integer('is_archived').notNull().default(0),
     origin: text('origin').notNull().default('{}'),
     meta: text('meta').notNull(),
+    archiveRepoSizeBytes: integer('archive_repo_size_bytes'),
     lastSeenAt: text('last_seen_at').notNull(),
     disabledAt: text('disabled_at'),
     createdAt: text('created_at')

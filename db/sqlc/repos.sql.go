@@ -68,38 +68,40 @@ INSERT INTO repos (
   is_archived,
   origin,
   meta,
+  archive_repo_size_bytes,
   last_seen_at,
   disabled_at,
   created_at,
   updated_at
 ) VALUES (
-  ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22
+  ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23
 )
 `
 
 type CreateRepoParams struct {
-	SourceID      string
-	Platform      string
-	RefID         string
-	Status        string
-	Name          string
-	FullName      string
-	Owner         string
-	Description   sql.NullString
-	HtmlUrl       sql.NullString
-	CloneUrl      sql.NullString
-	SshUrl        sql.NullString
-	DefaultBranch sql.NullString
-	Visibility    sql.NullString
-	IsPrivate     int64
-	IsFork        int64
-	IsArchived    int64
-	Origin        string
-	Meta          string
-	LastSeenAt    string
-	DisabledAt    sql.NullString
-	CreatedAt     string
-	UpdatedAt     string
+	SourceID             string
+	Platform             string
+	RefID                string
+	Status               string
+	Name                 string
+	FullName             string
+	Owner                string
+	Description          sql.NullString
+	HtmlUrl              sql.NullString
+	CloneUrl             sql.NullString
+	SshUrl               sql.NullString
+	DefaultBranch        sql.NullString
+	Visibility           sql.NullString
+	IsPrivate            int64
+	IsFork               int64
+	IsArchived           int64
+	Origin               string
+	Meta                 string
+	ArchiveRepoSizeBytes sql.NullInt64
+	LastSeenAt           string
+	DisabledAt           sql.NullString
+	CreatedAt            string
+	UpdatedAt            string
 }
 
 func (q *Queries) CreateRepo(ctx context.Context, arg CreateRepoParams) error {
@@ -122,6 +124,7 @@ func (q *Queries) CreateRepo(ctx context.Context, arg CreateRepoParams) error {
 		arg.IsArchived,
 		arg.Origin,
 		arg.Meta,
+		arg.ArchiveRepoSizeBytes,
 		arg.LastSeenAt,
 		arg.DisabledAt,
 		arg.CreatedAt,
@@ -134,7 +137,7 @@ const getRepoById = `-- name: GetRepoById :one
 SELECT
   id, source_id, platform, ref_id, status, name, full_name, owner,
   description, html_url, clone_url, ssh_url, default_branch, visibility,
-  is_private, is_fork, is_archived, origin, meta, last_seen_at,
+  is_private, is_fork, is_archived, origin, meta, archive_repo_size_bytes, last_seen_at,
   disabled_at, created_at, updated_at
 FROM repos
 WHERE id = ?1
@@ -163,6 +166,7 @@ func (q *Queries) GetRepoById(ctx context.Context, id int64) (Repo, error) {
 		&i.IsArchived,
 		&i.Origin,
 		&i.Meta,
+		&i.ArchiveRepoSizeBytes,
 		&i.LastSeenAt,
 		&i.DisabledAt,
 		&i.CreatedAt,
@@ -192,6 +196,7 @@ SELECT
   is_archived,
   origin,
   meta,
+  archive_repo_size_bytes,
   last_seen_at,
   disabled_at,
   created_at,
@@ -231,6 +236,7 @@ func (q *Queries) ListActiveReposForSource(ctx context.Context, sourceID string)
 			&i.IsArchived,
 			&i.Origin,
 			&i.Meta,
+			&i.ArchiveRepoSizeBytes,
 			&i.LastSeenAt,
 			&i.DisabledAt,
 			&i.CreatedAt,
@@ -396,6 +402,7 @@ SELECT
   is_archived,
   origin,
   meta,
+  archive_repo_size_bytes,
   last_seen_at,
   disabled_at,
   created_at,
@@ -457,6 +464,7 @@ func (q *Queries) ListReposFilteredCreatedAtAsc(ctx context.Context, arg ListRep
 			&i.IsArchived,
 			&i.Origin,
 			&i.Meta,
+			&i.ArchiveRepoSizeBytes,
 			&i.LastSeenAt,
 			&i.DisabledAt,
 			&i.CreatedAt,
@@ -496,6 +504,7 @@ SELECT
   is_archived,
   origin,
   meta,
+  archive_repo_size_bytes,
   last_seen_at,
   disabled_at,
   created_at,
@@ -557,6 +566,7 @@ func (q *Queries) ListReposFilteredCreatedAtDesc(ctx context.Context, arg ListRe
 			&i.IsArchived,
 			&i.Origin,
 			&i.Meta,
+			&i.ArchiveRepoSizeBytes,
 			&i.LastSeenAt,
 			&i.DisabledAt,
 			&i.CreatedAt,
@@ -596,6 +606,7 @@ SELECT
   is_archived,
   origin,
   meta,
+  archive_repo_size_bytes,
   last_seen_at,
   disabled_at,
   created_at,
@@ -657,6 +668,7 @@ func (q *Queries) ListReposFilteredNameAsc(ctx context.Context, arg ListReposFil
 			&i.IsArchived,
 			&i.Origin,
 			&i.Meta,
+			&i.ArchiveRepoSizeBytes,
 			&i.LastSeenAt,
 			&i.DisabledAt,
 			&i.CreatedAt,
@@ -696,6 +708,7 @@ SELECT
   is_archived,
   origin,
   meta,
+  archive_repo_size_bytes,
   last_seen_at,
   disabled_at,
   created_at,
@@ -757,6 +770,7 @@ func (q *Queries) ListReposFilteredNameDesc(ctx context.Context, arg ListReposFi
 			&i.IsArchived,
 			&i.Origin,
 			&i.Meta,
+			&i.ArchiveRepoSizeBytes,
 			&i.LastSeenAt,
 			&i.DisabledAt,
 			&i.CreatedAt,
@@ -796,6 +810,7 @@ SELECT
   is_archived,
   origin,
   meta,
+  archive_repo_size_bytes,
   last_seen_at,
   disabled_at,
   created_at,
@@ -834,6 +849,7 @@ func (q *Queries) ListReposForSource(ctx context.Context, sourceID string) ([]Re
 			&i.IsArchived,
 			&i.Origin,
 			&i.Meta,
+			&i.ArchiveRepoSizeBytes,
 			&i.LastSeenAt,
 			&i.DisabledAt,
 			&i.CreatedAt,
@@ -899,34 +915,36 @@ SET
   is_archived = ?16,
   origin = ?17,
   meta = ?18,
-  last_seen_at = ?19,
-  disabled_at = ?20,
-  updated_at = ?21
+  archive_repo_size_bytes = COALESCE(?19, archive_repo_size_bytes),
+  last_seen_at = ?20,
+  disabled_at = ?21,
+  updated_at = ?22
 WHERE source_id = ?1 AND ref_id = ?2
 `
 
 type UpdateRepoParams struct {
-	SourceID      string
-	RefID         string
-	Platform      string
-	Status        string
-	Name          string
-	FullName      string
-	Owner         string
-	Description   sql.NullString
-	HtmlUrl       sql.NullString
-	CloneUrl      sql.NullString
-	SshUrl        sql.NullString
-	DefaultBranch sql.NullString
-	Visibility    sql.NullString
-	IsPrivate     int64
-	IsFork        int64
-	IsArchived    int64
-	Origin        string
-	Meta          string
-	LastSeenAt    string
-	DisabledAt    sql.NullString
-	UpdatedAt     string
+	SourceID             string
+	RefID                string
+	Platform             string
+	Status               string
+	Name                 string
+	FullName             string
+	Owner                string
+	Description          sql.NullString
+	HtmlUrl              sql.NullString
+	CloneUrl             sql.NullString
+	SshUrl               sql.NullString
+	DefaultBranch        sql.NullString
+	Visibility           sql.NullString
+	IsPrivate            int64
+	IsFork               int64
+	IsArchived           int64
+	Origin               string
+	Meta                 string
+	ArchiveRepoSizeBytes sql.NullInt64
+	LastSeenAt           string
+	DisabledAt           sql.NullString
+	UpdatedAt            string
 }
 
 func (q *Queries) UpdateRepo(ctx context.Context, arg UpdateRepoParams) error {
@@ -949,9 +967,29 @@ func (q *Queries) UpdateRepo(ctx context.Context, arg UpdateRepoParams) error {
 		arg.IsArchived,
 		arg.Origin,
 		arg.Meta,
+		arg.ArchiveRepoSizeBytes,
 		arg.LastSeenAt,
 		arg.DisabledAt,
 		arg.UpdatedAt,
 	)
+	return err
+}
+
+const updateRepoArchiveSize = `-- name: UpdateRepoArchiveSize :exec
+UPDATE repos
+SET
+  archive_repo_size_bytes = ?2,
+  updated_at = ?3
+WHERE id = ?1
+`
+
+type UpdateRepoArchiveSizeParams struct {
+	ID                   int64
+	ArchiveRepoSizeBytes sql.NullInt64
+	UpdatedAt            string
+}
+
+func (q *Queries) UpdateRepoArchiveSize(ctx context.Context, arg UpdateRepoArchiveSizeParams) error {
+	_, err := q.db.ExecContext(ctx, updateRepoArchiveSize, arg.ID, arg.ArchiveRepoSizeBytes, arg.UpdatedAt)
 	return err
 }

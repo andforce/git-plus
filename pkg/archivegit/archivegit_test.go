@@ -10,6 +10,7 @@ import (
 	"time"
 
 	git "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
@@ -130,6 +131,92 @@ func TestListRemoteRefsTreatsEmptyRemoteAsNoRefs(t *testing.T) {
 	}
 	if len(refs) != 0 {
 		t.Fatalf("expected no refs for empty remote, got %#v", refs)
+	}
+}
+
+func TestFetchArchiveRefsReportsContentChanges(t *testing.T) {
+	tempDir := t.TempDir()
+	remotePath := filepath.Join(tempDir, "remote.git")
+	if _, err := git.PlainInit(remotePath, true); err != nil {
+		t.Fatalf("init bare remote: %v", err)
+	}
+
+	sourcePath := filepath.Join(tempDir, "source")
+	sourceRepo, err := git.PlainInit(sourcePath, false)
+	if err != nil {
+		t.Fatalf("init source repo: %v", err)
+	}
+
+	if err := os.WriteFile(filepath.Join(sourcePath, "README.md"), []byte("hello"), 0o644); err != nil {
+		t.Fatalf("write file: %v", err)
+	}
+
+	worktree, err := sourceRepo.Worktree()
+	if err != nil {
+		t.Fatalf("open worktree: %v", err)
+	}
+	if _, err := worktree.Add("README.md"); err != nil {
+		t.Fatalf("stage file: %v", err)
+	}
+
+	commitHash, err := worktree.Commit("initial commit", &git.CommitOptions{
+		Author: &object.Signature{
+			Name:  "Alice",
+			Email: "alice@example.com",
+			When:  time.Date(2026, time.April, 4, 8, 0, 0, 0, time.UTC),
+		},
+	})
+	if err != nil {
+		t.Fatalf("commit: %v", err)
+	}
+
+	if err := sourceRepo.Storer.SetReference(plumbing.NewHashReference(plumbing.NewBranchReferenceName("main"), commitHash)); err != nil {
+		t.Fatalf("set main branch ref: %v", err)
+	}
+	if err := sourceRepo.Storer.SetReference(plumbing.NewSymbolicReference(plumbing.HEAD, plumbing.NewBranchReferenceName("main"))); err != nil {
+		t.Fatalf("set HEAD ref: %v", err)
+	}
+
+	if _, err := sourceRepo.CreateRemote(&config.RemoteConfig{
+		Name: RemoteName,
+		URLs: []string{remotePath},
+	}); err != nil {
+		t.Fatalf("create source remote: %v", err)
+	}
+
+	if err := sourceRepo.Push(&git.PushOptions{
+		RemoteName: RemoteName,
+		RefSpecs:   []config.RefSpec{config.RefSpec("refs/heads/main:refs/heads/main")},
+	}); err != nil {
+		t.Fatalf("push source repo: %v", err)
+	}
+
+	archivePath := filepath.Join(tempDir, "archive.git")
+	archiveRepo, err := OpenArchive(archivePath, remotePath)
+	if err != nil {
+		t.Fatalf("open archive repo: %v", err)
+	}
+
+	remoteRefs, err := ListRemoteRefs(context.Background(), archiveRepo, nil)
+	if err != nil {
+		t.Fatalf("list remote refs: %v", err)
+	}
+	changes := DiffRefs(nil, remoteRefs)
+
+	contentChanged, err := FetchArchiveRefs(context.Background(), archiveRepo, nil, changes)
+	if err != nil {
+		t.Fatalf("fetch archive refs first time: %v", err)
+	}
+	if !contentChanged {
+		t.Fatal("expected first fetch to report archive content changes")
+	}
+
+	contentChanged, err = FetchArchiveRefs(context.Background(), archiveRepo, nil, changes)
+	if err != nil {
+		t.Fatalf("fetch archive refs second time: %v", err)
+	}
+	if contentChanged {
+		t.Fatal("expected second fetch to report no archive content changes")
 	}
 }
 

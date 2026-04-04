@@ -69,6 +69,7 @@ CREATE TABLE repos (
 	is_archived integer DEFAULT 0 NOT NULL,
 	origin text DEFAULT '{}' NOT NULL,
 	meta text NOT NULL,
+	archive_repo_size_bytes integer,
 	last_seen_at text NOT NULL,
 	disabled_at text,
 	created_at text DEFAULT CURRENT_TIMESTAMP NOT NULL,

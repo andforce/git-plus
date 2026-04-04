@@ -19,6 +19,7 @@ SELECT
   is_archived,
   origin,
   meta,
+  archive_repo_size_bytes,
   last_seen_at,
   disabled_at,
   created_at,
@@ -48,6 +49,7 @@ SELECT
   is_archived,
   origin,
   meta,
+  archive_repo_size_bytes,
   last_seen_at,
   disabled_at,
   created_at,
@@ -77,12 +79,13 @@ INSERT INTO repos (
   is_archived,
   origin,
   meta,
+  archive_repo_size_bytes,
   last_seen_at,
   disabled_at,
   created_at,
   updated_at
 ) VALUES (
-  ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22
+  ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20, ?21, ?22, ?23
 );
 
 -- name: UpdateRepo :exec
@@ -104,10 +107,18 @@ SET
   is_archived = ?16,
   origin = ?17,
   meta = ?18,
-  last_seen_at = ?19,
-  disabled_at = ?20,
-  updated_at = ?21
+  archive_repo_size_bytes = COALESCE(?19, archive_repo_size_bytes),
+  last_seen_at = ?20,
+  disabled_at = ?21,
+  updated_at = ?22
 WHERE source_id = ?1 AND ref_id = ?2;
+
+-- name: UpdateRepoArchiveSize :exec
+UPDATE repos
+SET
+  archive_repo_size_bytes = ?2,
+  updated_at = ?3
+WHERE id = ?1;
 
 -- name: MarkRepoAutoExcluded :exec
 UPDATE repos
@@ -144,6 +155,7 @@ SELECT
   is_archived,
   origin,
   meta,
+  archive_repo_size_bytes,
   last_seen_at,
   disabled_at,
   created_at,
@@ -184,6 +196,7 @@ SELECT
   is_archived,
   origin,
   meta,
+  archive_repo_size_bytes,
   last_seen_at,
   disabled_at,
   created_at,
@@ -224,6 +237,7 @@ SELECT
   is_archived,
   origin,
   meta,
+  archive_repo_size_bytes,
   last_seen_at,
   disabled_at,
   created_at,
@@ -264,6 +278,7 @@ SELECT
   is_archived,
   origin,
   meta,
+  archive_repo_size_bytes,
   last_seen_at,
   disabled_at,
   created_at,
@@ -287,7 +302,7 @@ LIMIT sqlc.arg(limit) OFFSET sqlc.arg(offset);
 SELECT
   id, source_id, platform, ref_id, status, name, full_name, owner,
   description, html_url, clone_url, ssh_url, default_branch, visibility,
-  is_private, is_fork, is_archived, origin, meta, last_seen_at,
+  is_private, is_fork, is_archived, origin, meta, archive_repo_size_bytes, last_seen_at,
   disabled_at, created_at, updated_at
 FROM repos
 WHERE id = ?1;

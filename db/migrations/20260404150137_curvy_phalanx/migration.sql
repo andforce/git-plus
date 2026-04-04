@@ -1,0 +1,1 @@
+ALTER TABLE `repos` ADD `archive_repo_size_bytes` integer;

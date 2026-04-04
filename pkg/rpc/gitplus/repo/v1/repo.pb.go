@@ -13,6 +13,7 @@ import (
 	_ "google.golang.org/protobuf/types/gofeaturespb"
 	structpb "google.golang.org/protobuf/types/known/structpb"
 	timestamppb "google.golang.org/protobuf/types/known/timestamppb"
+	wrapperspb "google.golang.org/protobuf/types/known/wrapperspb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -26,29 +27,30 @@ const (
 )
 
 type Repository struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Id            *int64                 `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
-	SourceId      *string                `protobuf:"bytes,2,opt,name=source_id,json=sourceId" json:"source_id,omitempty"`
-	Platform      *string                `protobuf:"bytes,3,opt,name=platform" json:"platform,omitempty"`
-	Name          *string                `protobuf:"bytes,4,opt,name=name" json:"name,omitempty"`
-	FullName      *string                `protobuf:"bytes,5,opt,name=full_name,json=fullName" json:"full_name,omitempty"`
-	Owner         *string                `protobuf:"bytes,6,opt,name=owner" json:"owner,omitempty"`
-	Description   *string                `protobuf:"bytes,7,opt,name=description" json:"description,omitempty"`
-	HtmlUrl       *string                `protobuf:"bytes,8,opt,name=html_url,json=htmlUrl" json:"html_url,omitempty"`
-	CloneUrl      *string                `protobuf:"bytes,9,opt,name=clone_url,json=cloneUrl" json:"clone_url,omitempty"`
-	SshUrl        *string                `protobuf:"bytes,10,opt,name=ssh_url,json=sshUrl" json:"ssh_url,omitempty"`
-	DefaultBranch *string                `protobuf:"bytes,11,opt,name=default_branch,json=defaultBranch" json:"default_branch,omitempty"`
-	Visibility    *string                `protobuf:"bytes,12,opt,name=visibility" json:"visibility,omitempty"`
-	IsPrivate     *bool                  `protobuf:"varint,13,opt,name=is_private,json=isPrivate" json:"is_private,omitempty"`
-	IsFork        *bool                  `protobuf:"varint,14,opt,name=is_fork,json=isFork" json:"is_fork,omitempty"`
-	IsArchived    *bool                  `protobuf:"varint,15,opt,name=is_archived,json=isArchived" json:"is_archived,omitempty"`
-	Status        *string                `protobuf:"bytes,16,opt,name=status" json:"status,omitempty"`
-	LastSeenAt    *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=last_seen_at,json=lastSeenAt" json:"last_seen_at,omitempty"`
-	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,18,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
-	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=updated_at,json=updatedAt" json:"updated_at,omitempty"`
-	Meta          *structpb.Struct       `protobuf:"bytes,20,opt,name=meta" json:"meta,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state                protoimpl.MessageState `protogen:"open.v1"`
+	Id                   *int64                 `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
+	SourceId             *string                `protobuf:"bytes,2,opt,name=source_id,json=sourceId" json:"source_id,omitempty"`
+	Platform             *string                `protobuf:"bytes,3,opt,name=platform" json:"platform,omitempty"`
+	Name                 *string                `protobuf:"bytes,4,opt,name=name" json:"name,omitempty"`
+	FullName             *string                `protobuf:"bytes,5,opt,name=full_name,json=fullName" json:"full_name,omitempty"`
+	Owner                *string                `protobuf:"bytes,6,opt,name=owner" json:"owner,omitempty"`
+	Description          *string                `protobuf:"bytes,7,opt,name=description" json:"description,omitempty"`
+	HtmlUrl              *string                `protobuf:"bytes,8,opt,name=html_url,json=htmlUrl" json:"html_url,omitempty"`
+	CloneUrl             *string                `protobuf:"bytes,9,opt,name=clone_url,json=cloneUrl" json:"clone_url,omitempty"`
+	SshUrl               *string                `protobuf:"bytes,10,opt,name=ssh_url,json=sshUrl" json:"ssh_url,omitempty"`
+	DefaultBranch        *string                `protobuf:"bytes,11,opt,name=default_branch,json=defaultBranch" json:"default_branch,omitempty"`
+	Visibility           *string                `protobuf:"bytes,12,opt,name=visibility" json:"visibility,omitempty"`
+	IsPrivate            *bool                  `protobuf:"varint,13,opt,name=is_private,json=isPrivate" json:"is_private,omitempty"`
+	IsFork               *bool                  `protobuf:"varint,14,opt,name=is_fork,json=isFork" json:"is_fork,omitempty"`
+	IsArchived           *bool                  `protobuf:"varint,15,opt,name=is_archived,json=isArchived" json:"is_archived,omitempty"`
+	Status               *string                `protobuf:"bytes,16,opt,name=status" json:"status,omitempty"`
+	LastSeenAt           *timestamppb.Timestamp `protobuf:"bytes,17,opt,name=last_seen_at,json=lastSeenAt" json:"last_seen_at,omitempty"`
+	CreatedAt            *timestamppb.Timestamp `protobuf:"bytes,18,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
+	UpdatedAt            *timestamppb.Timestamp `protobuf:"bytes,19,opt,name=updated_at,json=updatedAt" json:"updated_at,omitempty"`
+	Meta                 *structpb.Struct       `protobuf:"bytes,20,opt,name=meta" json:"meta,omitempty"`
+	ArchiveRepoSizeBytes *wrapperspb.Int64Value `protobuf:"bytes,21,opt,name=archive_repo_size_bytes,json=archiveRepoSizeBytes" json:"archive_repo_size_bytes,omitempty"`
+	unknownFields        protoimpl.UnknownFields
+	sizeCache            protoimpl.SizeCache
 }
 
 func (x *Repository) Reset() {
@@ -217,6 +219,13 @@ func (x *Repository) GetUpdatedAt() *timestamppb.Timestamp {
 func (x *Repository) GetMeta() *structpb.Struct {
 	if x != nil {
 		return x.Meta
+	}
+	return nil
+}
+
+func (x *Repository) GetArchiveRepoSizeBytes() *wrapperspb.Int64Value {
+	if x != nil {
+		return x.ArchiveRepoSizeBytes
 	}
 	return nil
 }
@@ -995,7 +1004,7 @@ var File_gitplus_repo_v1_repo_proto protoreflect.FileDescriptor
 
 const file_gitplus_repo_v1_repo_proto_rawDesc = "" +
 	"\n" +
-	"\x1agitplus/repo/v1/repo.proto\x12\x0fgitplus.repo.v1\x1a\x1bbuf/validate/validate.proto\x1a!google/protobuf/go_features.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa8\x05\n" +
+	"\x1agitplus/repo/v1/repo.proto\x12\x0fgitplus.repo.v1\x1a\x1bbuf/validate/validate.proto\x1a!google/protobuf/go_features.proto\x1a\x1cgoogle/protobuf/struct.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1egoogle/protobuf/wrappers.proto\"\xfc\x05\n" +
 	"\n" +
 	"Repository\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1b\n" +
@@ -1025,7 +1034,8 @@ const file_gitplus_repo_v1_repo_proto_rawDesc = "" +
 	"created_at\x18\x12 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
 	"updated_at\x18\x13 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12+\n" +
-	"\x04meta\x18\x14 \x01(\v2\x17.google.protobuf.StructR\x04meta\"\xa9\x01\n" +
+	"\x04meta\x18\x14 \x01(\v2\x17.google.protobuf.StructR\x04meta\x12R\n" +
+	"\x17archive_repo_size_bytes\x18\x15 \x01(\v2\x1b.google.protobuf.Int64ValueR\x14archiveRepoSizeBytes\"\xa9\x01\n" +
 	"\x17ListRepositoriesRequest\x12&\n" +
 	"\tpage_size\x18\x01 \x01(\x05B\t\xbaH\x06\x1a\x04\x18d(\x01R\bpageSize\x12\x1d\n" +
 	"\n" +
@@ -1132,38 +1142,40 @@ var file_gitplus_repo_v1_repo_proto_goTypes = []any{
 	(*RepoRefChange)(nil),            // 11: gitplus.repo.v1.RepoRefChange
 	(*timestamppb.Timestamp)(nil),    // 12: google.protobuf.Timestamp
 	(*structpb.Struct)(nil),          // 13: google.protobuf.Struct
+	(*wrapperspb.Int64Value)(nil),    // 14: google.protobuf.Int64Value
 }
 var file_gitplus_repo_v1_repo_proto_depIdxs = []int32{
 	12, // 0: gitplus.repo.v1.Repository.last_seen_at:type_name -> google.protobuf.Timestamp
 	12, // 1: gitplus.repo.v1.Repository.created_at:type_name -> google.protobuf.Timestamp
 	12, // 2: gitplus.repo.v1.Repository.updated_at:type_name -> google.protobuf.Timestamp
 	13, // 3: gitplus.repo.v1.Repository.meta:type_name -> google.protobuf.Struct
-	0,  // 4: gitplus.repo.v1.ListRepositoriesResponse.repositories:type_name -> gitplus.repo.v1.Repository
-	0,  // 5: gitplus.repo.v1.GetRepositoryResponse.repository:type_name -> gitplus.repo.v1.Repository
-	10, // 6: gitplus.repo.v1.ListRefsResponse.refs:type_name -> gitplus.repo.v1.RepoRef
-	11, // 7: gitplus.repo.v1.ListRefChangesResponse.changes:type_name -> gitplus.repo.v1.RepoRefChange
-	12, // 8: gitplus.repo.v1.CommitInfo.authored_at:type_name -> google.protobuf.Timestamp
-	12, // 9: gitplus.repo.v1.CommitInfo.committed_at:type_name -> google.protobuf.Timestamp
-	12, // 10: gitplus.repo.v1.RepoRef.first_seen_at:type_name -> google.protobuf.Timestamp
-	12, // 11: gitplus.repo.v1.RepoRef.last_seen_at:type_name -> google.protobuf.Timestamp
-	12, // 12: gitplus.repo.v1.RepoRef.deleted_at:type_name -> google.protobuf.Timestamp
-	12, // 13: gitplus.repo.v1.RepoRef.last_hash_updated_at:type_name -> google.protobuf.Timestamp
-	9,  // 14: gitplus.repo.v1.RepoRef.current_commit:type_name -> gitplus.repo.v1.CommitInfo
-	12, // 15: gitplus.repo.v1.RepoRefChange.created_at:type_name -> google.protobuf.Timestamp
-	9,  // 16: gitplus.repo.v1.RepoRefChange.new_commit:type_name -> gitplus.repo.v1.CommitInfo
-	1,  // 17: gitplus.repo.v1.RepoService.ListRepositories:input_type -> gitplus.repo.v1.ListRepositoriesRequest
-	3,  // 18: gitplus.repo.v1.RepoService.GetRepository:input_type -> gitplus.repo.v1.GetRepositoryRequest
-	5,  // 19: gitplus.repo.v1.RepoService.ListRefs:input_type -> gitplus.repo.v1.ListRefsRequest
-	7,  // 20: gitplus.repo.v1.RepoService.ListRefChanges:input_type -> gitplus.repo.v1.ListRefChangesRequest
-	2,  // 21: gitplus.repo.v1.RepoService.ListRepositories:output_type -> gitplus.repo.v1.ListRepositoriesResponse
-	4,  // 22: gitplus.repo.v1.RepoService.GetRepository:output_type -> gitplus.repo.v1.GetRepositoryResponse
-	6,  // 23: gitplus.repo.v1.RepoService.ListRefs:output_type -> gitplus.repo.v1.ListRefsResponse
-	8,  // 24: gitplus.repo.v1.RepoService.ListRefChanges:output_type -> gitplus.repo.v1.ListRefChangesResponse
-	21, // [21:25] is the sub-list for method output_type
-	17, // [17:21] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	14, // 4: gitplus.repo.v1.Repository.archive_repo_size_bytes:type_name -> google.protobuf.Int64Value
+	0,  // 5: gitplus.repo.v1.ListRepositoriesResponse.repositories:type_name -> gitplus.repo.v1.Repository
+	0,  // 6: gitplus.repo.v1.GetRepositoryResponse.repository:type_name -> gitplus.repo.v1.Repository
+	10, // 7: gitplus.repo.v1.ListRefsResponse.refs:type_name -> gitplus.repo.v1.RepoRef
+	11, // 8: gitplus.repo.v1.ListRefChangesResponse.changes:type_name -> gitplus.repo.v1.RepoRefChange
+	12, // 9: gitplus.repo.v1.CommitInfo.authored_at:type_name -> google.protobuf.Timestamp
+	12, // 10: gitplus.repo.v1.CommitInfo.committed_at:type_name -> google.protobuf.Timestamp
+	12, // 11: gitplus.repo.v1.RepoRef.first_seen_at:type_name -> google.protobuf.Timestamp
+	12, // 12: gitplus.repo.v1.RepoRef.last_seen_at:type_name -> google.protobuf.Timestamp
+	12, // 13: gitplus.repo.v1.RepoRef.deleted_at:type_name -> google.protobuf.Timestamp
+	12, // 14: gitplus.repo.v1.RepoRef.last_hash_updated_at:type_name -> google.protobuf.Timestamp
+	9,  // 15: gitplus.repo.v1.RepoRef.current_commit:type_name -> gitplus.repo.v1.CommitInfo
+	12, // 16: gitplus.repo.v1.RepoRefChange.created_at:type_name -> google.protobuf.Timestamp
+	9,  // 17: gitplus.repo.v1.RepoRefChange.new_commit:type_name -> gitplus.repo.v1.CommitInfo
+	1,  // 18: gitplus.repo.v1.RepoService.ListRepositories:input_type -> gitplus.repo.v1.ListRepositoriesRequest
+	3,  // 19: gitplus.repo.v1.RepoService.GetRepository:input_type -> gitplus.repo.v1.GetRepositoryRequest
+	5,  // 20: gitplus.repo.v1.RepoService.ListRefs:input_type -> gitplus.repo.v1.ListRefsRequest
+	7,  // 21: gitplus.repo.v1.RepoService.ListRefChanges:input_type -> gitplus.repo.v1.ListRefChangesRequest
+	2,  // 22: gitplus.repo.v1.RepoService.ListRepositories:output_type -> gitplus.repo.v1.ListRepositoriesResponse
+	4,  // 23: gitplus.repo.v1.RepoService.GetRepository:output_type -> gitplus.repo.v1.GetRepositoryResponse
+	6,  // 24: gitplus.repo.v1.RepoService.ListRefs:output_type -> gitplus.repo.v1.ListRefsResponse
+	8,  // 25: gitplus.repo.v1.RepoService.ListRefChanges:output_type -> gitplus.repo.v1.ListRefChangesResponse
+	22, // [22:26] is the sub-list for method output_type
+	18, // [18:22] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_gitplus_repo_v1_repo_proto_init() }

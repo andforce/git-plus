@@ -189,9 +189,9 @@ func DiffRefs(previous []CurrentRef, current []RemoteRef) []Change {
 	return changes
 }
 
-func FetchArchiveRefs(ctx context.Context, repo *git.Repository, auth transport.AuthMethod, changes []Change) error {
+func FetchArchiveRefs(ctx context.Context, repo *git.Repository, auth transport.AuthMethod, changes []Change) (bool, error) {
 	if repo == nil {
-		return fmt.Errorf("repository is required")
+		return false, fmt.Errorf("repository is required")
 	}
 
 	refSpecs := make([]config.RefSpec, 0, len(changes))
@@ -201,14 +201,14 @@ func FetchArchiveRefs(ctx context.Context, repo *git.Repository, auth transport.
 		}
 
 		if change.ArchiveRefName == "" {
-			return fmt.Errorf("archive ref name is required for %s %q", change.Action, change.RefName)
+			return false, fmt.Errorf("archive ref name is required for %s %q", change.Action, change.RefName)
 		}
 
 		refSpecs = append(refSpecs, config.RefSpec("+"+change.RefName+":"+change.ArchiveRefName))
 	}
 
 	if len(refSpecs) == 0 {
-		return nil
+		return false, nil
 	}
 
 	err := repo.FetchContext(ctx, &git.FetchOptions{
@@ -219,11 +219,14 @@ func FetchArchiveRefs(ctx context.Context, repo *git.Repository, auth transport.
 		Prune:      false,
 		Force:      true,
 	})
-	if err != nil && !errors.Is(err, git.NoErrAlreadyUpToDate) {
-		return fmt.Errorf("fetch archive refs: %w", err)
+	if errors.Is(err, git.NoErrAlreadyUpToDate) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("fetch archive refs: %w", err)
 	}
 
-	return nil
+	return true, nil
 }
 
 func ArchiveRefName(refName string, hash string) (string, error) {

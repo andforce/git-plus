@@ -20,6 +20,7 @@ import (
 	"github.com/ImSingee/git-plus/pkg/rpc/gitplus/repo/v1/repov1connect"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
+	"google.golang.org/protobuf/types/known/wrapperspb"
 )
 
 const defaultPageSize = 20
@@ -403,6 +404,9 @@ func toProtoRepository(repo dbsqlc.Repo) *repov1.Repository {
 	}
 	if meta := toProtoMetaStruct(repo.Meta); meta != nil {
 		protoRepo.Meta = meta
+	}
+	if repo.ArchiveRepoSizeBytes.Valid {
+		protoRepo.ArchiveRepoSizeBytes = wrapperspb.Int64(repo.ArchiveRepoSizeBytes.Int64)
 	}
 
 	return protoRepo

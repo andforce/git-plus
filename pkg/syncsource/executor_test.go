@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path"
 	"path/filepath"
 	"slices"
@@ -374,6 +375,9 @@ func TestExecutorSyncActiveReposRetriesPersistsRefsAndLogsFailures(t *testing.T)
 	if skipRepo.Status != StatusAutoExcluded {
 		t.Fatalf("expected repo 3 to be auto excluded, got %q", skipRepo.Status)
 	}
+	if _, err := sqliteDB.Exec(`UPDATE repos SET archive_repo_size_bytes = ? WHERE id = ?`, 42, repoByRefID["2"].ID); err != nil {
+		t.Fatalf("seed fail repo archive size: %v", err)
+	}
 
 	if err := queries.UpsertRepoRefCurrent(context.Background(), dbsqlc.UpsertRepoRefCurrentParams{
 		RepoID:            coreRepo.ID,
@@ -457,6 +461,15 @@ func TestExecutorSyncActiveReposRetriesPersistsRefsAndLogsFailures(t *testing.T)
 				case "1":
 					if attempts[refID] == 1 {
 						return repositoryArchiveResult{}, fmt.Errorf("temporary network error")
+					}
+					if err := os.MkdirAll(filepath.Join(request.Path, "objects"), 0o755); err != nil {
+						t.Fatalf("create archive repo dir: %v", err)
+					}
+					if err := os.WriteFile(filepath.Join(request.Path, "HEAD"), []byte("ref: refs/heads/main\n"), 0o644); err != nil {
+						t.Fatalf("write HEAD: %v", err)
+					}
+					if err := os.WriteFile(filepath.Join(request.Path, "objects", "pack"), []byte("packdata"), 0o644); err != nil {
+						t.Fatalf("write pack file: %v", err)
 					}
 
 					return repositoryArchiveResult{
@@ -604,6 +617,14 @@ func TestExecutorSyncActiveReposRetriesPersistsRefsAndLogsFailures(t *testing.T)
 		t.Fatalf("expected tag commit metadata to be stored, got %#v", currentByName["refs/tags/v1.0.0"])
 	}
 
+	reposAfterSync := loadRepoRows(t, sqliteDB, "source-a")
+	if got := findRepoByRefID(t, reposAfterSync, "1").ArchiveRepoSizeBytes; !got.Valid || got.Int64 != 29 {
+		t.Fatalf("expected repo 1 archive size bytes to be 29, got %#v", got)
+	}
+	if got := findRepoByRefID(t, reposAfterSync, "2").ArchiveRepoSizeBytes; !got.Valid || got.Int64 != 42 {
+		t.Fatalf("expected failed repo to keep previous archive size, got %#v", got)
+	}
+
 	rows, err := sqliteDB.Query(`
 		SELECT ref_name, action, new_commit_authored_at, new_commit_committed_at, new_commit_author_name
 		FROM repo_ref_changes
@@ -705,6 +726,311 @@ func TestExecutorSyncActiveReposRetriesPersistsRefsAndLogsFailures(t *testing.T)
 	})
 }
 
+func TestSyncRepoOnceUpdatesArchiveRepoSizeBytesAcrossRuns(t *testing.T) {
+	dataDir := t.TempDir()
+	if err := appdb.Migrate(context.Background(), dataDir); err != nil {
+		t.Fatalf("migrate database: %v", err)
+	}
+
+	sqliteDB, err := appdb.Open(context.Background(), dataDir)
+	if err != nil {
+		t.Fatalf("open database: %v", err)
+	}
+	defer sqliteDB.Close()
+
+	runSnapshotSync(t, sqliteDB, "source-a", []ResolvedRepo{
+		testResolvedRepo("source-a", "1", "acme/core", []string{"default"}, "Core repo"),
+	}, "2026-04-04T08:00:00Z")
+
+	repo, err := dbsqlc.New(sqliteDB).GetRepoById(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("get repo: %v", err)
+	}
+
+	version := 0
+	executor := NewExecutor(
+		dataDir,
+		WithDatabase(sqliteDB),
+		WithRepositoryArchiver(stubRepositoryArchiver{
+			sync: func(_ context.Context, request repositoryArchiveRequest) (repositoryArchiveResult, error) {
+				version++
+				if err := os.RemoveAll(request.Path); err != nil {
+					t.Fatalf("reset archive path: %v", err)
+				}
+				if err := os.MkdirAll(filepath.Join(request.Path, "objects"), 0o755); err != nil {
+					t.Fatalf("create archive path: %v", err)
+				}
+
+				var content []byte
+				if version == 1 {
+					content = []byte("12345")
+				} else {
+					content = []byte("123456789012")
+				}
+
+				if err := os.WriteFile(filepath.Join(request.Path, "objects", "pack"), content, 0o644); err != nil {
+					t.Fatalf("write archive pack: %v", err)
+				}
+
+				return repositoryArchiveResult{
+					CurrentRefs: []archivegit.RemoteRef{
+						{
+							Name: "refs/heads/main",
+							Kind: archivegit.RefKindHead,
+							Hash: strings.Repeat("1", 40),
+						},
+					},
+					ArchiveContentChanged: true,
+				}, nil
+			},
+		}),
+		WithCommitInfoLoader(stubCommitInfoLoader{}),
+		WithNow(func() time.Time {
+			return time.Date(2026, time.April, 4, 10, 0, 0, 0, time.UTC)
+		}),
+	)
+
+	request := SyncRequest{
+		RunID:  "task-size-1",
+		Source: appconfig.SourceConfig{ID: "source-a"},
+	}
+
+	if _, err := executor.syncRepoOnce(context.Background(), sqliteDB, request, repo, filepath.Join(dataDir, "repos", "source-a", repo.RefID)); err != nil {
+		t.Fatalf("first sync repo once: %v", err)
+	}
+	rowsAfterFirst := loadRepoRows(t, sqliteDB, "source-a")
+	if got := findRepoByRefID(t, rowsAfterFirst, "1").ArchiveRepoSizeBytes; !got.Valid || got.Int64 != 5 {
+		t.Fatalf("expected first archive size to be 5, got %#v", got)
+	}
+
+	if _, err := executor.syncRepoOnce(context.Background(), sqliteDB, request, repo, filepath.Join(dataDir, "repos", "source-a", repo.RefID)); err != nil {
+		t.Fatalf("second sync repo once: %v", err)
+	}
+	rowsAfterSecond := loadRepoRows(t, sqliteDB, "source-a")
+	if got := findRepoByRefID(t, rowsAfterSecond, "1").ArchiveRepoSizeBytes; !got.Valid || got.Int64 != 12 {
+		t.Fatalf("expected second archive size to be 12, got %#v", got)
+	}
+}
+
+func TestSyncRepoOnceSkipsArchiveSizeRescanWithoutFetchChanges(t *testing.T) {
+	dataDir := t.TempDir()
+	if err := appdb.Migrate(context.Background(), dataDir); err != nil {
+		t.Fatalf("migrate database: %v", err)
+	}
+
+	sqliteDB, err := appdb.Open(context.Background(), dataDir)
+	if err != nil {
+		t.Fatalf("open database: %v", err)
+	}
+	defer sqliteDB.Close()
+
+	runSnapshotSync(t, sqliteDB, "source-a", []ResolvedRepo{
+		testResolvedRepo("source-a", "1", "acme/core", []string{"default"}, "Core repo"),
+	}, "2026-04-04T08:00:00Z")
+
+	repo, err := dbsqlc.New(sqliteDB).GetRepoById(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("get repo: %v", err)
+	}
+	if _, err := sqliteDB.Exec(`UPDATE repos SET archive_repo_size_bytes = ? WHERE id = ?`, 42, repo.ID); err != nil {
+		t.Fatalf("seed archive size: %v", err)
+	}
+	repo.ArchiveRepoSizeBytes = sql.NullInt64{Int64: 42, Valid: true}
+
+	executor := NewExecutor(
+		dataDir,
+		WithDatabase(sqliteDB),
+		WithRepositoryArchiver(stubRepositoryArchiver{
+			sync: func(_ context.Context, request repositoryArchiveRequest) (repositoryArchiveResult, error) {
+				if err := os.RemoveAll(request.Path); err != nil {
+					t.Fatalf("remove archive path: %v", err)
+				}
+				return repositoryArchiveResult{
+					CurrentRefs: []archivegit.RemoteRef{
+						{
+							Name: "refs/heads/main",
+							Kind: archivegit.RefKindHead,
+							Hash: strings.Repeat("1", 40),
+						},
+					},
+					Changes: []archivegit.Change{
+						{
+							RefName: "refs/heads/main",
+							RefKind: archivegit.RefKindHead,
+							OldHash: strings.Repeat("1", 40),
+							NewHash: strings.Repeat("1", 40),
+							Action:  archivegit.ChangeActionNoop,
+						},
+					},
+					ArchiveContentChanged: false,
+				}, nil
+			},
+		}),
+		WithCommitInfoLoader(stubCommitInfoLoader{}),
+		WithNow(func() time.Time {
+			return time.Date(2026, time.April, 4, 10, 0, 0, 0, time.UTC)
+		}),
+	)
+
+	request := SyncRequest{
+		RunID:  "task-size-nochange",
+		Source: appconfig.SourceConfig{ID: "source-a"},
+	}
+	if _, err := executor.syncRepoOnce(context.Background(), sqliteDB, request, repo, filepath.Join(dataDir, "repos", "source-a", repo.RefID)); err != nil {
+		t.Fatalf("sync repo once without fetch changes: %v", err)
+	}
+
+	rows := loadRepoRows(t, sqliteDB, "source-a")
+	if got := findRepoByRefID(t, rows, "1").ArchiveRepoSizeBytes; !got.Valid || got.Int64 != 42 {
+		t.Fatalf("expected archive size to remain 42 without fetch changes, got %#v", got)
+	}
+}
+
+func TestSyncRepoOnceRescansArchiveSizeWhenFetchChangesWithoutRefChanges(t *testing.T) {
+	dataDir := t.TempDir()
+	if err := appdb.Migrate(context.Background(), dataDir); err != nil {
+		t.Fatalf("migrate database: %v", err)
+	}
+
+	sqliteDB, err := appdb.Open(context.Background(), dataDir)
+	if err != nil {
+		t.Fatalf("open database: %v", err)
+	}
+	defer sqliteDB.Close()
+
+	runSnapshotSync(t, sqliteDB, "source-a", []ResolvedRepo{
+		testResolvedRepo("source-a", "1", "acme/core", []string{"default"}, "Core repo"),
+	}, "2026-04-04T08:00:00Z")
+
+	repo, err := dbsqlc.New(sqliteDB).GetRepoById(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("get repo: %v", err)
+	}
+	if _, err := sqliteDB.Exec(`UPDATE repos SET archive_repo_size_bytes = ? WHERE id = ?`, 42, repo.ID); err != nil {
+		t.Fatalf("seed archive size: %v", err)
+	}
+	repo.ArchiveRepoSizeBytes = sql.NullInt64{Int64: 42, Valid: true}
+
+	executor := NewExecutor(
+		dataDir,
+		WithDatabase(sqliteDB),
+		WithRepositoryArchiver(stubRepositoryArchiver{
+			sync: func(_ context.Context, request repositoryArchiveRequest) (repositoryArchiveResult, error) {
+				if err := os.RemoveAll(request.Path); err != nil {
+					t.Fatalf("reset archive path: %v", err)
+				}
+				if err := os.MkdirAll(filepath.Join(request.Path, "objects"), 0o755); err != nil {
+					t.Fatalf("create archive path: %v", err)
+				}
+				if err := os.WriteFile(filepath.Join(request.Path, "objects", "pack"), []byte("1234567"), 0o644); err != nil {
+					t.Fatalf("write archive pack: %v", err)
+				}
+
+				return repositoryArchiveResult{
+					CurrentRefs: []archivegit.RemoteRef{
+						{
+							Name: "refs/heads/main",
+							Kind: archivegit.RefKindHead,
+							Hash: strings.Repeat("1", 40),
+						},
+					},
+					Changes: []archivegit.Change{
+						{
+							RefName: "refs/heads/main",
+							RefKind: archivegit.RefKindHead,
+							OldHash: strings.Repeat("1", 40),
+							NewHash: strings.Repeat("1", 40),
+							Action:  archivegit.ChangeActionNoop,
+						},
+					},
+					ArchiveContentChanged: true,
+				}, nil
+			},
+		}),
+		WithCommitInfoLoader(stubCommitInfoLoader{}),
+		WithNow(func() time.Time {
+			return time.Date(2026, time.April, 4, 10, 0, 0, 0, time.UTC)
+		}),
+	)
+
+	request := SyncRequest{
+		RunID:  "task-size-fetch-change",
+		Source: appconfig.SourceConfig{ID: "source-a"},
+	}
+	if _, err := executor.syncRepoOnce(context.Background(), sqliteDB, request, repo, filepath.Join(dataDir, "repos", "source-a", repo.RefID)); err != nil {
+		t.Fatalf("sync repo once with fetch changes: %v", err)
+	}
+
+	rows := loadRepoRows(t, sqliteDB, "source-a")
+	if got := findRepoByRefID(t, rows, "1").ArchiveRepoSizeBytes; !got.Valid || got.Int64 != 7 {
+		t.Fatalf("expected archive size to rescan to 7, got %#v", got)
+	}
+}
+
+func TestCalculateDirectorySizeBytes(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, "objects", "nested"), 0o755); err != nil {
+		t.Fatalf("create nested dir: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "HEAD"), []byte("abc"), 0o644); err != nil {
+		t.Fatalf("write HEAD: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "objects", "nested", "pack"), []byte("12345"), 0o644); err != nil {
+		t.Fatalf("write pack: %v", err)
+	}
+
+	got, err := calculateDirectorySizeBytes(root)
+	if err != nil {
+		t.Fatalf("calculate directory size: %v", err)
+	}
+	if got != 8 {
+		t.Fatalf("expected directory size 8, got %d", got)
+	}
+
+	emptyRoot := t.TempDir()
+	got, err = calculateDirectorySizeBytes(emptyRoot)
+	if err != nil {
+		t.Fatalf("calculate empty directory size: %v", err)
+	}
+	if got != 0 {
+		t.Fatalf("expected empty directory size 0, got %d", got)
+	}
+}
+
+func TestShouldRefreshArchiveRepoSize(t *testing.T) {
+	tests := []struct {
+		name                  string
+		currentSize           sql.NullInt64
+		archiveContentChanged bool
+		want                  bool
+	}{
+		{
+			name:        "missing current size",
+			currentSize: sql.NullInt64{},
+			want:        true,
+		},
+		{
+			name:                  "fetch changed",
+			currentSize:           sql.NullInt64{Int64: 42, Valid: true},
+			archiveContentChanged: true,
+			want:                  true,
+		},
+		{
+			name:        "size already known and fetch unchanged",
+			currentSize: sql.NullInt64{Int64: 42, Valid: true},
+			want:        false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := shouldRefreshArchiveRepoSize(tt.currentSize, tt.archiveContentChanged); got != tt.want {
+				t.Fatalf("shouldRefreshArchiveRepoSize(%#v, %v) = %v, want %v", tt.currentSize, tt.archiveContentChanged, got, tt.want)
+			}
+		})
+	}
+}
+
 type recordingReporter struct {
 	progresses []progressRecord
 }
@@ -739,6 +1065,10 @@ type stubRepositoryArchiver struct {
 func (archiver stubRepositoryArchiver) SyncRepository(ctx context.Context, request repositoryArchiveRequest) (repositoryArchiveResult, error) {
 	if archiver.sync != nil {
 		return archiver.sync(ctx, request)
+	}
+
+	if err := os.MkdirAll(request.Path, 0o755); err != nil {
+		return repositoryArchiveResult{}, err
 	}
 
 	return repositoryArchiveResult{}, nil
@@ -776,12 +1106,13 @@ func (reporter *recordingReporter) SetProgress(summary string, meta map[string]a
 }
 
 type repoRow struct {
-	RefID       string
-	Status      string
-	FullName    string
-	Description string
-	Origin      string
-	DisabledAt  sql.NullString
+	RefID                string
+	Status               string
+	FullName             string
+	Description          string
+	Origin               string
+	DisabledAt           sql.NullString
+	ArchiveRepoSizeBytes sql.NullInt64
 }
 
 type dbWritingReporter struct {
@@ -803,7 +1134,7 @@ func loadRepoRows(t *testing.T, db *sql.DB, sourceID string) []repoRow {
 	t.Helper()
 
 	rows, err := db.Query(`
-		SELECT ref_id, status, full_name, COALESCE(description, ''), origin, disabled_at
+		SELECT ref_id, status, full_name, COALESCE(description, ''), origin, disabled_at, archive_repo_size_bytes
 		FROM repos
 		WHERE source_id = ?
 		ORDER BY ref_id
@@ -816,7 +1147,7 @@ func loadRepoRows(t *testing.T, db *sql.DB, sourceID string) []repoRow {
 	var repos []repoRow
 	for rows.Next() {
 		var repo repoRow
-		if err := rows.Scan(&repo.RefID, &repo.Status, &repo.FullName, &repo.Description, &repo.Origin, &repo.DisabledAt); err != nil {
+		if err := rows.Scan(&repo.RefID, &repo.Status, &repo.FullName, &repo.Description, &repo.Origin, &repo.DisabledAt, &repo.ArchiveRepoSizeBytes); err != nil {
 			t.Fatalf("scan repo: %v", err)
 		}
 		repos = append(repos, repo)

@@ -6,6 +6,7 @@ import "buf/validate/validate.proto";
 import "google/protobuf/go_features.proto";
 import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
 
 option features.(pb.go).api_level = API_OPEN;
 option features.field_presence = EXPLICIT;
@@ -31,6 +32,7 @@ message Repository {
   google.protobuf.Timestamp created_at = 18;
   google.protobuf.Timestamp updated_at = 19;
   google.protobuf.Struct meta = 20;
+  google.protobuf.Int64Value archive_repo_size_bytes = 21;
 }
 
 message ListRepositoriesRequest {

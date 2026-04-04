@@ -36,8 +36,9 @@ type repositoryArchiveRequest struct {
 }
 
 type repositoryArchiveResult struct {
-	CurrentRefs []archivegit.RemoteRef
-	Changes     []archivegit.Change
+	CurrentRefs           []archivegit.RemoteRef
+	Changes               []archivegit.Change
+	ArchiveContentChanged bool
 }
 
 type repositoryCommitInfoLoader interface {
@@ -89,13 +90,15 @@ func (archiver *goGitRepositoryArchiver) SyncRepository(ctx context.Context, req
 	}
 
 	changes := archivegit.DiffRefs(request.CurrentRefs, remoteRefs)
-	if err := archivegit.FetchArchiveRefs(ctx, repo, gitAuthMethod(request.Username, request.Token), changes); err != nil {
+	archiveContentChanged, err := archivegit.FetchArchiveRefs(ctx, repo, gitAuthMethod(request.Username, request.Token), changes)
+	if err != nil {
 		return repositoryArchiveResult{}, err
 	}
 
 	return repositoryArchiveResult{
-		CurrentRefs: remoteRefs,
-		Changes:     changes,
+		CurrentRefs:           remoteRefs,
+		Changes:               changes,
+		ArchiveContentChanged: archiveContentChanged,
 	}, nil
 }
 
@@ -339,12 +342,21 @@ func (executor *Executor) syncRepoOnce(ctx context.Context, db *sql.DB, request 
 	}
 
 	now := executor.now().UTC().Format(time.RFC3339Nano)
+	archiveRepoSizeBytes := sql.NullInt64{}
+	if shouldRefreshArchiveRepoSize(repo.ArchiveRepoSizeBytes, archiveResult.ArchiveContentChanged) {
+		sizeBytes, err := calculateDirectorySizeBytes(repoPath)
+		if err != nil {
+			return repoSyncOutcome{}, fmt.Errorf("calculate archive size for %q: %w", repo.FullName, err)
+		}
+		archiveRepoSizeBytes = sql.NullInt64{Int64: sizeBytes, Valid: true}
+	}
+
 	commitMetadata, err := executor.commitInfoLoader.Load(ctx, repoPath, currentRows, archiveResult)
 	if err != nil {
 		return repoSyncOutcome{}, fmt.Errorf("load commit info for %q: %w", repo.FullName, err)
 	}
 
-	if err := persistRepoRefState(ctx, db, repo.ID, request.RunID, currentRows, archiveResult, commitMetadata, now); err != nil {
+	if err := persistRepoRefState(ctx, db, repo.ID, request.RunID, currentRows, archiveResult, commitMetadata, archiveRepoSizeBytes, now); err != nil {
 		return repoSyncOutcome{}, fmt.Errorf("persist repo ref state for %q: %w", repo.FullName, err)
 	}
 
@@ -377,6 +389,7 @@ func persistRepoRefState(
 	currentRows []dbsqlc.RepoRefsCurrent,
 	archiveResult repositoryArchiveResult,
 	commitMetadata repoRefCommitMetadata,
+	archiveRepoSizeBytes sql.NullInt64,
 	now string,
 ) error {
 	tx, err := db.BeginTx(ctx, nil)
@@ -501,6 +514,17 @@ func persistRepoRefState(
 		}
 	}
 
+	if archiveRepoSizeBytes.Valid {
+		if err := queries.UpdateRepoArchiveSize(ctx, dbsqlc.UpdateRepoArchiveSizeParams{
+			ID:                   repoID,
+			ArchiveRepoSizeBytes: archiveRepoSizeBytes,
+			UpdatedAt:            now,
+		}); err != nil {
+			_ = tx.Rollback()
+			return fmt.Errorf("update archive size for repo %d: %w", repoID, err)
+		}
+	}
+
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("commit repo ref transaction: %w", err)
 	}
@@ -601,6 +625,33 @@ func retryDelay(retryIndex int) time.Duration {
 	}
 
 	return delay
+}
+
+func shouldRefreshArchiveRepoSize(currentSize sql.NullInt64, archiveContentChanged bool) bool {
+	return !currentSize.Valid || archiveContentChanged
+}
+
+func calculateDirectorySizeBytes(root string) (int64, error) {
+	trimmedRoot := strings.TrimSpace(root)
+	if trimmedRoot == "" {
+		return 0, fmt.Errorf("root path is required")
+	}
+
+	var total int64
+	if err := filepath.Walk(trimmedRoot, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info == nil || !info.Mode().IsRegular() {
+			return nil
+		}
+		total += info.Size()
+		return nil
+	}); err != nil {
+		return 0, err
+	}
+
+	return total, nil
 }
 
 func sleepWithContext(ctx context.Context, delay time.Duration) error {
