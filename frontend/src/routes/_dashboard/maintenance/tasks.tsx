@@ -1,18 +1,24 @@
+import { useState } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
 import {
   Badge,
   Button,
   Card,
+  Checkbox,
   Container,
   Group,
   Loader,
+  Menu,
+  Modal,
   Stack,
   Text,
   Title,
 } from '@mantine/core';
 import {
+  IconChevronDown,
   IconClock,
   IconRefresh,
+  IconServer,
   IconTestPipe,
   IconX,
 } from '@tabler/icons-react';
@@ -26,14 +32,18 @@ import { timestampDate } from '@bufbuild/protobuf/wkt';
 import { toast } from 'sonner';
 import dayjs from 'dayjs';
 import type { Task } from '~rpc/gitplus/task/v1/task_pb';
-import { taskClient } from '~lib/connect/client';
+import { configClient, taskClient } from '~lib/connect/client';
+import { configQueryOptions } from '~lib/config-queries';
 import { taskRuntimeQueryOptions } from '~lib/task-queries';
 import { useTaskEvents } from '~lib/use-task-events';
 import { TaskEnqueueResult } from '~rpc/gitplus/task/v1/task_pb';
 
 export const Route = createFileRoute('/_dashboard/maintenance/tasks')({
   loader: ({ context: { queryClient } }) =>
-    queryClient.ensureQueryData(taskRuntimeQueryOptions),
+    Promise.all([
+      queryClient.ensureQueryData(taskRuntimeQueryOptions),
+      queryClient.ensureQueryData(configQueryOptions),
+    ]),
   component: TasksPage,
 });
 
@@ -66,9 +76,53 @@ function randomVariant(): number {
 
 function TasksPage() {
   const { data } = useSuspenseQuery(taskRuntimeQueryOptions);
+  const { data: configData } = useSuspenseQuery(configQueryOptions);
   const queryClient = useQueryClient();
 
   useTaskEvents();
+
+  const sources = configData.config?.sources ?? [];
+  const [syncSourceOpened, setSyncSourceOpened] = useState(false);
+  const [selectedSources, setSelectedSources] = useState<Array<string>>([]);
+
+  const toggleSource = (id: string) => {
+    setSelectedSources((prev) =>
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
+    );
+  };
+
+  const openSyncSourceModal = () => {
+    setSelectedSources([]);
+    setSyncSourceOpened(true);
+  };
+
+  const syncSourceMutation = useMutation({
+    mutationFn: async (sourceIds: Array<string>) => {
+      const results = await Promise.all(
+        sourceIds.map((sourceId) => taskClient.enqueueSourceSync({ sourceId })),
+      );
+      return results;
+    },
+    onSuccess: (results) => {
+      queryClient.invalidateQueries({ queryKey: ['task', 'runtime'] });
+      setSyncSourceOpened(false);
+      const started = results.filter(
+        (r) => r.result === TaskEnqueueResult.STARTED,
+      ).length;
+      const queued = results.filter(
+        (r) => r.result === TaskEnqueueResult.QUEUED,
+      ).length;
+      const deduped = results.filter(
+        (r) => r.result === TaskEnqueueResult.DEDUPED,
+      ).length;
+      const parts: Array<string> = [];
+      if (started > 0) parts.push(`${started} started`);
+      if (queued > 0) parts.push(`${queued} queued`);
+      if (deduped > 0) parts.push(`${deduped} deduped`);
+      toast.success(`Source sync: ${parts.join(', ')}`);
+    },
+    onError: (error) => toast.error(getErrorMessage(error)),
+  });
 
   const syncAllMutation = useMutation({
     mutationFn: () => taskClient.enqueueFullSync({}),
@@ -111,13 +165,41 @@ function TasksPage() {
           </Text>
         </div>
         <Group gap="sm">
-          <Button
-            leftSection={<IconRefresh size={16} />}
-            onClick={() => syncAllMutation.mutate()}
-            loading={syncAllMutation.isPending}
-          >
-            Sync All
-          </Button>
+          <Group gap={0}>
+            <Button
+              leftSection={<IconRefresh size={16} />}
+              onClick={() => syncAllMutation.mutate()}
+              loading={syncAllMutation.isPending}
+              style={{
+                borderTopRightRadius: 0,
+                borderBottomRightRadius: 0,
+              }}
+            >
+              Sync All
+            </Button>
+            <Menu position="bottom-end" withArrow shadow="md">
+              <Menu.Target>
+                <Button
+                  px={8}
+                  style={{
+                    borderTopLeftRadius: 0,
+                    borderBottomLeftRadius: 0,
+                    borderLeft: '1px solid var(--mantine-primary-color-light)',
+                  }}
+                >
+                  <IconChevronDown size={14} />
+                </Button>
+              </Menu.Target>
+              <Menu.Dropdown>
+                <Menu.Item
+                  leftSection={<IconServer size={14} />}
+                  onClick={openSyncSourceModal}
+                >
+                  Sync Source...
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+          </Group>
           <Button
             variant="default"
             leftSection={<IconTestPipe size={16} />}
@@ -164,6 +246,49 @@ function TasksPage() {
           )}
         </Stack>
       )}
+      <Modal
+        opened={syncSourceOpened}
+        onClose={() => setSyncSourceOpened(false)}
+        title="Sync Source"
+        centered
+      >
+        {sources.length === 0 ? (
+          <Text size="sm" c="dimmed">
+            No sources configured. Add sources in Configuration first.
+          </Text>
+        ) : (
+          <Stack gap="md">
+            <Stack gap="xs">
+              {sources.map((source) => (
+                <Checkbox
+                  key={source.id}
+                  label={`${source.id} — @${source.username}`}
+                  checked={selectedSources.includes(source.id)}
+                  onChange={() => toggleSource(source.id)}
+                />
+              ))}
+            </Stack>
+            <Group justify="flex-end">
+              <Button
+                variant="default"
+                onClick={() => setSyncSourceOpened(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={() => syncSourceMutation.mutate(selectedSources)}
+                loading={syncSourceMutation.isPending}
+                disabled={selectedSources.length === 0}
+              >
+                Sync{' '}
+                {selectedSources.length > 0
+                  ? `(${selectedSources.length})`
+                  : ''}
+              </Button>
+            </Group>
+          </Stack>
+        )}
+      </Modal>
     </Container>
   );
 }
