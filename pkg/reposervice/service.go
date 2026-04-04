@@ -122,6 +122,95 @@ func (s *serviceServer) ListRepositories(
 	return connect.NewResponse(response), nil
 }
 
+func (s *serviceServer) GetRepository(
+	ctx context.Context,
+	req *connect.Request[repov1.GetRepositoryRequest],
+) (*connect.Response[repov1.GetRepositoryResponse], error) {
+	repoID := req.Msg.GetId()
+	if repoID <= 0 {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("id is required"))
+	}
+
+	queries, cleanup, err := s.openQueries(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	defer cleanup()
+
+	repo, err := queries.GetRepoById(ctx, repoID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("repository not found"))
+		}
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get repo: %w", err))
+	}
+
+	refs, err := queries.ListRepoRefsCurrent(ctx, repoID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list refs: %w", err))
+	}
+
+	changes, err := queries.ListRepoRefChanges(ctx, repoID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list changes: %w", err))
+	}
+
+	protoRefs := make([]*repov1.RepoRef, 0, len(refs))
+	for _, r := range refs {
+		protoRefs = append(protoRefs, toProtoRepoRef(r))
+	}
+
+	protoChanges := make([]*repov1.RepoRefChange, 0, len(changes))
+	for _, c := range changes {
+		protoChanges = append(protoChanges, toProtoRepoRefChange(c))
+	}
+
+	return connect.NewResponse(&repov1.GetRepositoryResponse{
+		Repository:    toProtoRepository(repo),
+		Refs:          protoRefs,
+		RecentChanges: protoChanges,
+	}), nil
+}
+
+func toProtoRepoRef(r dbsqlc.RepoRefsCurrent) *repov1.RepoRef {
+	ref := &repov1.RepoRef{
+		Id:          int64Ptr(r.ID),
+		RefName:     stringPtr(r.RefName),
+		RefKind:     stringPtr(r.RefKind),
+		CurrentHash: stringPtr(r.CurrentHash),
+		Status:      stringPtr(r.Status),
+		FirstSeenAt: toProtoTimestamp(r.FirstSeenAt),
+		LastSeenAt:  toProtoTimestamp(r.LastSeenAt),
+	}
+	if r.ArchiveRefName.Valid {
+		ref.ArchiveRefName = stringPtr(r.ArchiveRefName.String)
+	}
+	if r.DeletedAt.Valid {
+		ref.DeletedAt = toProtoTimestamp(r.DeletedAt.String)
+	}
+	return ref
+}
+
+func toProtoRepoRefChange(c dbsqlc.RepoRefChange) *repov1.RepoRefChange {
+	change := &repov1.RepoRefChange{
+		Id:        int64Ptr(c.ID),
+		RefName:   stringPtr(c.RefName),
+		RefKind:   stringPtr(c.RefKind),
+		Action:    stringPtr(c.Action),
+		CreatedAt: toProtoTimestamp(c.CreatedAt),
+	}
+	if c.OldHash.Valid {
+		change.OldHash = stringPtr(c.OldHash.String)
+	}
+	if c.NewHash.Valid {
+		change.NewHash = stringPtr(c.NewHash.String)
+	}
+	if c.ArchiveRefName.Valid {
+		change.ArchiveRefName = stringPtr(c.ArchiveRefName.String)
+	}
+	return change
+}
+
 func (s *serviceServer) openQueries(ctx context.Context) (*dbsqlc.Queries, func(), error) {
 	if s.db != nil {
 		return dbsqlc.New(s.db), func() {}, nil

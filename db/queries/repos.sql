@@ -158,3 +158,30 @@ ORDER BY
   CASE WHEN @sort = 'name_asc'   THEN name  END ASC,
   CASE WHEN @sort = 'name_desc'  THEN name  END DESC
 LIMIT @limit OFFSET @offset;
+
+-- name: GetRepoById :one
+SELECT
+  id, source_id, platform, ref_id, status, name, full_name, owner,
+  description, html_url, clone_url, ssh_url, default_branch, visibility,
+  is_private, is_fork, is_archived, origin, meta, last_seen_at,
+  disabled_at, created_at, updated_at
+FROM repos
+WHERE id = ?1;
+
+-- name: ListRepoRefsCurrent :many
+SELECT
+  id, repo_id, ref_name, ref_kind, current_hash, status,
+  archive_ref_name, first_seen_at, last_seen_at, deleted_at,
+  created_at, updated_at
+FROM repo_refs_current
+WHERE repo_id = ?1
+ORDER BY ref_kind, ref_name;
+
+-- name: ListRepoRefChanges :many
+SELECT
+  id, repo_id, task_run_id, ref_name, ref_kind, action,
+  old_hash, new_hash, archive_ref_name, created_at
+FROM repo_ref_changes
+WHERE repo_id = ?1
+ORDER BY created_at DESC
+LIMIT 100;

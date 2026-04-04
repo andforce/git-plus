@@ -1,5 +1,6 @@
 import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query';
 import { repoClient } from './connect/client';
+import type { BigIntString } from '@bufbuild/protobuf/wkt';
 
 function encodePageToken(offset: number): string {
   return btoa(String(offset))
@@ -32,6 +33,13 @@ export function repoListQueryOptions(
       }
       return undefined;
     },
+  });
+}
+
+export function repoDetailQueryOptions(id: BigIntString) {
+  return queryOptions({
+    queryKey: ['repo', 'detail', id],
+    queryFn: () => repoClient.getRepository({ id: BigInt(id) }),
   });
 }
 

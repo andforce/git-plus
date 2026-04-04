@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import {
   ActionIcon,
   Anchor,
@@ -49,7 +49,7 @@ const SORT_OPTIONS: Array<{
   { key: 'name_desc', label: 'Name (Z-A)', order: 'desc' },
 ];
 
-export const Route = createFileRoute('/_dashboard/repos')({
+export const Route = createFileRoute('/_dashboard/repos/')({
   loader: ({ context: { queryClient } }) =>
     queryClient.ensureQueryData(configQueryOptions),
   component: ReposPage,
@@ -258,6 +258,7 @@ function ReposPage() {
 }
 
 function RepoCard({ repo }: { repo: Repository }) {
+  const navigate = useNavigate();
   const meta = repo.meta as Record<string, unknown> | undefined;
   const language = (meta?.['language'] as string) ?? '';
   const stars = (meta?.['stargazers_count'] as number) ?? 0;
@@ -276,7 +277,12 @@ function RepoCard({ repo }: { repo: Repository }) {
         height: '100%',
         cursor: 'pointer',
       }}
-      onClick={() => window.open(repo.htmlUrl || undefined, '_blank')}
+      onClick={() =>
+        navigate({
+          to: '/repos/$repoId',
+          params: { repoId: repo.id.toString() },
+        })
+      }
     >
       <Flex gap="md" align="flex-start" mb="sm">
         <Avatar src={avatarUrl} alt={owner} size="md" radius="sm" />

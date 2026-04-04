@@ -36,11 +36,15 @@ const (
 	// RepoServiceListRepositoriesProcedure is the fully-qualified name of the RepoService's
 	// ListRepositories RPC.
 	RepoServiceListRepositoriesProcedure = "/gitplus.repo.v1.RepoService/ListRepositories"
+	// RepoServiceGetRepositoryProcedure is the fully-qualified name of the RepoService's GetRepository
+	// RPC.
+	RepoServiceGetRepositoryProcedure = "/gitplus.repo.v1.RepoService/GetRepository"
 )
 
 // RepoServiceClient is a client for the gitplus.repo.v1.RepoService service.
 type RepoServiceClient interface {
 	ListRepositories(context.Context, *connect.Request[v1.ListRepositoriesRequest]) (*connect.Response[v1.ListRepositoriesResponse], error)
+	GetRepository(context.Context, *connect.Request[v1.GetRepositoryRequest]) (*connect.Response[v1.GetRepositoryResponse], error)
 }
 
 // NewRepoServiceClient constructs a client for the gitplus.repo.v1.RepoService service. By default,
@@ -60,12 +64,19 @@ func NewRepoServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(repoServiceMethods.ByName("ListRepositories")),
 			connect.WithClientOptions(opts...),
 		),
+		getRepository: connect.NewClient[v1.GetRepositoryRequest, v1.GetRepositoryResponse](
+			httpClient,
+			baseURL+RepoServiceGetRepositoryProcedure,
+			connect.WithSchema(repoServiceMethods.ByName("GetRepository")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
 // repoServiceClient implements RepoServiceClient.
 type repoServiceClient struct {
 	listRepositories *connect.Client[v1.ListRepositoriesRequest, v1.ListRepositoriesResponse]
+	getRepository    *connect.Client[v1.GetRepositoryRequest, v1.GetRepositoryResponse]
 }
 
 // ListRepositories calls gitplus.repo.v1.RepoService.ListRepositories.
@@ -73,9 +84,15 @@ func (c *repoServiceClient) ListRepositories(ctx context.Context, req *connect.R
 	return c.listRepositories.CallUnary(ctx, req)
 }
 
+// GetRepository calls gitplus.repo.v1.RepoService.GetRepository.
+func (c *repoServiceClient) GetRepository(ctx context.Context, req *connect.Request[v1.GetRepositoryRequest]) (*connect.Response[v1.GetRepositoryResponse], error) {
+	return c.getRepository.CallUnary(ctx, req)
+}
+
 // RepoServiceHandler is an implementation of the gitplus.repo.v1.RepoService service.
 type RepoServiceHandler interface {
 	ListRepositories(context.Context, *connect.Request[v1.ListRepositoriesRequest]) (*connect.Response[v1.ListRepositoriesResponse], error)
+	GetRepository(context.Context, *connect.Request[v1.GetRepositoryRequest]) (*connect.Response[v1.GetRepositoryResponse], error)
 }
 
 // NewRepoServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -91,10 +108,18 @@ func NewRepoServiceHandler(svc RepoServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(repoServiceMethods.ByName("ListRepositories")),
 		connect.WithHandlerOptions(opts...),
 	)
+	repoServiceGetRepositoryHandler := connect.NewUnaryHandler(
+		RepoServiceGetRepositoryProcedure,
+		svc.GetRepository,
+		connect.WithSchema(repoServiceMethods.ByName("GetRepository")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/gitplus.repo.v1.RepoService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case RepoServiceListRepositoriesProcedure:
 			repoServiceListRepositoriesHandler.ServeHTTP(w, r)
+		case RepoServiceGetRepositoryProcedure:
+			repoServiceGetRepositoryHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -106,4 +131,8 @@ type UnimplementedRepoServiceHandler struct{}
 
 func (UnimplementedRepoServiceHandler) ListRepositories(context.Context, *connect.Request[v1.ListRepositoriesRequest]) (*connect.Response[v1.ListRepositoriesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitplus.repo.v1.RepoService.ListRepositories is not implemented"))
+}
+
+func (UnimplementedRepoServiceHandler) GetRepository(context.Context, *connect.Request[v1.GetRepositoryRequest]) (*connect.Response[v1.GetRepositoryResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitplus.repo.v1.RepoService.GetRepository is not implemented"))
 }

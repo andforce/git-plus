@@ -53,6 +53,40 @@ message ListRepositoriesResponse {
   int32 total_count = 3;
 }
 
+message GetRepositoryRequest {
+  int64 id = 1;
+}
+
+message GetRepositoryResponse {
+  Repository repository = 1;
+  repeated RepoRef refs = 2;
+  repeated RepoRefChange recent_changes = 3;
+}
+
+message RepoRef {
+  int64 id = 1;
+  string ref_name = 2;
+  string ref_kind = 3;
+  string current_hash = 4;
+  string status = 5;
+  string archive_ref_name = 6;
+  google.protobuf.Timestamp first_seen_at = 7;
+  google.protobuf.Timestamp last_seen_at = 8;
+  google.protobuf.Timestamp deleted_at = 9;
+}
+
+message RepoRefChange {
+  int64 id = 1;
+  string ref_name = 2;
+  string ref_kind = 3;
+  string action = 4;
+  string old_hash = 5;
+  string new_hash = 6;
+  string archive_ref_name = 7;
+  google.protobuf.Timestamp created_at = 8;
+}
+
 service RepoService {
   rpc ListRepositories(ListRepositoriesRequest) returns (ListRepositoriesResponse);
+  rpc GetRepository(GetRepositoryRequest) returns (GetRepositoryResponse);
 }

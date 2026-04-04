@@ -111,6 +111,47 @@ func (q *Queries) CreateRepo(ctx context.Context, arg CreateRepoParams) error {
 	return err
 }
 
+const getRepoById = `-- name: GetRepoById :one
+SELECT
+  id, source_id, platform, ref_id, status, name, full_name, owner,
+  description, html_url, clone_url, ssh_url, default_branch, visibility,
+  is_private, is_fork, is_archived, origin, meta, last_seen_at,
+  disabled_at, created_at, updated_at
+FROM repos
+WHERE id = ?1
+`
+
+func (q *Queries) GetRepoById(ctx context.Context, id int64) (Repo, error) {
+	row := q.db.QueryRowContext(ctx, getRepoById, id)
+	var i Repo
+	err := row.Scan(
+		&i.ID,
+		&i.SourceID,
+		&i.Platform,
+		&i.RefID,
+		&i.Status,
+		&i.Name,
+		&i.FullName,
+		&i.Owner,
+		&i.Description,
+		&i.HtmlUrl,
+		&i.CloneUrl,
+		&i.SshUrl,
+		&i.DefaultBranch,
+		&i.Visibility,
+		&i.IsPrivate,
+		&i.IsFork,
+		&i.IsArchived,
+		&i.Origin,
+		&i.Meta,
+		&i.LastSeenAt,
+		&i.DisabledAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const listActiveReposForSource = `-- name: ListActiveReposForSource :many
 SELECT
   id,
@@ -173,6 +214,96 @@ func (q *Queries) ListActiveReposForSource(ctx context.Context, sourceID string)
 			&i.Meta,
 			&i.LastSeenAt,
 			&i.DisabledAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listRepoRefChanges = `-- name: ListRepoRefChanges :many
+SELECT
+  id, repo_id, task_run_id, ref_name, ref_kind, action,
+  old_hash, new_hash, archive_ref_name, created_at
+FROM repo_ref_changes
+WHERE repo_id = ?1
+ORDER BY created_at DESC
+LIMIT 100
+`
+
+func (q *Queries) ListRepoRefChanges(ctx context.Context, repoID int64) ([]RepoRefChange, error) {
+	rows, err := q.db.QueryContext(ctx, listRepoRefChanges, repoID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RepoRefChange
+	for rows.Next() {
+		var i RepoRefChange
+		if err := rows.Scan(
+			&i.ID,
+			&i.RepoID,
+			&i.TaskRunID,
+			&i.RefName,
+			&i.RefKind,
+			&i.Action,
+			&i.OldHash,
+			&i.NewHash,
+			&i.ArchiveRefName,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listRepoRefsCurrent = `-- name: ListRepoRefsCurrent :many
+SELECT
+  id, repo_id, ref_name, ref_kind, current_hash, status,
+  archive_ref_name, first_seen_at, last_seen_at, deleted_at,
+  created_at, updated_at
+FROM repo_refs_current
+WHERE repo_id = ?1
+ORDER BY ref_kind, ref_name
+`
+
+func (q *Queries) ListRepoRefsCurrent(ctx context.Context, repoID int64) ([]RepoRefsCurrent, error) {
+	rows, err := q.db.QueryContext(ctx, listRepoRefsCurrent, repoID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []RepoRefsCurrent
+	for rows.Next() {
+		var i RepoRefsCurrent
+		if err := rows.Scan(
+			&i.ID,
+			&i.RepoID,
+			&i.RefName,
+			&i.RefKind,
+			&i.CurrentHash,
+			&i.Status,
+			&i.ArchiveRefName,
+			&i.FirstSeenAt,
+			&i.LastSeenAt,
+			&i.DeletedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {

@@ -14,7 +14,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file gitplus/repo/v1/repo.proto.
  */
 export const file_gitplus_repo_v1_repo: GenFile = /*@__PURE__*/
-  fileDesc("ChpnaXRwbHVzL3JlcG8vdjEvcmVwby5wcm90bxIPZ2l0cGx1cy5yZXBvLnYxIucDCgpSZXBvc2l0b3J5EgoKAmlkGAEgASgDEhEKCXNvdXJjZV9pZBgCIAEoCRIQCghwbGF0Zm9ybRgDIAEoCRIMCgRuYW1lGAQgASgJEhEKCWZ1bGxfbmFtZRgFIAEoCRINCgVvd25lchgGIAEoCRITCgtkZXNjcmlwdGlvbhgHIAEoCRIQCghodG1sX3VybBgIIAEoCRIRCgljbG9uZV91cmwYCSABKAkSDwoHc3NoX3VybBgKIAEoCRIWCg5kZWZhdWx0X2JyYW5jaBgLIAEoCRISCgp2aXNpYmlsaXR5GAwgASgJEhIKCmlzX3ByaXZhdGUYDSABKAgSDwoHaXNfZm9yaxgOIAEoCBITCgtpc19hcmNoaXZlZBgPIAEoCBIOCgZzdGF0dXMYECABKAkSMAoMbGFzdF9zZWVuX2F0GBEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgpjcmVhdGVkX2F0GBIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GBMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIlCgRtZXRhGBQgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdCJ8ChdMaXN0UmVwb3NpdG9yaWVzUmVxdWVzdBIcCglwYWdlX3NpemUYASABKAVCCbpIBhoEGGQoARISCgpwYWdlX3Rva2VuGAIgASgJEg4KBnNlYXJjaBgDIAEoCRIRCglzb3VyY2VfaWQYBCABKAkSDAoEc29ydBgFIAEoCSJ7ChhMaXN0UmVwb3NpdG9yaWVzUmVzcG9uc2USMQoMcmVwb3NpdG9yaWVzGAEgAygLMhsuZ2l0cGx1cy5yZXBvLnYxLlJlcG9zaXRvcnkSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJEhMKC3RvdGFsX2NvdW50GAMgASgFMnYKC1JlcG9TZXJ2aWNlEmcKEExpc3RSZXBvc2l0b3JpZXMSKC5naXRwbHVzLnJlcG8udjEuTGlzdFJlcG9zaXRvcmllc1JlcXVlc3QaKS5naXRwbHVzLnJlcG8udjEuTGlzdFJlcG9zaXRvcmllc1Jlc3BvbnNlQsUBChNjb20uZ2l0cGx1cy5yZXBvLnYxQglSZXBvUHJvdG9QAVo7Z2l0aHViLmNvbS9JbVNpbmdlZS9naXQtcGx1cy9wa2cvcnBjL2dpdHBsdXMvcmVwby92MTtyZXBvdjGiAgNHUliqAg9HaXRwbHVzLlJlcG8uVjHKAg9HaXRwbHVzXFJlcG9cVjHiAhtHaXRwbHVzXFJlcG9cVjFcR1BCTWV0YWRhdGHqAhFHaXRwbHVzOjpSZXBvOjpWMZIDBwgB0j4CEAFiCGVkaXRpb25zcOgH", [file_buf_validate_validate, file_google_protobuf_go_features, file_google_protobuf_struct, file_google_protobuf_timestamp]);
+  fileDesc("ChpnaXRwbHVzL3JlcG8vdjEvcmVwby5wcm90bxIPZ2l0cGx1cy5yZXBvLnYxIucDCgpSZXBvc2l0b3J5EgoKAmlkGAEgASgDEhEKCXNvdXJjZV9pZBgCIAEoCRIQCghwbGF0Zm9ybRgDIAEoCRIMCgRuYW1lGAQgASgJEhEKCWZ1bGxfbmFtZRgFIAEoCRINCgVvd25lchgGIAEoCRITCgtkZXNjcmlwdGlvbhgHIAEoCRIQCghodG1sX3VybBgIIAEoCRIRCgljbG9uZV91cmwYCSABKAkSDwoHc3NoX3VybBgKIAEoCRIWCg5kZWZhdWx0X2JyYW5jaBgLIAEoCRISCgp2aXNpYmlsaXR5GAwgASgJEhIKCmlzX3ByaXZhdGUYDSABKAgSDwoHaXNfZm9yaxgOIAEoCBITCgtpc19hcmNoaXZlZBgPIAEoCBIOCgZzdGF0dXMYECABKAkSMAoMbGFzdF9zZWVuX2F0GBEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgpjcmVhdGVkX2F0GBIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GBMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIlCgRtZXRhGBQgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdCJ8ChdMaXN0UmVwb3NpdG9yaWVzUmVxdWVzdBIcCglwYWdlX3NpemUYASABKAVCCbpIBhoEGGQoARISCgpwYWdlX3Rva2VuGAIgASgJEg4KBnNlYXJjaBgDIAEoCRIRCglzb3VyY2VfaWQYBCABKAkSDAoEc29ydBgFIAEoCSJ7ChhMaXN0UmVwb3NpdG9yaWVzUmVzcG9uc2USMQoMcmVwb3NpdG9yaWVzGAEgAygLMhsuZ2l0cGx1cy5yZXBvLnYxLlJlcG9zaXRvcnkSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJEhMKC3RvdGFsX2NvdW50GAMgASgFIiIKFEdldFJlcG9zaXRvcnlSZXF1ZXN0EgoKAmlkGAEgASgDIqgBChVHZXRSZXBvc2l0b3J5UmVzcG9uc2USLwoKcmVwb3NpdG9yeRgBIAEoCzIbLmdpdHBsdXMucmVwby52MS5SZXBvc2l0b3J5EiYKBHJlZnMYAiADKAsyGC5naXRwbHVzLnJlcG8udjEuUmVwb1JlZhI2Cg5yZWNlbnRfY2hhbmdlcxgDIAMoCzIeLmdpdHBsdXMucmVwby52MS5SZXBvUmVmQ2hhbmdlIo4CCgdSZXBvUmVmEgoKAmlkGAEgASgDEhAKCHJlZl9uYW1lGAIgASgJEhAKCHJlZl9raW5kGAMgASgJEhQKDGN1cnJlbnRfaGFzaBgEIAEoCRIOCgZzdGF0dXMYBSABKAkSGAoQYXJjaGl2ZV9yZWZfbmFtZRgGIAEoCRIxCg1maXJzdF9zZWVuX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIwCgxsYXN0X3NlZW5fYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCmRlbGV0ZWRfYXQYCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIr0BCg1SZXBvUmVmQ2hhbmdlEgoKAmlkGAEgASgDEhAKCHJlZl9uYW1lGAIgASgJEhAKCHJlZl9raW5kGAMgASgJEg4KBmFjdGlvbhgEIAEoCRIQCghvbGRfaGFzaBgFIAEoCRIQCghuZXdfaGFzaBgGIAEoCRIYChBhcmNoaXZlX3JlZl9uYW1lGAcgASgJEi4KCmNyZWF0ZWRfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wMtYBCgtSZXBvU2VydmljZRJnChBMaXN0UmVwb3NpdG9yaWVzEiguZ2l0cGx1cy5yZXBvLnYxLkxpc3RSZXBvc2l0b3JpZXNSZXF1ZXN0GikuZ2l0cGx1cy5yZXBvLnYxLkxpc3RSZXBvc2l0b3JpZXNSZXNwb25zZRJeCg1HZXRSZXBvc2l0b3J5EiUuZ2l0cGx1cy5yZXBvLnYxLkdldFJlcG9zaXRvcnlSZXF1ZXN0GiYuZ2l0cGx1cy5yZXBvLnYxLkdldFJlcG9zaXRvcnlSZXNwb25zZULFAQoTY29tLmdpdHBsdXMucmVwby52MUIJUmVwb1Byb3RvUAFaO2dpdGh1Yi5jb20vSW1TaW5nZWUvZ2l0LXBsdXMvcGtnL3JwYy9naXRwbHVzL3JlcG8vdjE7cmVwb3YxogIDR1JYqgIPR2l0cGx1cy5SZXBvLlYxygIPR2l0cGx1c1xSZXBvXFYx4gIbR2l0cGx1c1xSZXBvXFYxXEdQQk1ldGFkYXRh6gIRR2l0cGx1czo6UmVwbzo6VjGSAwcIAdI+AhABYghlZGl0aW9uc3DoBw", [file_buf_validate_validate, file_google_protobuf_go_features, file_google_protobuf_struct, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message gitplus.repo.v1.Repository
@@ -197,6 +197,159 @@ export const ListRepositoriesResponseSchema: GenMessage<ListRepositoriesResponse
   messageDesc(file_gitplus_repo_v1_repo, 2);
 
 /**
+ * @generated from message gitplus.repo.v1.GetRepositoryRequest
+ */
+export type GetRepositoryRequest = Message<"gitplus.repo.v1.GetRepositoryRequest"> & {
+  /**
+   * @generated from field: int64 id = 1;
+   */
+  id: bigint;
+};
+
+/**
+ * Describes the message gitplus.repo.v1.GetRepositoryRequest.
+ * Use `create(GetRepositoryRequestSchema)` to create a new message.
+ */
+export const GetRepositoryRequestSchema: GenMessage<GetRepositoryRequest> = /*@__PURE__*/
+  messageDesc(file_gitplus_repo_v1_repo, 3);
+
+/**
+ * @generated from message gitplus.repo.v1.GetRepositoryResponse
+ */
+export type GetRepositoryResponse = Message<"gitplus.repo.v1.GetRepositoryResponse"> & {
+  /**
+   * @generated from field: gitplus.repo.v1.Repository repository = 1;
+   */
+  repository?: Repository;
+
+  /**
+   * @generated from field: repeated gitplus.repo.v1.RepoRef refs = 2;
+   */
+  refs: RepoRef[];
+
+  /**
+   * @generated from field: repeated gitplus.repo.v1.RepoRefChange recent_changes = 3;
+   */
+  recentChanges: RepoRefChange[];
+};
+
+/**
+ * Describes the message gitplus.repo.v1.GetRepositoryResponse.
+ * Use `create(GetRepositoryResponseSchema)` to create a new message.
+ */
+export const GetRepositoryResponseSchema: GenMessage<GetRepositoryResponse> = /*@__PURE__*/
+  messageDesc(file_gitplus_repo_v1_repo, 4);
+
+/**
+ * @generated from message gitplus.repo.v1.RepoRef
+ */
+export type RepoRef = Message<"gitplus.repo.v1.RepoRef"> & {
+  /**
+   * @generated from field: int64 id = 1;
+   */
+  id: bigint;
+
+  /**
+   * @generated from field: string ref_name = 2;
+   */
+  refName: string;
+
+  /**
+   * @generated from field: string ref_kind = 3;
+   */
+  refKind: string;
+
+  /**
+   * @generated from field: string current_hash = 4;
+   */
+  currentHash: string;
+
+  /**
+   * @generated from field: string status = 5;
+   */
+  status: string;
+
+  /**
+   * @generated from field: string archive_ref_name = 6;
+   */
+  archiveRefName: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp first_seen_at = 7;
+   */
+  firstSeenAt?: Timestamp;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp last_seen_at = 8;
+   */
+  lastSeenAt?: Timestamp;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp deleted_at = 9;
+   */
+  deletedAt?: Timestamp;
+};
+
+/**
+ * Describes the message gitplus.repo.v1.RepoRef.
+ * Use `create(RepoRefSchema)` to create a new message.
+ */
+export const RepoRefSchema: GenMessage<RepoRef> = /*@__PURE__*/
+  messageDesc(file_gitplus_repo_v1_repo, 5);
+
+/**
+ * @generated from message gitplus.repo.v1.RepoRefChange
+ */
+export type RepoRefChange = Message<"gitplus.repo.v1.RepoRefChange"> & {
+  /**
+   * @generated from field: int64 id = 1;
+   */
+  id: bigint;
+
+  /**
+   * @generated from field: string ref_name = 2;
+   */
+  refName: string;
+
+  /**
+   * @generated from field: string ref_kind = 3;
+   */
+  refKind: string;
+
+  /**
+   * @generated from field: string action = 4;
+   */
+  action: string;
+
+  /**
+   * @generated from field: string old_hash = 5;
+   */
+  oldHash: string;
+
+  /**
+   * @generated from field: string new_hash = 6;
+   */
+  newHash: string;
+
+  /**
+   * @generated from field: string archive_ref_name = 7;
+   */
+  archiveRefName: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp created_at = 8;
+   */
+  createdAt?: Timestamp;
+};
+
+/**
+ * Describes the message gitplus.repo.v1.RepoRefChange.
+ * Use `create(RepoRefChangeSchema)` to create a new message.
+ */
+export const RepoRefChangeSchema: GenMessage<RepoRefChange> = /*@__PURE__*/
+  messageDesc(file_gitplus_repo_v1_repo, 6);
+
+/**
  * @generated from service gitplus.repo.v1.RepoService
  */
 export const RepoService: GenService<{
@@ -207,6 +360,14 @@ export const RepoService: GenService<{
     methodKind: "unary";
     input: typeof ListRepositoriesRequestSchema;
     output: typeof ListRepositoriesResponseSchema;
+  },
+  /**
+   * @generated from rpc gitplus.repo.v1.RepoService.GetRepository
+   */
+  getRepository: {
+    methodKind: "unary";
+    input: typeof GetRepositoryRequestSchema;
+    output: typeof GetRepositoryResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_gitplus_repo_v1_repo, 0);
