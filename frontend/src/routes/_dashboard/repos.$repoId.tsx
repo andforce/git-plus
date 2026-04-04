@@ -7,6 +7,7 @@ import {
   Box,
   Breadcrumbs,
   Center,
+  Checkbox,
   Code,
   Container,
   Group,
@@ -204,7 +205,11 @@ function RepoDetailPage() {
         <Tabs.Panel value="branches" pt="md">
           {activeTab === 'branches' && (
             <Suspense fallback={<TabFallback />}>
-              <BranchesTab repoId={repoId} />
+              <RefsTab
+                repoId={repoId}
+                refKind="head"
+                emptyLabel="No branches tracked yet."
+              />
             </Suspense>
           )}
         </Tabs.Panel>
@@ -212,7 +217,11 @@ function RepoDetailPage() {
         <Tabs.Panel value="tags" pt="md">
           {activeTab === 'tags' && (
             <Suspense fallback={<TabFallback />}>
-              <TagsTab repoId={repoId} />
+              <RefsTab
+                repoId={repoId}
+                refKind="tag"
+                emptyLabel="No tags tracked yet."
+              />
             </Suspense>
           )}
         </Tabs.Panel>
@@ -229,65 +238,53 @@ function RepoDetailPage() {
   );
 }
 
-function BranchesTab({ repoId }: { repoId: string }) {
-  const { data } = useSuspenseQuery(repoRefsQueryOptions(repoId, 'head'));
-  const branches = data.refs;
-
-  if (branches.length === 0) {
-    return (
-      <Text size="sm" c="dimmed">
-        No branches tracked yet.
-      </Text>
-    );
-  }
-
-  return (
-    <Table striped highlightOnHover>
-      <Table.Thead>
-        <Table.Tr>
-          <Table.Th>Name</Table.Th>
-          <Table.Th>Hash</Table.Th>
-          <Table.Th>Status</Table.Th>
-          <Table.Th>Last Seen</Table.Th>
-        </Table.Tr>
-      </Table.Thead>
-      <Table.Tbody>
-        {branches.map((r) => (
-          <RefRow key={r.id.toString()} ref_={r} />
-        ))}
-      </Table.Tbody>
-    </Table>
+function RefsTab({
+  repoId,
+  refKind,
+  emptyLabel,
+}: {
+  repoId: string;
+  refKind: 'head' | 'tag';
+  emptyLabel: string;
+}) {
+  const [showDeleted, setShowDeleted] = useState(false);
+  const { data } = useSuspenseQuery(
+    repoRefsQueryOptions(repoId, refKind, showDeleted),
   );
-}
+  const refs = data.refs;
 
-function TagsTab({ repoId }: { repoId: string }) {
-  const { data } = useSuspenseQuery(repoRefsQueryOptions(repoId, 'tag'));
-  const tags = data.refs;
-
-  if (tags.length === 0) {
+  if (refs.length === 0 && !showDeleted) {
     return (
       <Text size="sm" c="dimmed">
-        No tags tracked yet.
+        {emptyLabel}
       </Text>
     );
   }
 
   return (
-    <Table striped highlightOnHover>
-      <Table.Thead>
-        <Table.Tr>
-          <Table.Th>Name</Table.Th>
-          <Table.Th>Hash</Table.Th>
-          <Table.Th>Status</Table.Th>
-          <Table.Th>Last Seen</Table.Th>
-        </Table.Tr>
-      </Table.Thead>
-      <Table.Tbody>
-        {tags.map((r) => (
-          <RefRow key={r.id.toString()} ref_={r} />
-        ))}
-      </Table.Tbody>
-    </Table>
+    <>
+      <Table striped highlightOnHover>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>Name</Table.Th>
+            <Table.Th>Hash</Table.Th>
+            {showDeleted && <Table.Th>Status</Table.Th>}
+            <Table.Th>Last Seen</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {refs.map((r) => (
+            <RefRow key={r.id.toString()} ref_={r} showStatus={showDeleted} />
+          ))}
+        </Table.Tbody>
+      </Table>
+      <Checkbox
+        mt="md"
+        label="Show deleted"
+        checked={showDeleted}
+        onChange={(e) => setShowDeleted(e.currentTarget.checked)}
+      />
+    </>
   );
 }
 
@@ -353,7 +350,7 @@ function InfoCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-function RefRow({ ref_ }: { ref_: RepoRef }) {
+function RefRow({ ref_, showStatus }: { ref_: RepoRef; showStatus: boolean }) {
   return (
     <Table.Tr>
       <Table.Td>
@@ -362,15 +359,17 @@ function RefRow({ ref_ }: { ref_: RepoRef }) {
       <Table.Td>
         <Code>{shortHash(ref_.currentHash)}</Code>
       </Table.Td>
-      <Table.Td>
-        <Badge
-          variant="light"
-          color={ref_.status === 'active' ? 'green' : 'red'}
-          size="sm"
-        >
-          {ref_.status}
-        </Badge>
-      </Table.Td>
+      {showStatus && (
+        <Table.Td>
+          <Badge
+            variant="light"
+            color={ref_.status === 'active' ? 'green' : 'red'}
+            size="sm"
+          >
+            {ref_.status}
+          </Badge>
+        </Table.Td>
+      )}
       <Table.Td>
         <Text size="xs" c="dimmed">
           {formatTimeAgo(ref_.lastSeenAt)}
