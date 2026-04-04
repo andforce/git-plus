@@ -236,19 +236,29 @@ func (s *serviceServer) ListRefChanges(
 
 func toProtoRepoRef(r dbsqlc.RepoRefsCurrent) *repov1.RepoRef {
 	ref := &repov1.RepoRef{
-		Id:          int64Ptr(r.ID),
-		RefName:     stringPtr(r.RefName),
-		RefKind:     stringPtr(r.RefKind),
-		CurrentHash: stringPtr(r.CurrentHash),
-		Status:      stringPtr(r.Status),
-		FirstSeenAt: toProtoTimestamp(r.FirstSeenAt),
-		LastSeenAt:  toProtoTimestamp(r.LastSeenAt),
+		Id:                int64Ptr(r.ID),
+		RefName:           stringPtr(r.RefName),
+		RefKind:           stringPtr(r.RefKind),
+		CurrentHash:       stringPtr(r.CurrentHash),
+		Status:            stringPtr(r.Status),
+		FirstSeenAt:       toProtoTimestamp(r.FirstSeenAt),
+		LastSeenAt:        toProtoTimestamp(r.LastSeenAt),
+		LastHashUpdatedAt: toProtoTimestamp(r.LastHashUpdatedAt),
 	}
 	if r.ArchiveRefName.Valid {
 		ref.ArchiveRefName = stringPtr(r.ArchiveRefName.String)
 	}
 	if r.DeletedAt.Valid {
 		ref.DeletedAt = toProtoTimestamp(r.DeletedAt.String)
+	}
+	if currentCommit := toProtoCommitInfo(
+		r.CurrentCommitAuthoredAt,
+		r.CurrentCommitCommittedAt,
+		r.CurrentCommitAuthorName,
+		r.CurrentCommitAuthorEmail,
+		r.CurrentCommitMessage,
+	); currentCommit != nil {
+		ref.CurrentCommit = currentCommit
 	}
 	return ref
 }
@@ -298,7 +308,47 @@ func toProtoRepoRefChange(c dbsqlc.RepoRefChange) *repov1.RepoRefChange {
 	if c.ArchiveRefName.Valid {
 		change.ArchiveRefName = stringPtr(c.ArchiveRefName.String)
 	}
+	if newCommit := toProtoCommitInfo(
+		c.NewCommitAuthoredAt,
+		c.NewCommitCommittedAt,
+		c.NewCommitAuthorName,
+		c.NewCommitAuthorEmail,
+		c.NewCommitMessage,
+	); newCommit != nil {
+		change.NewCommit = newCommit
+	}
 	return change
+}
+
+func toProtoCommitInfo(
+	authoredAt sql.NullString,
+	committedAt sql.NullString,
+	authorName sql.NullString,
+	authorEmail sql.NullString,
+	message sql.NullString,
+) *repov1.CommitInfo {
+	if !authoredAt.Valid && !committedAt.Valid && !authorName.Valid && !authorEmail.Valid && !message.Valid {
+		return nil
+	}
+
+	commit := &repov1.CommitInfo{}
+	if authoredAt.Valid {
+		commit.AuthoredAt = toProtoTimestamp(authoredAt.String)
+	}
+	if committedAt.Valid {
+		commit.CommittedAt = toProtoTimestamp(committedAt.String)
+	}
+	if authorName.Valid {
+		commit.AuthorName = stringPtr(authorName.String)
+	}
+	if authorEmail.Valid {
+		commit.AuthorEmail = stringPtr(authorEmail.String)
+	}
+	if message.Valid {
+		commit.Message = stringPtr(message.String)
+	}
+
+	return commit
 }
 
 func (s *serviceServer) openQueries(ctx context.Context) (*dbsqlc.Queries, func(), error) {

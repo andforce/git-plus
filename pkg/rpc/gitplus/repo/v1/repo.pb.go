@@ -683,24 +683,102 @@ func (x *ListRefChangesResponse) GetTotalCount() int32 {
 	return 0
 }
 
+type CommitInfo struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AuthoredAt    *timestamppb.Timestamp `protobuf:"bytes,1,opt,name=authored_at,json=authoredAt" json:"authored_at,omitempty"`
+	CommittedAt   *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=committed_at,json=committedAt" json:"committed_at,omitempty"`
+	AuthorName    *string                `protobuf:"bytes,3,opt,name=author_name,json=authorName" json:"author_name,omitempty"`
+	AuthorEmail   *string                `protobuf:"bytes,4,opt,name=author_email,json=authorEmail" json:"author_email,omitempty"`
+	Message       *string                `protobuf:"bytes,5,opt,name=message" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CommitInfo) Reset() {
+	*x = CommitInfo{}
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CommitInfo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CommitInfo) ProtoMessage() {}
+
+func (x *CommitInfo) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CommitInfo.ProtoReflect.Descriptor instead.
+func (*CommitInfo) Descriptor() ([]byte, []int) {
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *CommitInfo) GetAuthoredAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.AuthoredAt
+	}
+	return nil
+}
+
+func (x *CommitInfo) GetCommittedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CommittedAt
+	}
+	return nil
+}
+
+func (x *CommitInfo) GetAuthorName() string {
+	if x != nil && x.AuthorName != nil {
+		return *x.AuthorName
+	}
+	return ""
+}
+
+func (x *CommitInfo) GetAuthorEmail() string {
+	if x != nil && x.AuthorEmail != nil {
+		return *x.AuthorEmail
+	}
+	return ""
+}
+
+func (x *CommitInfo) GetMessage() string {
+	if x != nil && x.Message != nil {
+		return *x.Message
+	}
+	return ""
+}
+
 type RepoRef struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Id             *int64                 `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
-	RefName        *string                `protobuf:"bytes,2,opt,name=ref_name,json=refName" json:"ref_name,omitempty"`
-	RefKind        *string                `protobuf:"bytes,3,opt,name=ref_kind,json=refKind" json:"ref_kind,omitempty"`
-	CurrentHash    *string                `protobuf:"bytes,4,opt,name=current_hash,json=currentHash" json:"current_hash,omitempty"`
-	Status         *string                `protobuf:"bytes,5,opt,name=status" json:"status,omitempty"`
-	ArchiveRefName *string                `protobuf:"bytes,6,opt,name=archive_ref_name,json=archiveRefName" json:"archive_ref_name,omitempty"`
-	FirstSeenAt    *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=first_seen_at,json=firstSeenAt" json:"first_seen_at,omitempty"`
-	LastSeenAt     *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=last_seen_at,json=lastSeenAt" json:"last_seen_at,omitempty"`
-	DeletedAt      *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=deleted_at,json=deletedAt" json:"deleted_at,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Id                *int64                 `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
+	RefName           *string                `protobuf:"bytes,2,opt,name=ref_name,json=refName" json:"ref_name,omitempty"`
+	RefKind           *string                `protobuf:"bytes,3,opt,name=ref_kind,json=refKind" json:"ref_kind,omitempty"`
+	CurrentHash       *string                `protobuf:"bytes,4,opt,name=current_hash,json=currentHash" json:"current_hash,omitempty"`
+	Status            *string                `protobuf:"bytes,5,opt,name=status" json:"status,omitempty"`
+	ArchiveRefName    *string                `protobuf:"bytes,6,opt,name=archive_ref_name,json=archiveRefName" json:"archive_ref_name,omitempty"`
+	FirstSeenAt       *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=first_seen_at,json=firstSeenAt" json:"first_seen_at,omitempty"`
+	LastSeenAt        *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=last_seen_at,json=lastSeenAt" json:"last_seen_at,omitempty"`
+	DeletedAt         *timestamppb.Timestamp `protobuf:"bytes,9,opt,name=deleted_at,json=deletedAt" json:"deleted_at,omitempty"`
+	LastHashUpdatedAt *timestamppb.Timestamp `protobuf:"bytes,10,opt,name=last_hash_updated_at,json=lastHashUpdatedAt" json:"last_hash_updated_at,omitempty"`
+	CurrentCommit     *CommitInfo            `protobuf:"bytes,11,opt,name=current_commit,json=currentCommit" json:"current_commit,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
 }
 
 func (x *RepoRef) Reset() {
 	*x = RepoRef{}
-	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[9]
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -712,7 +790,7 @@ func (x *RepoRef) String() string {
 func (*RepoRef) ProtoMessage() {}
 
 func (x *RepoRef) ProtoReflect() protoreflect.Message {
-	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[9]
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -725,7 +803,7 @@ func (x *RepoRef) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RepoRef.ProtoReflect.Descriptor instead.
 func (*RepoRef) Descriptor() ([]byte, []int) {
-	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{9}
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *RepoRef) GetId() int64 {
@@ -791,6 +869,20 @@ func (x *RepoRef) GetDeletedAt() *timestamppb.Timestamp {
 	return nil
 }
 
+func (x *RepoRef) GetLastHashUpdatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.LastHashUpdatedAt
+	}
+	return nil
+}
+
+func (x *RepoRef) GetCurrentCommit() *CommitInfo {
+	if x != nil {
+		return x.CurrentCommit
+	}
+	return nil
+}
+
 type RepoRefChange struct {
 	state          protoimpl.MessageState `protogen:"open.v1"`
 	Id             *int64                 `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
@@ -801,13 +893,14 @@ type RepoRefChange struct {
 	NewHash        *string                `protobuf:"bytes,6,opt,name=new_hash,json=newHash" json:"new_hash,omitempty"`
 	ArchiveRefName *string                `protobuf:"bytes,7,opt,name=archive_ref_name,json=archiveRefName" json:"archive_ref_name,omitempty"`
 	CreatedAt      *timestamppb.Timestamp `protobuf:"bytes,8,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
+	NewCommit      *CommitInfo            `protobuf:"bytes,9,opt,name=new_commit,json=newCommit" json:"new_commit,omitempty"`
 	unknownFields  protoimpl.UnknownFields
 	sizeCache      protoimpl.SizeCache
 }
 
 func (x *RepoRefChange) Reset() {
 	*x = RepoRefChange{}
-	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[10]
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -819,7 +912,7 @@ func (x *RepoRefChange) String() string {
 func (*RepoRefChange) ProtoMessage() {}
 
 func (x *RepoRefChange) ProtoReflect() protoreflect.Message {
-	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[10]
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -832,7 +925,7 @@ func (x *RepoRefChange) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RepoRefChange.ProtoReflect.Descriptor instead.
 func (*RepoRefChange) Descriptor() ([]byte, []int) {
-	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{10}
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *RepoRefChange) GetId() int64 {
@@ -887,6 +980,13 @@ func (x *RepoRefChange) GetArchiveRefName() string {
 func (x *RepoRefChange) GetCreatedAt() *timestamppb.Timestamp {
 	if x != nil {
 		return x.CreatedAt
+	}
+	return nil
+}
+
+func (x *RepoRefChange) GetNewCommit() *CommitInfo {
+	if x != nil {
+		return x.NewCommit
 	}
 	return nil
 }
@@ -960,7 +1060,16 @@ const file_gitplus_repo_v1_repo_proto_rawDesc = "" +
 	"\achanges\x18\x01 \x03(\v2\x1e.gitplus.repo.v1.RepoRefChangeR\achanges\x12&\n" +
 	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n" +
 	"\vtotal_count\x18\x03 \x01(\x05R\n" +
-	"totalCount\"\xed\x02\n" +
+	"totalCount\"\xe6\x01\n" +
+	"\n" +
+	"CommitInfo\x12;\n" +
+	"\vauthored_at\x18\x01 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"authoredAt\x12=\n" +
+	"\fcommitted_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\vcommittedAt\x12\x1f\n" +
+	"\vauthor_name\x18\x03 \x01(\tR\n" +
+	"authorName\x12!\n" +
+	"\fauthor_email\x18\x04 \x01(\tR\vauthorEmail\x12\x18\n" +
+	"\amessage\x18\x05 \x01(\tR\amessage\"\xfe\x03\n" +
 	"\aRepoRef\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x19\n" +
 	"\bref_name\x18\x02 \x01(\tR\arefName\x12\x19\n" +
@@ -972,7 +1081,10 @@ const file_gitplus_repo_v1_repo_proto_rawDesc = "" +
 	"\flast_seen_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"lastSeenAt\x129\n" +
 	"\n" +
-	"deleted_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tdeletedAt\"\x88\x02\n" +
+	"deleted_at\x18\t \x01(\v2\x1a.google.protobuf.TimestampR\tdeletedAt\x12K\n" +
+	"\x14last_hash_updated_at\x18\n" +
+	" \x01(\v2\x1a.google.protobuf.TimestampR\x11lastHashUpdatedAt\x12B\n" +
+	"\x0ecurrent_commit\x18\v \x01(\v2\x1b.gitplus.repo.v1.CommitInfoR\rcurrentCommit\"\xc4\x02\n" +
 	"\rRepoRefChange\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x19\n" +
 	"\bref_name\x18\x02 \x01(\tR\arefName\x12\x19\n" +
@@ -982,7 +1094,9 @@ const file_gitplus_repo_v1_repo_proto_rawDesc = "" +
 	"\bnew_hash\x18\x06 \x01(\tR\anewHash\x12(\n" +
 	"\x10archive_ref_name\x18\a \x01(\tR\x0earchiveRefName\x129\n" +
 	"\n" +
-	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt2\x8a\x03\n" +
+	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12:\n" +
+	"\n" +
+	"new_commit\x18\t \x01(\v2\x1b.gitplus.repo.v1.CommitInfoR\tnewCommit2\x8a\x03\n" +
 	"\vRepoService\x12g\n" +
 	"\x10ListRepositories\x12(.gitplus.repo.v1.ListRepositoriesRequest\x1a).gitplus.repo.v1.ListRepositoriesResponse\x12^\n" +
 	"\rGetRepository\x12%.gitplus.repo.v1.GetRepositoryRequest\x1a&.gitplus.repo.v1.GetRepositoryResponse\x12O\n" +
@@ -1002,7 +1116,7 @@ func file_gitplus_repo_v1_repo_proto_rawDescGZIP() []byte {
 	return file_gitplus_repo_v1_repo_proto_rawDescData
 }
 
-var file_gitplus_repo_v1_repo_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
+var file_gitplus_repo_v1_repo_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_gitplus_repo_v1_repo_proto_goTypes = []any{
 	(*Repository)(nil),               // 0: gitplus.repo.v1.Repository
 	(*ListRepositoriesRequest)(nil),  // 1: gitplus.repo.v1.ListRepositoriesRequest
@@ -1013,37 +1127,43 @@ var file_gitplus_repo_v1_repo_proto_goTypes = []any{
 	(*ListRefsResponse)(nil),         // 6: gitplus.repo.v1.ListRefsResponse
 	(*ListRefChangesRequest)(nil),    // 7: gitplus.repo.v1.ListRefChangesRequest
 	(*ListRefChangesResponse)(nil),   // 8: gitplus.repo.v1.ListRefChangesResponse
-	(*RepoRef)(nil),                  // 9: gitplus.repo.v1.RepoRef
-	(*RepoRefChange)(nil),            // 10: gitplus.repo.v1.RepoRefChange
-	(*timestamppb.Timestamp)(nil),    // 11: google.protobuf.Timestamp
-	(*structpb.Struct)(nil),          // 12: google.protobuf.Struct
+	(*CommitInfo)(nil),               // 9: gitplus.repo.v1.CommitInfo
+	(*RepoRef)(nil),                  // 10: gitplus.repo.v1.RepoRef
+	(*RepoRefChange)(nil),            // 11: gitplus.repo.v1.RepoRefChange
+	(*timestamppb.Timestamp)(nil),    // 12: google.protobuf.Timestamp
+	(*structpb.Struct)(nil),          // 13: google.protobuf.Struct
 }
 var file_gitplus_repo_v1_repo_proto_depIdxs = []int32{
-	11, // 0: gitplus.repo.v1.Repository.last_seen_at:type_name -> google.protobuf.Timestamp
-	11, // 1: gitplus.repo.v1.Repository.created_at:type_name -> google.protobuf.Timestamp
-	11, // 2: gitplus.repo.v1.Repository.updated_at:type_name -> google.protobuf.Timestamp
-	12, // 3: gitplus.repo.v1.Repository.meta:type_name -> google.protobuf.Struct
+	12, // 0: gitplus.repo.v1.Repository.last_seen_at:type_name -> google.protobuf.Timestamp
+	12, // 1: gitplus.repo.v1.Repository.created_at:type_name -> google.protobuf.Timestamp
+	12, // 2: gitplus.repo.v1.Repository.updated_at:type_name -> google.protobuf.Timestamp
+	13, // 3: gitplus.repo.v1.Repository.meta:type_name -> google.protobuf.Struct
 	0,  // 4: gitplus.repo.v1.ListRepositoriesResponse.repositories:type_name -> gitplus.repo.v1.Repository
 	0,  // 5: gitplus.repo.v1.GetRepositoryResponse.repository:type_name -> gitplus.repo.v1.Repository
-	9,  // 6: gitplus.repo.v1.ListRefsResponse.refs:type_name -> gitplus.repo.v1.RepoRef
-	10, // 7: gitplus.repo.v1.ListRefChangesResponse.changes:type_name -> gitplus.repo.v1.RepoRefChange
-	11, // 8: gitplus.repo.v1.RepoRef.first_seen_at:type_name -> google.protobuf.Timestamp
-	11, // 9: gitplus.repo.v1.RepoRef.last_seen_at:type_name -> google.protobuf.Timestamp
-	11, // 10: gitplus.repo.v1.RepoRef.deleted_at:type_name -> google.protobuf.Timestamp
-	11, // 11: gitplus.repo.v1.RepoRefChange.created_at:type_name -> google.protobuf.Timestamp
-	1,  // 12: gitplus.repo.v1.RepoService.ListRepositories:input_type -> gitplus.repo.v1.ListRepositoriesRequest
-	3,  // 13: gitplus.repo.v1.RepoService.GetRepository:input_type -> gitplus.repo.v1.GetRepositoryRequest
-	5,  // 14: gitplus.repo.v1.RepoService.ListRefs:input_type -> gitplus.repo.v1.ListRefsRequest
-	7,  // 15: gitplus.repo.v1.RepoService.ListRefChanges:input_type -> gitplus.repo.v1.ListRefChangesRequest
-	2,  // 16: gitplus.repo.v1.RepoService.ListRepositories:output_type -> gitplus.repo.v1.ListRepositoriesResponse
-	4,  // 17: gitplus.repo.v1.RepoService.GetRepository:output_type -> gitplus.repo.v1.GetRepositoryResponse
-	6,  // 18: gitplus.repo.v1.RepoService.ListRefs:output_type -> gitplus.repo.v1.ListRefsResponse
-	8,  // 19: gitplus.repo.v1.RepoService.ListRefChanges:output_type -> gitplus.repo.v1.ListRefChangesResponse
-	16, // [16:20] is the sub-list for method output_type
-	12, // [12:16] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	10, // 6: gitplus.repo.v1.ListRefsResponse.refs:type_name -> gitplus.repo.v1.RepoRef
+	11, // 7: gitplus.repo.v1.ListRefChangesResponse.changes:type_name -> gitplus.repo.v1.RepoRefChange
+	12, // 8: gitplus.repo.v1.CommitInfo.authored_at:type_name -> google.protobuf.Timestamp
+	12, // 9: gitplus.repo.v1.CommitInfo.committed_at:type_name -> google.protobuf.Timestamp
+	12, // 10: gitplus.repo.v1.RepoRef.first_seen_at:type_name -> google.protobuf.Timestamp
+	12, // 11: gitplus.repo.v1.RepoRef.last_seen_at:type_name -> google.protobuf.Timestamp
+	12, // 12: gitplus.repo.v1.RepoRef.deleted_at:type_name -> google.protobuf.Timestamp
+	12, // 13: gitplus.repo.v1.RepoRef.last_hash_updated_at:type_name -> google.protobuf.Timestamp
+	9,  // 14: gitplus.repo.v1.RepoRef.current_commit:type_name -> gitplus.repo.v1.CommitInfo
+	12, // 15: gitplus.repo.v1.RepoRefChange.created_at:type_name -> google.protobuf.Timestamp
+	9,  // 16: gitplus.repo.v1.RepoRefChange.new_commit:type_name -> gitplus.repo.v1.CommitInfo
+	1,  // 17: gitplus.repo.v1.RepoService.ListRepositories:input_type -> gitplus.repo.v1.ListRepositoriesRequest
+	3,  // 18: gitplus.repo.v1.RepoService.GetRepository:input_type -> gitplus.repo.v1.GetRepositoryRequest
+	5,  // 19: gitplus.repo.v1.RepoService.ListRefs:input_type -> gitplus.repo.v1.ListRefsRequest
+	7,  // 20: gitplus.repo.v1.RepoService.ListRefChanges:input_type -> gitplus.repo.v1.ListRefChangesRequest
+	2,  // 21: gitplus.repo.v1.RepoService.ListRepositories:output_type -> gitplus.repo.v1.ListRepositoriesResponse
+	4,  // 22: gitplus.repo.v1.RepoService.GetRepository:output_type -> gitplus.repo.v1.GetRepositoryResponse
+	6,  // 23: gitplus.repo.v1.RepoService.ListRefs:output_type -> gitplus.repo.v1.ListRefsResponse
+	8,  // 24: gitplus.repo.v1.RepoService.ListRefChanges:output_type -> gitplus.repo.v1.ListRefChangesResponse
+	21, // [21:25] is the sub-list for method output_type
+	17, // [17:21] is the sub-list for method input_type
+	17, // [17:17] is the sub-list for extension type_name
+	17, // [17:17] is the sub-list for extension extendee
+	0,  // [0:17] is the sub-list for field type_name
 }
 
 func init() { file_gitplus_repo_v1_repo_proto_init() }
@@ -1057,7 +1177,7 @@ func file_gitplus_repo_v1_repo_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gitplus_repo_v1_repo_proto_rawDesc), len(file_gitplus_repo_v1_repo_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   11,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

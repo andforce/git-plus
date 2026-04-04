@@ -95,6 +95,14 @@ message ListRefChangesResponse {
   int32 total_count = 3;
 }
 
+message CommitInfo {
+  google.protobuf.Timestamp authored_at = 1;
+  google.protobuf.Timestamp committed_at = 2;
+  string author_name = 3;
+  string author_email = 4;
+  string message = 5;
+}
+
 message RepoRef {
   int64 id = 1;
   string ref_name = 2;
@@ -105,6 +113,8 @@ message RepoRef {
   google.protobuf.Timestamp first_seen_at = 7;
   google.protobuf.Timestamp last_seen_at = 8;
   google.protobuf.Timestamp deleted_at = 9;
+  google.protobuf.Timestamp last_hash_updated_at = 10;
+  CommitInfo current_commit = 11;
 }
 
 message RepoRefChange {
@@ -116,6 +126,7 @@ message RepoRefChange {
   string new_hash = 6;
   string archive_ref_name = 7;
   google.protobuf.Timestamp created_at = 8;
+  CommitInfo new_commit = 9;
 }
 
 service RepoService {

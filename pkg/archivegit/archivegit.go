@@ -44,6 +44,14 @@ type RemoteRef struct {
 	Hash string
 }
 
+type CommitInfo struct {
+	AuthoredAt  time.Time
+	CommittedAt time.Time
+	AuthorName  string
+	AuthorEmail string
+	Message     string
+}
+
 type Change struct {
 	RefName        string
 	RefKind        string
@@ -232,6 +240,53 @@ func ArchiveRefName(refName string, hash string) (string, error) {
 	default:
 		return "", fmt.Errorf("unsupported ref name %q", refName)
 	}
+}
+
+func ResolveCommitInfo(repo *git.Repository, hash string) (*CommitInfo, error) {
+	if repo == nil {
+		return nil, fmt.Errorf("repository is required")
+	}
+
+	trimmedHash := strings.TrimSpace(hash)
+	if trimmedHash == "" {
+		return nil, nil
+	}
+
+	return resolveCommitInfoHash(repo, plumbing.NewHash(trimmedHash), map[plumbing.Hash]struct{}{})
+}
+
+func resolveCommitInfoHash(repo *git.Repository, hash plumbing.Hash, seen map[plumbing.Hash]struct{}) (*CommitInfo, error) {
+	if hash.IsZero() {
+		return nil, nil
+	}
+	if _, exists := seen[hash]; exists {
+		return nil, fmt.Errorf("detected cyclic tag target for %s", hash.String())
+	}
+	seen[hash] = struct{}{}
+
+	commit, err := repo.CommitObject(hash)
+	if err == nil {
+		return &CommitInfo{
+			AuthoredAt:  commit.Author.When.UTC(),
+			CommittedAt: commit.Committer.When.UTC(),
+			AuthorName:  commit.Author.Name,
+			AuthorEmail: commit.Author.Email,
+			Message:     commit.Message,
+		}, nil
+	}
+	if !errors.Is(err, plumbing.ErrObjectNotFound) {
+		return nil, fmt.Errorf("load commit %s: %w", hash.String(), err)
+	}
+
+	tag, err := repo.TagObject(hash)
+	if err == nil {
+		return resolveCommitInfoHash(repo, tag.Target, seen)
+	}
+	if errors.Is(err, plumbing.ErrObjectNotFound) {
+		return nil, nil
+	}
+
+	return nil, fmt.Errorf("load tag %s: %w", hash.String(), err)
 }
 
 func openOrInitBareRepository(path string) (*git.Repository, error) {

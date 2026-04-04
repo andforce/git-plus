@@ -2,12 +2,16 @@ package archivegit
 
 import (
 	"context"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
+	"time"
 
 	git "github.com/go-git/go-git/v5"
+	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/object"
 )
 
 func TestArchiveRefName(t *testing.T) {
@@ -126,5 +130,115 @@ func TestListRemoteRefsTreatsEmptyRemoteAsNoRefs(t *testing.T) {
 	}
 	if len(refs) != 0 {
 		t.Fatalf("expected no refs for empty remote, got %#v", refs)
+	}
+}
+
+func TestResolveCommitInfoForCommitAndAnnotatedTag(t *testing.T) {
+	repo, commitHash := initCommitMetadataRepo(t)
+
+	info, err := ResolveCommitInfo(repo, commitHash.String())
+	if err != nil {
+		t.Fatalf("resolve commit info for commit hash: %v", err)
+	}
+	assertCommitInfo(t, info)
+
+	tagRef, err := repo.Reference(plumbing.NewTagReferenceName("v1.0.0"), true)
+	if err != nil {
+		t.Fatalf("load tag ref: %v", err)
+	}
+
+	tagInfo, err := ResolveCommitInfo(repo, tagRef.Hash().String())
+	if err != nil {
+		t.Fatalf("resolve commit info for annotated tag: %v", err)
+	}
+	assertCommitInfo(t, tagInfo)
+}
+
+func TestResolveCommitInfoReturnsNilForUnknownObject(t *testing.T) {
+	repo, _ := initCommitMetadataRepo(t)
+
+	info, err := ResolveCommitInfo(repo, strings.Repeat("f", 40))
+	if err != nil {
+		t.Fatalf("resolve commit info for missing hash: %v", err)
+	}
+	if info != nil {
+		t.Fatalf("expected nil commit info for missing hash, got %#v", info)
+	}
+}
+
+func initCommitMetadataRepo(t *testing.T) (*git.Repository, plumbing.Hash) {
+	t.Helper()
+
+	repoPath := filepath.Join(t.TempDir(), "repo")
+	repo, err := git.PlainInit(repoPath, false)
+	if err != nil {
+		t.Fatalf("init repo: %v", err)
+	}
+
+	authoredAt := time.Date(2026, time.April, 4, 8, 0, 0, 0, time.UTC)
+	committedAt := time.Date(2026, time.April, 4, 9, 30, 0, 0, time.UTC)
+
+	if err := os.WriteFile(filepath.Join(repoPath, "README.md"), []byte("hello"), 0o644); err != nil {
+		t.Fatalf("write file: %v", err)
+	}
+
+	worktree, err := repo.Worktree()
+	if err != nil {
+		t.Fatalf("open worktree: %v", err)
+	}
+	if _, err := worktree.Add("README.md"); err != nil {
+		t.Fatalf("stage file: %v", err)
+	}
+
+	commitHash, err := worktree.Commit("initial commit\n\nbody", &git.CommitOptions{
+		Author: &object.Signature{
+			Name:  "Alice",
+			Email: "alice@example.com",
+			When:  authoredAt,
+		},
+		Committer: &object.Signature{
+			Name:  "Bob",
+			Email: "bob@example.com",
+			When:  committedAt,
+		},
+	})
+	if err != nil {
+		t.Fatalf("commit: %v", err)
+	}
+
+	if _, err := repo.CreateTag("v1.0.0", commitHash, &git.CreateTagOptions{
+		Message: "release",
+		Tagger: &object.Signature{
+			Name:  "Release Bot",
+			Email: "release@example.com",
+			When:  committedAt.Add(30 * time.Minute),
+		},
+	}); err != nil {
+		t.Fatalf("create annotated tag: %v", err)
+	}
+
+	return repo, commitHash
+}
+
+func assertCommitInfo(t *testing.T, info *CommitInfo) {
+	t.Helper()
+
+	if info == nil {
+		t.Fatal("expected commit info, got nil")
+	}
+	if !info.AuthoredAt.Equal(time.Date(2026, time.April, 4, 8, 0, 0, 0, time.UTC)) {
+		t.Fatalf("unexpected authored at: %v", info.AuthoredAt)
+	}
+	if !info.CommittedAt.Equal(time.Date(2026, time.April, 4, 9, 30, 0, 0, time.UTC)) {
+		t.Fatalf("unexpected committed at: %v", info.CommittedAt)
+	}
+	if info.AuthorName != "Alice" {
+		t.Fatalf("unexpected author name: %q", info.AuthorName)
+	}
+	if info.AuthorEmail != "alice@example.com" {
+		t.Fatalf("unexpected author email: %q", info.AuthorEmail)
+	}
+	if info.Message != "initial commit\n\nbody" {
+		t.Fatalf("unexpected message: %q", info.Message)
 	}
 }

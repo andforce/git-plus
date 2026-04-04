@@ -19,23 +19,33 @@ INSERT INTO repo_ref_changes (
   action,
   old_hash,
   new_hash,
+  new_commit_authored_at,
+  new_commit_committed_at,
+  new_commit_author_name,
+  new_commit_author_email,
+  new_commit_message,
   archive_ref_name,
   created_at
 ) VALUES (
-  ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9
+  ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14
 )
 `
 
 type CreateRepoRefChangeParams struct {
-	RepoID         int64
-	TaskRunID      string
-	RefName        string
-	RefKind        string
-	Action         string
-	OldHash        sql.NullString
-	NewHash        sql.NullString
-	ArchiveRefName sql.NullString
-	CreatedAt      string
+	RepoID               int64
+	TaskRunID            string
+	RefName              string
+	RefKind              string
+	Action               string
+	OldHash              sql.NullString
+	NewHash              sql.NullString
+	NewCommitAuthoredAt  sql.NullString
+	NewCommitCommittedAt sql.NullString
+	NewCommitAuthorName  sql.NullString
+	NewCommitAuthorEmail sql.NullString
+	NewCommitMessage     sql.NullString
+	ArchiveRefName       sql.NullString
+	CreatedAt            string
 }
 
 func (q *Queries) CreateRepoRefChange(ctx context.Context, arg CreateRepoRefChangeParams) error {
@@ -47,6 +57,11 @@ func (q *Queries) CreateRepoRefChange(ctx context.Context, arg CreateRepoRefChan
 		arg.Action,
 		arg.OldHash,
 		arg.NewHash,
+		arg.NewCommitAuthoredAt,
+		arg.NewCommitCommittedAt,
+		arg.NewCommitAuthorName,
+		arg.NewCommitAuthorEmail,
+		arg.NewCommitMessage,
 		arg.ArchiveRefName,
 		arg.CreatedAt,
 	)
@@ -65,6 +80,11 @@ SELECT
   first_seen_at,
   last_seen_at,
   last_hash_updated_at,
+  current_commit_authored_at,
+  current_commit_committed_at,
+  current_commit_author_name,
+  current_commit_author_email,
+  current_commit_message,
   deleted_at,
   created_at,
   updated_at
@@ -93,6 +113,11 @@ func (q *Queries) ListRepoRefsCurrentByRepoID(ctx context.Context, repoID int64)
 			&i.FirstSeenAt,
 			&i.LastSeenAt,
 			&i.LastHashUpdatedAt,
+			&i.CurrentCommitAuthoredAt,
+			&i.CurrentCommitCommittedAt,
+			&i.CurrentCommitAuthorName,
+			&i.CurrentCommitAuthorEmail,
+			&i.CurrentCommitMessage,
 			&i.DeletedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -150,11 +175,16 @@ INSERT INTO repo_refs_current (
   first_seen_at,
   last_seen_at,
   last_hash_updated_at,
+  current_commit_authored_at,
+  current_commit_committed_at,
+  current_commit_author_name,
+  current_commit_author_email,
+  current_commit_message,
   deleted_at,
   created_at,
   updated_at
 ) VALUES (
-  ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12
+  ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17
 )
 ON CONFLICT(repo_id, ref_name) DO UPDATE SET
   ref_kind = excluded.ref_kind,
@@ -166,23 +196,33 @@ ON CONFLICT(repo_id, ref_name) DO UPDATE SET
     WHEN repo_refs_current.current_hash <> excluded.current_hash THEN excluded.last_hash_updated_at
     ELSE repo_refs_current.last_hash_updated_at
   END,
+  current_commit_authored_at = excluded.current_commit_authored_at,
+  current_commit_committed_at = excluded.current_commit_committed_at,
+  current_commit_author_name = excluded.current_commit_author_name,
+  current_commit_author_email = excluded.current_commit_author_email,
+  current_commit_message = excluded.current_commit_message,
   deleted_at = excluded.deleted_at,
   updated_at = excluded.updated_at
 `
 
 type UpsertRepoRefCurrentParams struct {
-	RepoID            int64
-	RefName           string
-	RefKind           string
-	CurrentHash       string
-	Status            string
-	ArchiveRefName    sql.NullString
-	FirstSeenAt       string
-	LastSeenAt        string
-	LastHashUpdatedAt string
-	DeletedAt         sql.NullString
-	CreatedAt         string
-	UpdatedAt         string
+	RepoID                   int64
+	RefName                  string
+	RefKind                  string
+	CurrentHash              string
+	Status                   string
+	ArchiveRefName           sql.NullString
+	FirstSeenAt              string
+	LastSeenAt               string
+	LastHashUpdatedAt        string
+	CurrentCommitAuthoredAt  sql.NullString
+	CurrentCommitCommittedAt sql.NullString
+	CurrentCommitAuthorName  sql.NullString
+	CurrentCommitAuthorEmail sql.NullString
+	CurrentCommitMessage     sql.NullString
+	DeletedAt                sql.NullString
+	CreatedAt                string
+	UpdatedAt                string
 }
 
 func (q *Queries) UpsertRepoRefCurrent(ctx context.Context, arg UpsertRepoRefCurrentParams) error {
@@ -196,6 +236,11 @@ func (q *Queries) UpsertRepoRefCurrent(ctx context.Context, arg UpsertRepoRefCur
 		arg.FirstSeenAt,
 		arg.LastSeenAt,
 		arg.LastHashUpdatedAt,
+		arg.CurrentCommitAuthoredAt,
+		arg.CurrentCommitCommittedAt,
+		arg.CurrentCommitAuthorName,
+		arg.CurrentCommitAuthorEmail,
+		arg.CurrentCommitMessage,
 		arg.DeletedAt,
 		arg.CreatedAt,
 		arg.UpdatedAt,

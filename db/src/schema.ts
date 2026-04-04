@@ -72,6 +72,11 @@ export const repoRefsCurrent = sqliteTable(
     firstSeenAt: text('first_seen_at').notNull(),
     lastSeenAt: text('last_seen_at').notNull(),
     lastHashUpdatedAt: text('last_hash_updated_at').notNull(),
+    currentCommitAuthoredAt: text('current_commit_authored_at'),
+    currentCommitCommittedAt: text('current_commit_committed_at'),
+    currentCommitAuthorName: text('current_commit_author_name'),
+    currentCommitAuthorEmail: text('current_commit_author_email'),
+    currentCommitMessage: text('current_commit_message'),
     deletedAt: text('deleted_at'),
     createdAt: text('created_at')
       .notNull()
@@ -138,6 +143,11 @@ export const repoRefChanges = sqliteTable(
     action: text('action').notNull(),
     oldHash: text('old_hash'),
     newHash: text('new_hash'),
+    newCommitAuthoredAt: text('new_commit_authored_at'),
+    newCommitCommittedAt: text('new_commit_committed_at'),
+    newCommitAuthorName: text('new_commit_author_name'),
+    newCommitAuthorEmail: text('new_commit_author_email'),
+    newCommitMessage: text('new_commit_message'),
     archiveRefName: text('archive_ref_name'),
     createdAt: text('created_at').notNull(),
   },

@@ -295,7 +295,9 @@ WHERE id = ?1;
 -- name: ListRepoRefs :many
 SELECT
   id, repo_id, ref_name, ref_kind, current_hash, status,
-  archive_ref_name, first_seen_at, last_seen_at, last_hash_updated_at, deleted_at,
+  archive_ref_name, first_seen_at, last_seen_at, last_hash_updated_at,
+  current_commit_authored_at, current_commit_committed_at, current_commit_author_name,
+  current_commit_author_email, current_commit_message, deleted_at,
   created_at, updated_at
 FROM repo_refs_current
 WHERE repo_id = ?1
@@ -312,7 +314,9 @@ WHERE repo_id = ?1
 -- name: ListRepoRefChangesFiltered :many
 SELECT
   id, repo_id, task_run_id, ref_name, ref_kind, action,
-  old_hash, new_hash, archive_ref_name, created_at
+  old_hash, new_hash, new_commit_authored_at, new_commit_committed_at,
+  new_commit_author_name, new_commit_author_email, new_commit_message,
+  archive_ref_name, created_at
 FROM repo_ref_changes
 WHERE repo_id = ?1
   AND (?2 IS NULL OR ref_name = ?2)

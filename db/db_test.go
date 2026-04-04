@@ -159,10 +159,10 @@ func TestLatestMigrationBackfillsRepoRefsLastHashUpdatedAtFromUpdatedAt(t *testi
 	_, err = sqliteDB.ExecContext(context.Background(), `
 		INSERT INTO repo_refs_current (
 			id, repo_id, ref_name, ref_kind, current_hash, status, archive_ref_name,
-			first_seen_at, last_seen_at, deleted_at, created_at, updated_at
+			first_seen_at, last_seen_at, last_hash_updated_at, deleted_at, created_at, updated_at
 		) VALUES (
 			1, 1, 'refs/heads/main', 'head', 'abc123', 'active', 'refs/archive/heads/main/abc123',
-			'2026-04-04T08:00:00Z', '2026-04-04T09:00:00Z', NULL,
+			'2026-04-04T08:00:00Z', '2026-04-04T09:00:00Z', '2026-04-04T09:00:00Z', NULL,
 			'2026-04-04T08:00:00Z', '2026-04-04T09:00:00Z'
 		)
 	`)

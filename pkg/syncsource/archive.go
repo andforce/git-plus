@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -12,6 +13,7 @@ import (
 
 	dbsqlc "github.com/ImSingee/git-plus/db/sqlc"
 	"github.com/ImSingee/git-plus/pkg/archivegit"
+	git "github.com/go-git/go-git/v5"
 	githttp "github.com/go-git/go-git/v5/plumbing/transport/http"
 )
 
@@ -38,6 +40,20 @@ type repositoryArchiveResult struct {
 	Changes     []archivegit.Change
 }
 
+type repositoryCommitInfoLoader interface {
+	Load(
+		ctx context.Context,
+		repoPath string,
+		currentRows []dbsqlc.RepoRefsCurrent,
+		archiveResult repositoryArchiveResult,
+	) (repoRefCommitMetadata, error)
+}
+
+type repoRefCommitMetadata struct {
+	currentByRefName map[string]archivegit.CommitInfo
+	newByRefName     map[string]archivegit.CommitInfo
+}
+
 type repoSyncOutcome struct {
 	repo        dbsqlc.Repo
 	path        string
@@ -51,6 +67,8 @@ type repoSyncOutcome struct {
 }
 
 type goGitRepositoryArchiver struct{}
+
+type goGitCommitInfoLoader struct{}
 
 func (archiver *goGitRepositoryArchiver) SyncRepository(ctx context.Context, request repositoryArchiveRequest) (repositoryArchiveResult, error) {
 	if strings.TrimSpace(request.Path) == "" {
@@ -79,6 +97,87 @@ func (archiver *goGitRepositoryArchiver) SyncRepository(ctx context.Context, req
 		CurrentRefs: remoteRefs,
 		Changes:     changes,
 	}, nil
+}
+
+func (loader *goGitCommitInfoLoader) Load(
+	_ context.Context,
+	repoPath string,
+	currentRows []dbsqlc.RepoRefsCurrent,
+	archiveResult repositoryArchiveResult,
+) (repoRefCommitMetadata, error) {
+	metadata := repoRefCommitMetadata{
+		currentByRefName: make(map[string]archivegit.CommitInfo),
+		newByRefName:     make(map[string]archivegit.CommitInfo),
+	}
+
+	if strings.TrimSpace(repoPath) == "" {
+		return metadata, nil
+	}
+
+	repo, err := git.PlainOpen(repoPath)
+	if err != nil {
+		if os.IsNotExist(err) || err == git.ErrRepositoryNotExists {
+			return metadata, nil
+		}
+		return repoRefCommitMetadata{}, fmt.Errorf("open archive repository %q: %w", repoPath, err)
+	}
+
+	currentByName := make(map[string]dbsqlc.RepoRefsCurrent, len(currentRows))
+	for _, row := range currentRows {
+		currentByName[row.RefName] = row
+	}
+
+	changeByName := make(map[string]archivegit.Change, len(archiveResult.Changes))
+	for _, change := range archiveResult.Changes {
+		changeByName[change.RefName] = change
+	}
+
+	resolvedByHash := make(map[string]*archivegit.CommitInfo)
+	resolveByHash := func(hash string) (*archivegit.CommitInfo, error) {
+		trimmedHash := strings.TrimSpace(hash)
+		if trimmedHash == "" {
+			return nil, nil
+		}
+		if cached, ok := resolvedByHash[trimmedHash]; ok {
+			return cached, nil
+		}
+
+		info, err := archivegit.ResolveCommitInfo(repo, trimmedHash)
+		if err != nil {
+			return nil, err
+		}
+		resolvedByHash[trimmedHash] = info
+		return info, nil
+	}
+
+	for _, remoteRef := range archiveResult.CurrentRefs {
+		change, hasChange := changeByName[remoteRef.Name]
+		needsCurrentCommit := false
+		if hasChange && (change.Action == archivegit.ChangeActionCreate || change.Action == archivegit.ChangeActionUpdate) {
+			needsCurrentCommit = true
+		} else if existingRow, ok := currentByName[remoteRef.Name]; !ok || !existingRow.CurrentCommitAuthoredAt.Valid {
+			needsCurrentCommit = true
+		}
+
+		if !needsCurrentCommit {
+			continue
+		}
+
+		info, err := resolveByHash(remoteRef.Hash)
+		if err != nil {
+			return repoRefCommitMetadata{}, fmt.Errorf("resolve commit info for ref %q: %w", remoteRef.Name, err)
+		}
+		if info == nil {
+			continue
+		}
+
+		metadata.currentByRefName[remoteRef.Name] = *info
+		if hasChange && (change.Action == archivegit.ChangeActionCreate || change.Action == archivegit.ChangeActionUpdate) {
+			metadata.newByRefName[remoteRef.Name] = *info
+		}
+	}
+
+	return metadata, nil
 }
 
 func (executor *Executor) syncActiveRepos(ctx context.Context, db *sql.DB, request SyncRequest, reporter ProgressReporter) (ArchiveResult, error) {
@@ -240,7 +339,12 @@ func (executor *Executor) syncRepoOnce(ctx context.Context, db *sql.DB, request 
 	}
 
 	now := executor.now().UTC().Format(time.RFC3339Nano)
-	if err := persistRepoRefState(ctx, db, repo.ID, request.RunID, currentRows, archiveResult, now); err != nil {
+	commitMetadata, err := executor.commitInfoLoader.Load(ctx, repoPath, currentRows, archiveResult)
+	if err != nil {
+		return repoSyncOutcome{}, fmt.Errorf("load commit info for %q: %w", repo.FullName, err)
+	}
+
+	if err := persistRepoRefState(ctx, db, repo.ID, request.RunID, currentRows, archiveResult, commitMetadata, now); err != nil {
 		return repoSyncOutcome{}, fmt.Errorf("persist repo ref state for %q: %w", repo.FullName, err)
 	}
 
@@ -265,7 +369,16 @@ func (executor *Executor) syncRepoOnce(ctx context.Context, db *sql.DB, request 
 	return outcome, nil
 }
 
-func persistRepoRefState(ctx context.Context, db *sql.DB, repoID int64, taskRunID string, currentRows []dbsqlc.RepoRefsCurrent, archiveResult repositoryArchiveResult, now string) error {
+func persistRepoRefState(
+	ctx context.Context,
+	db *sql.DB,
+	repoID int64,
+	taskRunID string,
+	currentRows []dbsqlc.RepoRefsCurrent,
+	archiveResult repositoryArchiveResult,
+	commitMetadata repoRefCommitMetadata,
+	now string,
+) error {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("begin repo ref transaction: %w", err)
@@ -291,19 +404,32 @@ func persistRepoRefState(ctx context.Context, db *sql.DB, repoID int64, taskRunI
 			archiveRefName = existingRow.ArchiveRefName
 		}
 
+		currentCommit := commitFields{}
+		if existingRow, ok := currentByName[remoteRef.Name]; ok {
+			currentCommit = commitFieldsFromExistingRow(existingRow)
+		}
+		if info, ok := commitMetadata.currentByRefName[remoteRef.Name]; ok {
+			currentCommit = commitFieldsFromInfo(info)
+		}
+
 		if err := queries.UpsertRepoRefCurrent(ctx, dbsqlc.UpsertRepoRefCurrentParams{
-			RepoID:            repoID,
-			RefName:           remoteRef.Name,
-			RefKind:           remoteRef.Kind,
-			CurrentHash:       remoteRef.Hash,
-			Status:            archivegit.RefStatusActive,
-			ArchiveRefName:    archiveRefName,
-			FirstSeenAt:       now,
-			LastSeenAt:        now,
-			LastHashUpdatedAt: now,
-			DeletedAt:         sql.NullString{},
-			CreatedAt:         now,
-			UpdatedAt:         now,
+			RepoID:                   repoID,
+			RefName:                  remoteRef.Name,
+			RefKind:                  remoteRef.Kind,
+			CurrentHash:              remoteRef.Hash,
+			Status:                   archivegit.RefStatusActive,
+			ArchiveRefName:           archiveRefName,
+			FirstSeenAt:              now,
+			LastSeenAt:               now,
+			LastHashUpdatedAt:        now,
+			CurrentCommitAuthoredAt:  currentCommit.AuthoredAt,
+			CurrentCommitCommittedAt: currentCommit.CommittedAt,
+			CurrentCommitAuthorName:  currentCommit.AuthorName,
+			CurrentCommitAuthorEmail: currentCommit.AuthorEmail,
+			CurrentCommitMessage:     currentCommit.Message,
+			DeletedAt:                sql.NullString{},
+			CreatedAt:                now,
+			UpdatedAt:                now,
 		}); err != nil {
 			_ = tx.Rollback()
 			return fmt.Errorf("upsert current ref %q: %w", remoteRef.Name, err)
@@ -313,16 +439,26 @@ func persistRepoRefState(ctx context.Context, db *sql.DB, repoID int64, taskRunI
 			continue
 		}
 
+		newCommit := commitFields{}
+		if info, ok := commitMetadata.newByRefName[change.RefName]; ok {
+			newCommit = commitFieldsFromInfo(info)
+		}
+
 		if err := queries.CreateRepoRefChange(ctx, dbsqlc.CreateRepoRefChangeParams{
-			RepoID:         repoID,
-			TaskRunID:      taskRunID,
-			RefName:        change.RefName,
-			RefKind:        change.RefKind,
-			Action:         change.Action,
-			OldHash:        nullableString(change.OldHash),
-			NewHash:        nullableString(change.NewHash),
-			ArchiveRefName: nullableString(change.ArchiveRefName),
-			CreatedAt:      now,
+			RepoID:               repoID,
+			TaskRunID:            taskRunID,
+			RefName:              change.RefName,
+			RefKind:              change.RefKind,
+			Action:               change.Action,
+			OldHash:              nullableString(change.OldHash),
+			NewHash:              nullableString(change.NewHash),
+			NewCommitAuthoredAt:  newCommit.AuthoredAt,
+			NewCommitCommittedAt: newCommit.CommittedAt,
+			NewCommitAuthorName:  newCommit.AuthorName,
+			NewCommitAuthorEmail: newCommit.AuthorEmail,
+			NewCommitMessage:     newCommit.Message,
+			ArchiveRefName:       nullableString(change.ArchiveRefName),
+			CreatedAt:            now,
 		}); err != nil {
 			_ = tx.Rollback()
 			return fmt.Errorf("insert ref change %q: %w", change.RefName, err)
@@ -345,15 +481,20 @@ func persistRepoRefState(ctx context.Context, db *sql.DB, repoID int64, taskRunI
 		}
 
 		if err := queries.CreateRepoRefChange(ctx, dbsqlc.CreateRepoRefChangeParams{
-			RepoID:         repoID,
-			TaskRunID:      taskRunID,
-			RefName:        change.RefName,
-			RefKind:        change.RefKind,
-			Action:         change.Action,
-			OldHash:        nullableString(change.OldHash),
-			NewHash:        sql.NullString{},
-			ArchiveRefName: sql.NullString{},
-			CreatedAt:      now,
+			RepoID:               repoID,
+			TaskRunID:            taskRunID,
+			RefName:              change.RefName,
+			RefKind:              change.RefKind,
+			Action:               change.Action,
+			OldHash:              nullableString(change.OldHash),
+			NewHash:              sql.NullString{},
+			NewCommitAuthoredAt:  sql.NullString{},
+			NewCommitCommittedAt: sql.NullString{},
+			NewCommitAuthorName:  sql.NullString{},
+			NewCommitAuthorEmail: sql.NullString{},
+			NewCommitMessage:     sql.NullString{},
+			ArchiveRefName:       sql.NullString{},
+			CreatedAt:            now,
 		}); err != nil {
 			_ = tx.Rollback()
 			return fmt.Errorf("insert delete ref change %q: %w", change.RefName, err)
@@ -365,6 +506,34 @@ func persistRepoRefState(ctx context.Context, db *sql.DB, repoID int64, taskRunI
 	}
 
 	return nil
+}
+
+type commitFields struct {
+	AuthoredAt  sql.NullString
+	CommittedAt sql.NullString
+	AuthorName  sql.NullString
+	AuthorEmail sql.NullString
+	Message     sql.NullString
+}
+
+func commitFieldsFromExistingRow(row dbsqlc.RepoRefsCurrent) commitFields {
+	return commitFields{
+		AuthoredAt:  row.CurrentCommitAuthoredAt,
+		CommittedAt: row.CurrentCommitCommittedAt,
+		AuthorName:  row.CurrentCommitAuthorName,
+		AuthorEmail: row.CurrentCommitAuthorEmail,
+		Message:     row.CurrentCommitMessage,
+	}
+}
+
+func commitFieldsFromInfo(info archivegit.CommitInfo) commitFields {
+	return commitFields{
+		AuthoredAt:  nullableTime(info.AuthoredAt),
+		CommittedAt: nullableTime(info.CommittedAt),
+		AuthorName:  nullableString(info.AuthorName),
+		AuthorEmail: nullableString(info.AuthorEmail),
+		Message:     nullableString(info.Message),
+	}
 }
 
 func (executor *Executor) recordRepoSyncFailure(ctx context.Context, db *sql.DB, request SyncRequest, outcome repoSyncOutcome) error {

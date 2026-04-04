@@ -407,6 +407,22 @@ func TestExecutorSyncActiveReposRetriesPersistsRefsAndLogsFailures(t *testing.T)
 	}); err != nil {
 		t.Fatalf("seed legacy ref: %v", err)
 	}
+	if err := queries.UpsertRepoRefCurrent(context.Background(), dbsqlc.UpsertRepoRefCurrentParams{
+		RepoID:            coreRepo.ID,
+		RefName:           "refs/heads/stable",
+		RefKind:           "head",
+		CurrentHash:       strings.Repeat("5", 40),
+		Status:            "active",
+		ArchiveRefName:    nullableString("refs/archive/heads/stable/" + strings.Repeat("5", 40)),
+		FirstSeenAt:       "2026-04-04T08:00:00Z",
+		LastSeenAt:        "2026-04-04T08:00:00Z",
+		LastHashUpdatedAt: "2026-04-04T08:00:00Z",
+		DeletedAt:         sql.NullString{},
+		CreatedAt:         "2026-04-04T08:00:00Z",
+		UpdatedAt:         "2026-04-04T08:00:00Z",
+	}); err != nil {
+		t.Fatalf("seed stable ref: %v", err)
+	}
 	if err := queries.CreateTaskRun(context.Background(), dbsqlc.CreateTaskRunParams{
 		TaskID:               "task-sync-1",
 		ParentTaskID:         sql.NullString{},
@@ -451,6 +467,11 @@ func TestExecutorSyncActiveReposRetriesPersistsRefsAndLogsFailures(t *testing.T)
 								Hash: strings.Repeat("3", 40),
 							},
 							{
+								Name: "refs/heads/stable",
+								Kind: archivegit.RefKindHead,
+								Hash: strings.Repeat("5", 40),
+							},
+							{
 								Name: "refs/tags/v1.0.0",
 								Kind: archivegit.RefKindTag,
 								Hash: strings.Repeat("4", 40),
@@ -491,6 +512,21 @@ func TestExecutorSyncActiveReposRetriesPersistsRefsAndLogsFailures(t *testing.T)
 		WithSleep(func(_ context.Context, delay time.Duration) error {
 			recordedSleeps = append(recordedSleeps, delay)
 			return nil
+		}),
+		WithCommitInfoLoader(stubCommitInfoLoader{
+			load: func(_ context.Context, _ string, _ []dbsqlc.RepoRefsCurrent, archiveResult repositoryArchiveResult) (repoRefCommitMetadata, error) {
+				return repoRefCommitMetadata{
+					currentByRefName: map[string]archivegit.CommitInfo{
+						"refs/heads/main":   testCommitInfo("Alice", "alice@example.com", "main update", "2026-04-04T09:55:00Z", "2026-04-04T10:00:00Z"),
+						"refs/heads/stable": testCommitInfo("Carol", "carol@example.com", "stable current", "2026-04-04T08:10:00Z", "2026-04-04T08:20:00Z"),
+						"refs/tags/v1.0.0":  testCommitInfo("Release Bot", "release@example.com", "tag release", "2026-04-04T09:58:00Z", "2026-04-04T10:00:00Z"),
+					},
+					newByRefName: map[string]archivegit.CommitInfo{
+						"refs/heads/main":  testCommitInfo("Alice", "alice@example.com", "main update", "2026-04-04T09:55:00Z", "2026-04-04T10:00:00Z"),
+						"refs/tags/v1.0.0": testCommitInfo("Release Bot", "release@example.com", "tag release", "2026-04-04T09:58:00Z", "2026-04-04T10:00:00Z"),
+					},
+				}, nil
+			},
 		}),
 		WithNow(func() time.Time {
 			return time.Date(2026, time.April, 4, 10, 0, 0, 0, time.UTC)
@@ -537,11 +573,26 @@ func TestExecutorSyncActiveReposRetriesPersistsRefsAndLogsFailures(t *testing.T)
 	if currentByName["refs/heads/main"].LastHashUpdatedAt != "2026-04-04T10:00:00Z" {
 		t.Fatalf("expected main last_hash_updated_at to advance, got %#v", currentByName["refs/heads/main"])
 	}
+	if currentByName["refs/heads/main"].CurrentCommitAuthorName.String != "Alice" {
+		t.Fatalf("expected main commit author to be backfilled, got %#v", currentByName["refs/heads/main"])
+	}
+	if currentByName["refs/heads/main"].CurrentCommitCommittedAt.String != "2026-04-04T10:00:00Z" {
+		t.Fatalf("expected main committed_at to be saved, got %#v", currentByName["refs/heads/main"])
+	}
 	if currentByName["refs/heads/legacy"].Status != archivegit.RefStatusDeleted {
 		t.Fatalf("expected legacy branch to be deleted, got %#v", currentByName["refs/heads/legacy"])
 	}
 	if currentByName["refs/heads/legacy"].LastHashUpdatedAt != "2026-04-04T08:00:00Z" {
 		t.Fatalf("expected deleted ref to keep last_hash_updated_at, got %#v", currentByName["refs/heads/legacy"])
+	}
+	if currentByName["refs/heads/legacy"].CurrentCommitAuthoredAt.Valid {
+		t.Fatalf("expected deleted ref to keep empty commit metadata when none existed, got %#v", currentByName["refs/heads/legacy"])
+	}
+	if currentByName["refs/heads/stable"].CurrentCommitAuthorName.String != "Carol" {
+		t.Fatalf("expected unchanged stable ref to backfill commit metadata, got %#v", currentByName["refs/heads/stable"])
+	}
+	if currentByName["refs/heads/stable"].LastHashUpdatedAt != "2026-04-04T08:00:00Z" {
+		t.Fatalf("expected unchanged stable ref to preserve last_hash_updated_at, got %#v", currentByName["refs/heads/stable"])
 	}
 	if currentByName["refs/tags/v1.0.0"].Status != archivegit.RefStatusActive {
 		t.Fatalf("expected tag to be active, got %#v", currentByName["refs/tags/v1.0.0"])
@@ -549,9 +600,12 @@ func TestExecutorSyncActiveReposRetriesPersistsRefsAndLogsFailures(t *testing.T)
 	if currentByName["refs/tags/v1.0.0"].LastHashUpdatedAt != "2026-04-04T10:00:00Z" {
 		t.Fatalf("expected created tag to set last_hash_updated_at, got %#v", currentByName["refs/tags/v1.0.0"])
 	}
+	if currentByName["refs/tags/v1.0.0"].CurrentCommitMessage.String != "tag release" {
+		t.Fatalf("expected tag commit metadata to be stored, got %#v", currentByName["refs/tags/v1.0.0"])
+	}
 
 	rows, err := sqliteDB.Query(`
-		SELECT ref_name, action
+		SELECT ref_name, action, new_commit_authored_at, new_commit_committed_at, new_commit_author_name
 		FROM repo_ref_changes
 		WHERE repo_id = ?
 		ORDER BY ref_name, action
@@ -565,10 +619,23 @@ func TestExecutorSyncActiveReposRetriesPersistsRefsAndLogsFailures(t *testing.T)
 	for rows.Next() {
 		var refName string
 		var action string
-		if err := rows.Scan(&refName, &action); err != nil {
+		var newCommitAuthoredAt sql.NullString
+		var newCommitCommittedAt sql.NullString
+		var newCommitAuthorName sql.NullString
+		if err := rows.Scan(&refName, &action, &newCommitAuthoredAt, &newCommitCommittedAt, &newCommitAuthorName); err != nil {
 			t.Fatalf("scan repo ref change: %v", err)
 		}
 		changePairs = append(changePairs, refName+":"+action)
+		switch refName + ":" + action {
+		case "refs/heads/main:update", "refs/tags/v1.0.0:create":
+			if !newCommitAuthoredAt.Valid || !newCommitCommittedAt.Valid || !newCommitAuthorName.Valid {
+				t.Fatalf("expected new commit metadata for %s:%s, got authored=%#v committed=%#v author=%#v", refName, action, newCommitAuthoredAt, newCommitCommittedAt, newCommitAuthorName)
+			}
+		case "refs/heads/legacy:delete":
+			if newCommitAuthoredAt.Valid || newCommitCommittedAt.Valid || newCommitAuthorName.Valid {
+				t.Fatalf("expected delete change to keep new commit metadata empty, got authored=%#v committed=%#v author=%#v", newCommitAuthoredAt, newCommitCommittedAt, newCommitAuthorName)
+			}
+		}
 	}
 	if err := rows.Err(); err != nil {
 		t.Fatalf("iterate repo ref changes: %v", err)
@@ -677,6 +744,23 @@ func (archiver stubRepositoryArchiver) SyncRepository(ctx context.Context, reque
 	return repositoryArchiveResult{}, nil
 }
 
+type stubCommitInfoLoader struct {
+	load func(context.Context, string, []dbsqlc.RepoRefsCurrent, repositoryArchiveResult) (repoRefCommitMetadata, error)
+}
+
+func (loader stubCommitInfoLoader) Load(
+	ctx context.Context,
+	repoPath string,
+	currentRows []dbsqlc.RepoRefsCurrent,
+	archiveResult repositoryArchiveResult,
+) (repoRefCommitMetadata, error) {
+	if loader.load != nil {
+		return loader.load(ctx, repoPath, currentRows, archiveResult)
+	}
+
+	return repoRefCommitMetadata{}, nil
+}
+
 func (reporter *recordingReporter) SetProgress(summary string, meta map[string]any) error {
 	clonedMeta := make(map[string]any, len(meta))
 	for key, value := range meta {
@@ -756,6 +840,25 @@ func findRepoByRefID(t *testing.T, repos []repoRow, refID string) repoRow {
 
 	t.Fatalf("repo %q not found", refID)
 	return repoRow{}
+}
+
+func testCommitInfo(authorName string, authorEmail string, message string, authoredAt string, committedAt string) archivegit.CommitInfo {
+	authoredTime, err := time.Parse(time.RFC3339Nano, authoredAt)
+	if err != nil {
+		panic(err)
+	}
+	committedTime, err := time.Parse(time.RFC3339Nano, committedAt)
+	if err != nil {
+		panic(err)
+	}
+
+	return archivegit.CommitInfo{
+		AuthoredAt:  authoredTime,
+		CommittedAt: committedTime,
+		AuthorName:  authorName,
+		AuthorEmail: authorEmail,
+		Message:     message,
+	}
 }
 
 func assertOriginKinds(t *testing.T, originJSON string, expected []string) {

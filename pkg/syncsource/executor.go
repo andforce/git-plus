@@ -20,14 +20,15 @@ const defaultGitHubPerPage = 100
 type Option func(*Executor)
 
 type Executor struct {
-	dataDir      string
-	db           *sql.DB
-	perPage      int
-	now          func() time.Time
-	sleep        func(context.Context, time.Duration) error
-	openDB       func(context.Context, string) (*sql.DB, error)
-	githubClient githubClient
-	repoArchiver repositoryArchiver
+	dataDir          string
+	db               *sql.DB
+	perPage          int
+	now              func() time.Time
+	sleep            func(context.Context, time.Duration) error
+	openDB           func(context.Context, string) (*sql.DB, error)
+	githubClient     githubClient
+	repoArchiver     repositoryArchiver
+	commitInfoLoader repositoryCommitInfoLoader
 }
 
 type progressUpdate struct {
@@ -37,13 +38,14 @@ type progressUpdate struct {
 
 func NewExecutor(dataDir string, options ...Option) *Executor {
 	executor := &Executor{
-		dataDir:      dataDir,
-		perPage:      defaultGitHubPerPage,
-		now:          time.Now,
-		sleep:        sleepWithContext,
-		openDB:       appdb.Open,
-		githubClient: newGitHubAPIClient(defaultGitHubAPIBaseURL, nil),
-		repoArchiver: &goGitRepositoryArchiver{},
+		dataDir:          dataDir,
+		perPage:          defaultGitHubPerPage,
+		now:              time.Now,
+		sleep:            sleepWithContext,
+		openDB:           appdb.Open,
+		githubClient:     newGitHubAPIClient(defaultGitHubAPIBaseURL, nil),
+		repoArchiver:     &goGitRepositoryArchiver{},
+		commitInfoLoader: &goGitCommitInfoLoader{},
 	}
 
 	for _, option := range options {
@@ -125,6 +127,14 @@ func WithRepositoryArchiver(repoArchiver repositoryArchiver) Option {
 	return func(executor *Executor) {
 		if repoArchiver != nil {
 			executor.repoArchiver = repoArchiver
+		}
+	}
+}
+
+func WithCommitInfoLoader(loader repositoryCommitInfoLoader) Option {
+	return func(executor *Executor) {
+		if loader != nil {
+			executor.commitInfoLoader = loader
 		}
 	}
 }
@@ -526,6 +536,17 @@ func nullableString(value string) sql.NullString {
 
 	return sql.NullString{
 		String: trimmed,
+		Valid:  true,
+	}
+}
+
+func nullableTime(value time.Time) sql.NullString {
+	if value.IsZero() {
+		return sql.NullString{}
+	}
+
+	return sql.NullString{
+		String: value.UTC().Format(time.RFC3339Nano),
 		Valid:  true,
 	}
 }
