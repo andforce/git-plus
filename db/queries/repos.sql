@@ -168,20 +168,29 @@ SELECT
 FROM repos
 WHERE id = ?1;
 
--- name: ListRepoRefsCurrent :many
+-- name: ListRepoRefs :many
 SELECT
   id, repo_id, ref_name, ref_kind, current_hash, status,
   archive_ref_name, first_seen_at, last_seen_at, deleted_at,
   created_at, updated_at
 FROM repo_refs_current
 WHERE repo_id = ?1
-ORDER BY ref_kind, ref_name;
+  AND ref_kind = ?2
+  AND (?3 = 1 OR status <> 'deleted')
+ORDER BY ref_name;
 
--- name: ListRepoRefChanges :many
+-- name: CountRepoRefChanges :one
+SELECT COUNT(1)
+FROM repo_ref_changes
+WHERE repo_id = ?1
+  AND (?2 IS NULL OR ref_name = ?2);
+
+-- name: ListRepoRefChangesFiltered :many
 SELECT
   id, repo_id, task_run_id, ref_name, ref_kind, action,
   old_hash, new_hash, archive_ref_name, created_at
 FROM repo_ref_changes
 WHERE repo_id = ?1
+  AND (?2 IS NULL OR ref_name = ?2)
 ORDER BY created_at DESC
-LIMIT 100;
+LIMIT ?3 OFFSET ?4;

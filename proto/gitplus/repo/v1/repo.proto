@@ -43,7 +43,7 @@ message ListRepositoriesRequest {
   string source_id = 4;
   // Sort key combining field and direction.
   // Accepted values: "created_at_desc" (default), "created_at_asc",
-  // "full_name_asc", "full_name_desc".
+  // "name_asc", "name_desc".
   string sort = 5;
 }
 
@@ -59,8 +59,40 @@ message GetRepositoryRequest {
 
 message GetRepositoryResponse {
   Repository repository = 1;
-  repeated RepoRef refs = 2;
-  repeated RepoRefChange recent_changes = 3;
+}
+
+message ListRefsRequest {
+  int64 repo_id = 1;
+  // Filter by ref kind: "head" for branches, "tag" for tags.
+  string ref_kind = 2 [(buf.validate.field).string = {
+    in: [
+      "head",
+      "tag"
+    ]
+  }];
+  // If true, include deleted refs. Default is false (active only).
+  bool include_deleted = 3;
+}
+
+message ListRefsResponse {
+  repeated RepoRef refs = 1;
+}
+
+message ListRefChangesRequest {
+  int64 repo_id = 1;
+  // Optional: filter by ref name (exact match).
+  string ref_name = 2;
+  int32 page_size = 3 [(buf.validate.field).int32 = {
+    gte: 1
+    lte: 100
+  }];
+  string page_token = 4;
+}
+
+message ListRefChangesResponse {
+  repeated RepoRefChange changes = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
 }
 
 message RepoRef {
@@ -89,4 +121,6 @@ message RepoRefChange {
 service RepoService {
   rpc ListRepositories(ListRepositoriesRequest) returns (ListRepositoriesResponse);
   rpc GetRepository(GetRepositoryRequest) returns (GetRepositoryResponse);
+  rpc ListRefs(ListRefsRequest) returns (ListRefsResponse);
+  rpc ListRefChanges(ListRefChangesRequest) returns (ListRefChangesResponse);
 }

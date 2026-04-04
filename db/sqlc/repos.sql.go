@@ -10,6 +10,25 @@ import (
 	"database/sql"
 )
 
+const countRepoRefChanges = `-- name: CountRepoRefChanges :one
+SELECT COUNT(1)
+FROM repo_ref_changes
+WHERE repo_id = ?1
+  AND (?2 IS NULL OR ref_name = ?2)
+`
+
+type CountRepoRefChangesParams struct {
+	RepoID  int64
+	Column2 interface{}
+}
+
+func (q *Queries) CountRepoRefChanges(ctx context.Context, arg CountRepoRefChangesParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countRepoRefChanges, arg.RepoID, arg.Column2)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countReposFiltered = `-- name: CountReposFiltered :one
 SELECT COUNT(1)
 FROM repos
@@ -230,18 +249,31 @@ func (q *Queries) ListActiveReposForSource(ctx context.Context, sourceID string)
 	return items, nil
 }
 
-const listRepoRefChanges = `-- name: ListRepoRefChanges :many
+const listRepoRefChangesFiltered = `-- name: ListRepoRefChangesFiltered :many
 SELECT
   id, repo_id, task_run_id, ref_name, ref_kind, action,
   old_hash, new_hash, archive_ref_name, created_at
 FROM repo_ref_changes
 WHERE repo_id = ?1
+  AND (?2 IS NULL OR ref_name = ?2)
 ORDER BY created_at DESC
-LIMIT 100
+LIMIT ?3 OFFSET ?4
 `
 
-func (q *Queries) ListRepoRefChanges(ctx context.Context, repoID int64) ([]RepoRefChange, error) {
-	rows, err := q.db.QueryContext(ctx, listRepoRefChanges, repoID)
+type ListRepoRefChangesFilteredParams struct {
+	RepoID  int64
+	Column2 interface{}
+	Limit   int64
+	Offset  int64
+}
+
+func (q *Queries) ListRepoRefChangesFiltered(ctx context.Context, arg ListRepoRefChangesFilteredParams) ([]RepoRefChange, error) {
+	rows, err := q.db.QueryContext(ctx, listRepoRefChangesFiltered,
+		arg.RepoID,
+		arg.Column2,
+		arg.Limit,
+		arg.Offset,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -274,18 +306,26 @@ func (q *Queries) ListRepoRefChanges(ctx context.Context, repoID int64) ([]RepoR
 	return items, nil
 }
 
-const listRepoRefsCurrent = `-- name: ListRepoRefsCurrent :many
+const listRepoRefs = `-- name: ListRepoRefs :many
 SELECT
   id, repo_id, ref_name, ref_kind, current_hash, status,
   archive_ref_name, first_seen_at, last_seen_at, deleted_at,
   created_at, updated_at
 FROM repo_refs_current
 WHERE repo_id = ?1
-ORDER BY ref_kind, ref_name
+  AND ref_kind = ?2
+  AND (?3 = 1 OR status <> 'deleted')
+ORDER BY ref_name
 `
 
-func (q *Queries) ListRepoRefsCurrent(ctx context.Context, repoID int64) ([]RepoRefsCurrent, error) {
-	rows, err := q.db.QueryContext(ctx, listRepoRefsCurrent, repoID)
+type ListRepoRefsParams struct {
+	RepoID  int64
+	RefKind string
+	Column3 interface{}
+}
+
+func (q *Queries) ListRepoRefs(ctx context.Context, arg ListRepoRefsParams) ([]RepoRefsCurrent, error) {
+	rows, err := q.db.QueryContext(ctx, listRepoRefs, arg.RepoID, arg.RefKind, arg.Column3)
 	if err != nil {
 		return nil, err
 	}
@@ -350,10 +390,10 @@ WHERE (?1 IS NULL OR source_id = ?1)
   AND (?2 IS NULL OR (full_name LIKE '%' || ?2 || '%' OR description LIKE '%' || ?2 || '%'))
   AND ?3 IS NOT NULL
 ORDER BY
-  CASE WHEN ?3 ='created_at_desc' THEN created_at END DESC,
-  CASE WHEN ?3 ='created_at_asc'  THEN created_at END ASC,
-  CASE WHEN ?3 ='name_asc'   THEN name  END ASC,
-  CASE WHEN ?3 ='name_desc'  THEN name  END DESC
+  CASE WHEN ?3 = 'created_at_desc' THEN created_at END DESC,
+  CASE WHEN ?3 = 'created_at_asc'  THEN created_at END ASC,
+  CASE WHEN ?3 = 'name_asc'   THEN name  END ASC,
+  CASE WHEN ?3 = 'name_desc'  THEN name  END DESC
 LIMIT ?5 OFFSET ?4
 `
 

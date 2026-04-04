@@ -229,7 +229,7 @@ type ListRepositoriesRequest struct {
 	SourceId  *string                `protobuf:"bytes,4,opt,name=source_id,json=sourceId" json:"source_id,omitempty"`
 	// Sort key combining field and direction.
 	// Accepted values: "created_at_desc" (default), "created_at_asc",
-	// "full_name_asc", "full_name_desc".
+	// "name_asc", "name_desc".
 	Sort          *string `protobuf:"bytes,5,opt,name=sort" json:"sort,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -407,8 +407,6 @@ func (x *GetRepositoryRequest) GetId() int64 {
 type GetRepositoryResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Repository    *Repository            `protobuf:"bytes,1,opt,name=repository" json:"repository,omitempty"`
-	Refs          []*RepoRef             `protobuf:"bytes,2,rep,name=refs" json:"refs,omitempty"`
-	RecentChanges []*RepoRefChange       `protobuf:"bytes,3,rep,name=recent_changes,json=recentChanges" json:"recent_changes,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -450,18 +448,239 @@ func (x *GetRepositoryResponse) GetRepository() *Repository {
 	return nil
 }
 
-func (x *GetRepositoryResponse) GetRefs() []*RepoRef {
+type ListRefsRequest struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	RepoId *int64                 `protobuf:"varint,1,opt,name=repo_id,json=repoId" json:"repo_id,omitempty"`
+	// Filter by ref kind: "head" for branches, "tag" for tags.
+	RefKind *string `protobuf:"bytes,2,opt,name=ref_kind,json=refKind" json:"ref_kind,omitempty"`
+	// If true, include deleted refs. Default is false (active only).
+	IncludeDeleted *bool `protobuf:"varint,3,opt,name=include_deleted,json=includeDeleted" json:"include_deleted,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *ListRefsRequest) Reset() {
+	*x = ListRefsRequest{}
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListRefsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListRefsRequest) ProtoMessage() {}
+
+func (x *ListRefsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListRefsRequest.ProtoReflect.Descriptor instead.
+func (*ListRefsRequest) Descriptor() ([]byte, []int) {
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ListRefsRequest) GetRepoId() int64 {
+	if x != nil && x.RepoId != nil {
+		return *x.RepoId
+	}
+	return 0
+}
+
+func (x *ListRefsRequest) GetRefKind() string {
+	if x != nil && x.RefKind != nil {
+		return *x.RefKind
+	}
+	return ""
+}
+
+func (x *ListRefsRequest) GetIncludeDeleted() bool {
+	if x != nil && x.IncludeDeleted != nil {
+		return *x.IncludeDeleted
+	}
+	return false
+}
+
+type ListRefsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Refs          []*RepoRef             `protobuf:"bytes,1,rep,name=refs" json:"refs,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListRefsResponse) Reset() {
+	*x = ListRefsResponse{}
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListRefsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListRefsResponse) ProtoMessage() {}
+
+func (x *ListRefsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListRefsResponse.ProtoReflect.Descriptor instead.
+func (*ListRefsResponse) Descriptor() ([]byte, []int) {
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ListRefsResponse) GetRefs() []*RepoRef {
 	if x != nil {
 		return x.Refs
 	}
 	return nil
 }
 
-func (x *GetRepositoryResponse) GetRecentChanges() []*RepoRefChange {
+type ListRefChangesRequest struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	RepoId *int64                 `protobuf:"varint,1,opt,name=repo_id,json=repoId" json:"repo_id,omitempty"`
+	// Optional: filter by ref name (exact match).
+	RefName       *string `protobuf:"bytes,2,opt,name=ref_name,json=refName" json:"ref_name,omitempty"`
+	PageSize      *int32  `protobuf:"varint,3,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageToken     *string `protobuf:"bytes,4,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListRefChangesRequest) Reset() {
+	*x = ListRefChangesRequest{}
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListRefChangesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListRefChangesRequest) ProtoMessage() {}
+
+func (x *ListRefChangesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[7]
 	if x != nil {
-		return x.RecentChanges
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListRefChangesRequest.ProtoReflect.Descriptor instead.
+func (*ListRefChangesRequest) Descriptor() ([]byte, []int) {
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *ListRefChangesRequest) GetRepoId() int64 {
+	if x != nil && x.RepoId != nil {
+		return *x.RepoId
+	}
+	return 0
+}
+
+func (x *ListRefChangesRequest) GetRefName() string {
+	if x != nil && x.RefName != nil {
+		return *x.RefName
+	}
+	return ""
+}
+
+func (x *ListRefChangesRequest) GetPageSize() int32 {
+	if x != nil && x.PageSize != nil {
+		return *x.PageSize
+	}
+	return 0
+}
+
+func (x *ListRefChangesRequest) GetPageToken() string {
+	if x != nil && x.PageToken != nil {
+		return *x.PageToken
+	}
+	return ""
+}
+
+type ListRefChangesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Changes       []*RepoRefChange       `protobuf:"bytes,1,rep,name=changes" json:"changes,omitempty"`
+	NextPageToken *string                `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	TotalCount    *int32                 `protobuf:"varint,3,opt,name=total_count,json=totalCount" json:"total_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListRefChangesResponse) Reset() {
+	*x = ListRefChangesResponse{}
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListRefChangesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListRefChangesResponse) ProtoMessage() {}
+
+func (x *ListRefChangesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListRefChangesResponse.ProtoReflect.Descriptor instead.
+func (*ListRefChangesResponse) Descriptor() ([]byte, []int) {
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ListRefChangesResponse) GetChanges() []*RepoRefChange {
+	if x != nil {
+		return x.Changes
 	}
 	return nil
+}
+
+func (x *ListRefChangesResponse) GetNextPageToken() string {
+	if x != nil && x.NextPageToken != nil {
+		return *x.NextPageToken
+	}
+	return ""
+}
+
+func (x *ListRefChangesResponse) GetTotalCount() int32 {
+	if x != nil && x.TotalCount != nil {
+		return *x.TotalCount
+	}
+	return 0
 }
 
 type RepoRef struct {
@@ -481,7 +700,7 @@ type RepoRef struct {
 
 func (x *RepoRef) Reset() {
 	*x = RepoRef{}
-	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[5]
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -493,7 +712,7 @@ func (x *RepoRef) String() string {
 func (*RepoRef) ProtoMessage() {}
 
 func (x *RepoRef) ProtoReflect() protoreflect.Message {
-	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[5]
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -506,7 +725,7 @@ func (x *RepoRef) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RepoRef.ProtoReflect.Descriptor instead.
 func (*RepoRef) Descriptor() ([]byte, []int) {
-	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{5}
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *RepoRef) GetId() int64 {
@@ -588,7 +807,7 @@ type RepoRefChange struct {
 
 func (x *RepoRefChange) Reset() {
 	*x = RepoRefChange{}
-	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[6]
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -600,7 +819,7 @@ func (x *RepoRefChange) String() string {
 func (*RepoRefChange) ProtoMessage() {}
 
 func (x *RepoRefChange) ProtoReflect() protoreflect.Message {
-	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[6]
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -613,7 +832,7 @@ func (x *RepoRefChange) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RepoRefChange.ProtoReflect.Descriptor instead.
 func (*RepoRefChange) Descriptor() ([]byte, []int) {
-	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{6}
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *RepoRefChange) GetId() int64 {
@@ -720,13 +939,28 @@ const file_gitplus_repo_v1_repo_proto_rawDesc = "" +
 	"\vtotal_count\x18\x03 \x01(\x05R\n" +
 	"totalCount\"&\n" +
 	"\x14GetRepositoryRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\x03R\x02id\"\xc9\x01\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\"T\n" +
 	"\x15GetRepositoryResponse\x12;\n" +
 	"\n" +
 	"repository\x18\x01 \x01(\v2\x1b.gitplus.repo.v1.RepositoryR\n" +
-	"repository\x12,\n" +
-	"\x04refs\x18\x02 \x03(\v2\x18.gitplus.repo.v1.RepoRefR\x04refs\x12E\n" +
-	"\x0erecent_changes\x18\x03 \x03(\v2\x1e.gitplus.repo.v1.RepoRefChangeR\rrecentChanges\"\xed\x02\n" +
+	"repository\"\x80\x01\n" +
+	"\x0fListRefsRequest\x12\x17\n" +
+	"\arepo_id\x18\x01 \x01(\x03R\x06repoId\x12+\n" +
+	"\bref_kind\x18\x02 \x01(\tB\x10\xbaH\rr\vR\x04headR\x03tagR\arefKind\x12'\n" +
+	"\x0finclude_deleted\x18\x03 \x01(\bR\x0eincludeDeleted\"@\n" +
+	"\x10ListRefsResponse\x12,\n" +
+	"\x04refs\x18\x01 \x03(\v2\x18.gitplus.repo.v1.RepoRefR\x04refs\"\x92\x01\n" +
+	"\x15ListRefChangesRequest\x12\x17\n" +
+	"\arepo_id\x18\x01 \x01(\x03R\x06repoId\x12\x19\n" +
+	"\bref_name\x18\x02 \x01(\tR\arefName\x12&\n" +
+	"\tpage_size\x18\x03 \x01(\x05B\t\xbaH\x06\x1a\x04\x18d(\x01R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x04 \x01(\tR\tpageToken\"\x9b\x01\n" +
+	"\x16ListRefChangesResponse\x128\n" +
+	"\achanges\x18\x01 \x03(\v2\x1e.gitplus.repo.v1.RepoRefChangeR\achanges\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n" +
+	"\vtotal_count\x18\x03 \x01(\x05R\n" +
+	"totalCount\"\xed\x02\n" +
 	"\aRepoRef\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x19\n" +
 	"\bref_name\x18\x02 \x01(\tR\arefName\x12\x19\n" +
@@ -748,10 +982,12 @@ const file_gitplus_repo_v1_repo_proto_rawDesc = "" +
 	"\bnew_hash\x18\x06 \x01(\tR\anewHash\x12(\n" +
 	"\x10archive_ref_name\x18\a \x01(\tR\x0earchiveRefName\x129\n" +
 	"\n" +
-	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt2\xd6\x01\n" +
+	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt2\x8a\x03\n" +
 	"\vRepoService\x12g\n" +
 	"\x10ListRepositories\x12(.gitplus.repo.v1.ListRepositoriesRequest\x1a).gitplus.repo.v1.ListRepositoriesResponse\x12^\n" +
-	"\rGetRepository\x12%.gitplus.repo.v1.GetRepositoryRequest\x1a&.gitplus.repo.v1.GetRepositoryResponseB\xc5\x01\n" +
+	"\rGetRepository\x12%.gitplus.repo.v1.GetRepositoryRequest\x1a&.gitplus.repo.v1.GetRepositoryResponse\x12O\n" +
+	"\bListRefs\x12 .gitplus.repo.v1.ListRefsRequest\x1a!.gitplus.repo.v1.ListRefsResponse\x12a\n" +
+	"\x0eListRefChanges\x12&.gitplus.repo.v1.ListRefChangesRequest\x1a'.gitplus.repo.v1.ListRefChangesResponseB\xc5\x01\n" +
 	"\x13com.gitplus.repo.v1B\tRepoProtoP\x01Z;github.com/ImSingee/git-plus/pkg/rpc/gitplus/repo/v1;repov1\xa2\x02\x03GRX\xaa\x02\x0fGitplus.Repo.V1\xca\x02\x0fGitplus\\Repo\\V1\xe2\x02\x1bGitplus\\Repo\\V1\\GPBMetadata\xea\x02\x11Gitplus::Repo::V1\x92\x03\a\xd2>\x02\x10\x01\b\x01b\beditionsp\xe8\a"
 
 var (
@@ -766,37 +1002,45 @@ func file_gitplus_repo_v1_repo_proto_rawDescGZIP() []byte {
 	return file_gitplus_repo_v1_repo_proto_rawDescData
 }
 
-var file_gitplus_repo_v1_repo_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_gitplus_repo_v1_repo_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_gitplus_repo_v1_repo_proto_goTypes = []any{
 	(*Repository)(nil),               // 0: gitplus.repo.v1.Repository
 	(*ListRepositoriesRequest)(nil),  // 1: gitplus.repo.v1.ListRepositoriesRequest
 	(*ListRepositoriesResponse)(nil), // 2: gitplus.repo.v1.ListRepositoriesResponse
 	(*GetRepositoryRequest)(nil),     // 3: gitplus.repo.v1.GetRepositoryRequest
 	(*GetRepositoryResponse)(nil),    // 4: gitplus.repo.v1.GetRepositoryResponse
-	(*RepoRef)(nil),                  // 5: gitplus.repo.v1.RepoRef
-	(*RepoRefChange)(nil),            // 6: gitplus.repo.v1.RepoRefChange
-	(*timestamppb.Timestamp)(nil),    // 7: google.protobuf.Timestamp
-	(*structpb.Struct)(nil),          // 8: google.protobuf.Struct
+	(*ListRefsRequest)(nil),          // 5: gitplus.repo.v1.ListRefsRequest
+	(*ListRefsResponse)(nil),         // 6: gitplus.repo.v1.ListRefsResponse
+	(*ListRefChangesRequest)(nil),    // 7: gitplus.repo.v1.ListRefChangesRequest
+	(*ListRefChangesResponse)(nil),   // 8: gitplus.repo.v1.ListRefChangesResponse
+	(*RepoRef)(nil),                  // 9: gitplus.repo.v1.RepoRef
+	(*RepoRefChange)(nil),            // 10: gitplus.repo.v1.RepoRefChange
+	(*timestamppb.Timestamp)(nil),    // 11: google.protobuf.Timestamp
+	(*structpb.Struct)(nil),          // 12: google.protobuf.Struct
 }
 var file_gitplus_repo_v1_repo_proto_depIdxs = []int32{
-	7,  // 0: gitplus.repo.v1.Repository.last_seen_at:type_name -> google.protobuf.Timestamp
-	7,  // 1: gitplus.repo.v1.Repository.created_at:type_name -> google.protobuf.Timestamp
-	7,  // 2: gitplus.repo.v1.Repository.updated_at:type_name -> google.protobuf.Timestamp
-	8,  // 3: gitplus.repo.v1.Repository.meta:type_name -> google.protobuf.Struct
+	11, // 0: gitplus.repo.v1.Repository.last_seen_at:type_name -> google.protobuf.Timestamp
+	11, // 1: gitplus.repo.v1.Repository.created_at:type_name -> google.protobuf.Timestamp
+	11, // 2: gitplus.repo.v1.Repository.updated_at:type_name -> google.protobuf.Timestamp
+	12, // 3: gitplus.repo.v1.Repository.meta:type_name -> google.protobuf.Struct
 	0,  // 4: gitplus.repo.v1.ListRepositoriesResponse.repositories:type_name -> gitplus.repo.v1.Repository
 	0,  // 5: gitplus.repo.v1.GetRepositoryResponse.repository:type_name -> gitplus.repo.v1.Repository
-	5,  // 6: gitplus.repo.v1.GetRepositoryResponse.refs:type_name -> gitplus.repo.v1.RepoRef
-	6,  // 7: gitplus.repo.v1.GetRepositoryResponse.recent_changes:type_name -> gitplus.repo.v1.RepoRefChange
-	7,  // 8: gitplus.repo.v1.RepoRef.first_seen_at:type_name -> google.protobuf.Timestamp
-	7,  // 9: gitplus.repo.v1.RepoRef.last_seen_at:type_name -> google.protobuf.Timestamp
-	7,  // 10: gitplus.repo.v1.RepoRef.deleted_at:type_name -> google.protobuf.Timestamp
-	7,  // 11: gitplus.repo.v1.RepoRefChange.created_at:type_name -> google.protobuf.Timestamp
+	9,  // 6: gitplus.repo.v1.ListRefsResponse.refs:type_name -> gitplus.repo.v1.RepoRef
+	10, // 7: gitplus.repo.v1.ListRefChangesResponse.changes:type_name -> gitplus.repo.v1.RepoRefChange
+	11, // 8: gitplus.repo.v1.RepoRef.first_seen_at:type_name -> google.protobuf.Timestamp
+	11, // 9: gitplus.repo.v1.RepoRef.last_seen_at:type_name -> google.protobuf.Timestamp
+	11, // 10: gitplus.repo.v1.RepoRef.deleted_at:type_name -> google.protobuf.Timestamp
+	11, // 11: gitplus.repo.v1.RepoRefChange.created_at:type_name -> google.protobuf.Timestamp
 	1,  // 12: gitplus.repo.v1.RepoService.ListRepositories:input_type -> gitplus.repo.v1.ListRepositoriesRequest
 	3,  // 13: gitplus.repo.v1.RepoService.GetRepository:input_type -> gitplus.repo.v1.GetRepositoryRequest
-	2,  // 14: gitplus.repo.v1.RepoService.ListRepositories:output_type -> gitplus.repo.v1.ListRepositoriesResponse
-	4,  // 15: gitplus.repo.v1.RepoService.GetRepository:output_type -> gitplus.repo.v1.GetRepositoryResponse
-	14, // [14:16] is the sub-list for method output_type
-	12, // [12:14] is the sub-list for method input_type
+	5,  // 14: gitplus.repo.v1.RepoService.ListRefs:input_type -> gitplus.repo.v1.ListRefsRequest
+	7,  // 15: gitplus.repo.v1.RepoService.ListRefChanges:input_type -> gitplus.repo.v1.ListRefChangesRequest
+	2,  // 16: gitplus.repo.v1.RepoService.ListRepositories:output_type -> gitplus.repo.v1.ListRepositoriesResponse
+	4,  // 17: gitplus.repo.v1.RepoService.GetRepository:output_type -> gitplus.repo.v1.GetRepositoryResponse
+	6,  // 18: gitplus.repo.v1.RepoService.ListRefs:output_type -> gitplus.repo.v1.ListRefsResponse
+	8,  // 19: gitplus.repo.v1.RepoService.ListRefChanges:output_type -> gitplus.repo.v1.ListRefChangesResponse
+	16, // [16:20] is the sub-list for method output_type
+	12, // [12:16] is the sub-list for method input_type
 	12, // [12:12] is the sub-list for extension type_name
 	12, // [12:12] is the sub-list for extension extendee
 	0,  // [0:12] is the sub-list for field type_name
@@ -813,7 +1057,7 @@ func file_gitplus_repo_v1_repo_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gitplus_repo_v1_repo_proto_rawDesc), len(file_gitplus_repo_v1_repo_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

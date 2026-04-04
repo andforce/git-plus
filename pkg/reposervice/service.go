@@ -145,14 +145,33 @@ func (s *serviceServer) GetRepository(
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get repo: %w", err))
 	}
 
-	refs, err := queries.ListRepoRefsCurrent(ctx, repoID)
+	return connect.NewResponse(&repov1.GetRepositoryResponse{
+		Repository: toProtoRepository(repo),
+	}), nil
+}
+
+func (s *serviceServer) ListRefs(
+	ctx context.Context,
+	req *connect.Request[repov1.ListRefsRequest],
+) (*connect.Response[repov1.ListRefsResponse], error) {
+	queries, cleanup, err := s.openQueries(ctx)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list refs: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	defer cleanup()
+
+	var includeDeleted int64
+	if req.Msg.GetIncludeDeleted() {
+		includeDeleted = 1
 	}
 
-	changes, err := queries.ListRepoRefChanges(ctx, repoID)
+	refs, err := queries.ListRepoRefs(ctx, dbsqlc.ListRepoRefsParams{
+		RepoID:  req.Msg.GetRepoId(),
+		RefKind: req.Msg.GetRefKind(),
+		Column3: includeDeleted,
+	})
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list changes: %w", err))
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list refs: %w", err))
 	}
 
 	protoRefs := make([]*repov1.RepoRef, 0, len(refs))
@@ -160,16 +179,65 @@ func (s *serviceServer) GetRepository(
 		protoRefs = append(protoRefs, toProtoRepoRef(r))
 	}
 
+	return connect.NewResponse(&repov1.ListRefsResponse{
+		Refs: protoRefs,
+	}), nil
+}
+
+func (s *serviceServer) ListRefChanges(
+	ctx context.Context,
+	req *connect.Request[repov1.ListRefChangesRequest],
+) (*connect.Response[repov1.ListRefChangesResponse], error) {
+	pageSize := int(req.Msg.GetPageSize())
+	if pageSize <= 0 {
+		pageSize = defaultPageSize
+	}
+
+	offset, err := decodePageToken(req.Msg.GetPageToken())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid page_token: %w", err))
+	}
+
+	refName := optionalFilter(req.Msg.GetRefName())
+
+	queries, cleanup, err := s.openQueries(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	defer cleanup()
+
+	totalCount, err := queries.CountRepoRefChanges(ctx, dbsqlc.CountRepoRefChangesParams{
+		RepoID:  req.Msg.GetRepoId(),
+		Column2: refName,
+	})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("count changes: %w", err))
+	}
+
+	changes, err := queries.ListRepoRefChangesFiltered(ctx, dbsqlc.ListRepoRefChangesFilteredParams{
+		RepoID:  req.Msg.GetRepoId(),
+		Column2: refName,
+		Limit:   int64(pageSize),
+		Offset:  int64(offset),
+	})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list changes: %w", err))
+	}
+
 	protoChanges := make([]*repov1.RepoRefChange, 0, len(changes))
 	for _, c := range changes {
 		protoChanges = append(protoChanges, toProtoRepoRefChange(c))
 	}
 
-	return connect.NewResponse(&repov1.GetRepositoryResponse{
-		Repository:    toProtoRepository(repo),
-		Refs:          protoRefs,
-		RecentChanges: protoChanges,
-	}), nil
+	response := &repov1.ListRefChangesResponse{
+		Changes:    protoChanges,
+		TotalCount: int32Ptr(int32(totalCount)),
+	}
+	if int64(offset)+int64(len(changes)) < totalCount {
+		response.NextPageToken = stringPtr(encodePageToken(offset + len(changes)))
+	}
+
+	return connect.NewResponse(response), nil
 }
 
 func toProtoRepoRef(r dbsqlc.RepoRefsCurrent) *repov1.RepoRef {

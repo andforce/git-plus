@@ -14,7 +14,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file gitplus/repo/v1/repo.proto.
  */
 export const file_gitplus_repo_v1_repo: GenFile = /*@__PURE__*/
-  fileDesc("ChpnaXRwbHVzL3JlcG8vdjEvcmVwby5wcm90bxIPZ2l0cGx1cy5yZXBvLnYxIucDCgpSZXBvc2l0b3J5EgoKAmlkGAEgASgDEhEKCXNvdXJjZV9pZBgCIAEoCRIQCghwbGF0Zm9ybRgDIAEoCRIMCgRuYW1lGAQgASgJEhEKCWZ1bGxfbmFtZRgFIAEoCRINCgVvd25lchgGIAEoCRITCgtkZXNjcmlwdGlvbhgHIAEoCRIQCghodG1sX3VybBgIIAEoCRIRCgljbG9uZV91cmwYCSABKAkSDwoHc3NoX3VybBgKIAEoCRIWCg5kZWZhdWx0X2JyYW5jaBgLIAEoCRISCgp2aXNpYmlsaXR5GAwgASgJEhIKCmlzX3ByaXZhdGUYDSABKAgSDwoHaXNfZm9yaxgOIAEoCBITCgtpc19hcmNoaXZlZBgPIAEoCBIOCgZzdGF0dXMYECABKAkSMAoMbGFzdF9zZWVuX2F0GBEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgpjcmVhdGVkX2F0GBIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GBMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIlCgRtZXRhGBQgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdCJ8ChdMaXN0UmVwb3NpdG9yaWVzUmVxdWVzdBIcCglwYWdlX3NpemUYASABKAVCCbpIBhoEGGQoARISCgpwYWdlX3Rva2VuGAIgASgJEg4KBnNlYXJjaBgDIAEoCRIRCglzb3VyY2VfaWQYBCABKAkSDAoEc29ydBgFIAEoCSJ7ChhMaXN0UmVwb3NpdG9yaWVzUmVzcG9uc2USMQoMcmVwb3NpdG9yaWVzGAEgAygLMhsuZ2l0cGx1cy5yZXBvLnYxLlJlcG9zaXRvcnkSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJEhMKC3RvdGFsX2NvdW50GAMgASgFIiIKFEdldFJlcG9zaXRvcnlSZXF1ZXN0EgoKAmlkGAEgASgDIqgBChVHZXRSZXBvc2l0b3J5UmVzcG9uc2USLwoKcmVwb3NpdG9yeRgBIAEoCzIbLmdpdHBsdXMucmVwby52MS5SZXBvc2l0b3J5EiYKBHJlZnMYAiADKAsyGC5naXRwbHVzLnJlcG8udjEuUmVwb1JlZhI2Cg5yZWNlbnRfY2hhbmdlcxgDIAMoCzIeLmdpdHBsdXMucmVwby52MS5SZXBvUmVmQ2hhbmdlIo4CCgdSZXBvUmVmEgoKAmlkGAEgASgDEhAKCHJlZl9uYW1lGAIgASgJEhAKCHJlZl9raW5kGAMgASgJEhQKDGN1cnJlbnRfaGFzaBgEIAEoCRIOCgZzdGF0dXMYBSABKAkSGAoQYXJjaGl2ZV9yZWZfbmFtZRgGIAEoCRIxCg1maXJzdF9zZWVuX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIwCgxsYXN0X3NlZW5fYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCmRlbGV0ZWRfYXQYCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIr0BCg1SZXBvUmVmQ2hhbmdlEgoKAmlkGAEgASgDEhAKCHJlZl9uYW1lGAIgASgJEhAKCHJlZl9raW5kGAMgASgJEg4KBmFjdGlvbhgEIAEoCRIQCghvbGRfaGFzaBgFIAEoCRIQCghuZXdfaGFzaBgGIAEoCRIYChBhcmNoaXZlX3JlZl9uYW1lGAcgASgJEi4KCmNyZWF0ZWRfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wMtYBCgtSZXBvU2VydmljZRJnChBMaXN0UmVwb3NpdG9yaWVzEiguZ2l0cGx1cy5yZXBvLnYxLkxpc3RSZXBvc2l0b3JpZXNSZXF1ZXN0GikuZ2l0cGx1cy5yZXBvLnYxLkxpc3RSZXBvc2l0b3JpZXNSZXNwb25zZRJeCg1HZXRSZXBvc2l0b3J5EiUuZ2l0cGx1cy5yZXBvLnYxLkdldFJlcG9zaXRvcnlSZXF1ZXN0GiYuZ2l0cGx1cy5yZXBvLnYxLkdldFJlcG9zaXRvcnlSZXNwb25zZULFAQoTY29tLmdpdHBsdXMucmVwby52MUIJUmVwb1Byb3RvUAFaO2dpdGh1Yi5jb20vSW1TaW5nZWUvZ2l0LXBsdXMvcGtnL3JwYy9naXRwbHVzL3JlcG8vdjE7cmVwb3YxogIDR1JYqgIPR2l0cGx1cy5SZXBvLlYxygIPR2l0cGx1c1xSZXBvXFYx4gIbR2l0cGx1c1xSZXBvXFYxXEdQQk1ldGFkYXRh6gIRR2l0cGx1czo6UmVwbzo6VjGSAwcIAdI+AhABYghlZGl0aW9uc3DoBw", [file_buf_validate_validate, file_google_protobuf_go_features, file_google_protobuf_struct, file_google_protobuf_timestamp]);
+  fileDesc("ChpnaXRwbHVzL3JlcG8vdjEvcmVwby5wcm90bxIPZ2l0cGx1cy5yZXBvLnYxIucDCgpSZXBvc2l0b3J5EgoKAmlkGAEgASgDEhEKCXNvdXJjZV9pZBgCIAEoCRIQCghwbGF0Zm9ybRgDIAEoCRIMCgRuYW1lGAQgASgJEhEKCWZ1bGxfbmFtZRgFIAEoCRINCgVvd25lchgGIAEoCRITCgtkZXNjcmlwdGlvbhgHIAEoCRIQCghodG1sX3VybBgIIAEoCRIRCgljbG9uZV91cmwYCSABKAkSDwoHc3NoX3VybBgKIAEoCRIWCg5kZWZhdWx0X2JyYW5jaBgLIAEoCRISCgp2aXNpYmlsaXR5GAwgASgJEhIKCmlzX3ByaXZhdGUYDSABKAgSDwoHaXNfZm9yaxgOIAEoCBITCgtpc19hcmNoaXZlZBgPIAEoCBIOCgZzdGF0dXMYECABKAkSMAoMbGFzdF9zZWVuX2F0GBEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgpjcmVhdGVkX2F0GBIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GBMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIlCgRtZXRhGBQgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdCJ8ChdMaXN0UmVwb3NpdG9yaWVzUmVxdWVzdBIcCglwYWdlX3NpemUYASABKAVCCbpIBhoEGGQoARISCgpwYWdlX3Rva2VuGAIgASgJEg4KBnNlYXJjaBgDIAEoCRIRCglzb3VyY2VfaWQYBCABKAkSDAoEc29ydBgFIAEoCSJ7ChhMaXN0UmVwb3NpdG9yaWVzUmVzcG9uc2USMQoMcmVwb3NpdG9yaWVzGAEgAygLMhsuZ2l0cGx1cy5yZXBvLnYxLlJlcG9zaXRvcnkSFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJEhMKC3RvdGFsX2NvdW50GAMgASgFIiIKFEdldFJlcG9zaXRvcnlSZXF1ZXN0EgoKAmlkGAEgASgDIkgKFUdldFJlcG9zaXRvcnlSZXNwb25zZRIvCgpyZXBvc2l0b3J5GAEgASgLMhsuZ2l0cGx1cy5yZXBvLnYxLlJlcG9zaXRvcnkiXwoPTGlzdFJlZnNSZXF1ZXN0Eg8KB3JlcG9faWQYASABKAMSIgoIcmVmX2tpbmQYAiABKAlCELpIDXILUgRoZWFkUgN0YWcSFwoPaW5jbHVkZV9kZWxldGVkGAMgASgIIjoKEExpc3RSZWZzUmVzcG9uc2USJgoEcmVmcxgBIAMoCzIYLmdpdHBsdXMucmVwby52MS5SZXBvUmVmImwKFUxpc3RSZWZDaGFuZ2VzUmVxdWVzdBIPCgdyZXBvX2lkGAEgASgDEhAKCHJlZl9uYW1lGAIgASgJEhwKCXBhZ2Vfc2l6ZRgDIAEoBUIJukgGGgQYZCgBEhIKCnBhZ2VfdG9rZW4YBCABKAkidwoWTGlzdFJlZkNoYW5nZXNSZXNwb25zZRIvCgdjaGFuZ2VzGAEgAygLMh4uZ2l0cGx1cy5yZXBvLnYxLlJlcG9SZWZDaGFuZ2USFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJEhMKC3RvdGFsX2NvdW50GAMgASgFIo4CCgdSZXBvUmVmEgoKAmlkGAEgASgDEhAKCHJlZl9uYW1lGAIgASgJEhAKCHJlZl9raW5kGAMgASgJEhQKDGN1cnJlbnRfaGFzaBgEIAEoCRIOCgZzdGF0dXMYBSABKAkSGAoQYXJjaGl2ZV9yZWZfbmFtZRgGIAEoCRIxCg1maXJzdF9zZWVuX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIwCgxsYXN0X3NlZW5fYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCmRlbGV0ZWRfYXQYCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIr0BCg1SZXBvUmVmQ2hhbmdlEgoKAmlkGAEgASgDEhAKCHJlZl9uYW1lGAIgASgJEhAKCHJlZl9raW5kGAMgASgJEg4KBmFjdGlvbhgEIAEoCRIQCghvbGRfaGFzaBgFIAEoCRIQCghuZXdfaGFzaBgGIAEoCRIYChBhcmNoaXZlX3JlZl9uYW1lGAcgASgJEi4KCmNyZWF0ZWRfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wMooDCgtSZXBvU2VydmljZRJnChBMaXN0UmVwb3NpdG9yaWVzEiguZ2l0cGx1cy5yZXBvLnYxLkxpc3RSZXBvc2l0b3JpZXNSZXF1ZXN0GikuZ2l0cGx1cy5yZXBvLnYxLkxpc3RSZXBvc2l0b3JpZXNSZXNwb25zZRJeCg1HZXRSZXBvc2l0b3J5EiUuZ2l0cGx1cy5yZXBvLnYxLkdldFJlcG9zaXRvcnlSZXF1ZXN0GiYuZ2l0cGx1cy5yZXBvLnYxLkdldFJlcG9zaXRvcnlSZXNwb25zZRJPCghMaXN0UmVmcxIgLmdpdHBsdXMucmVwby52MS5MaXN0UmVmc1JlcXVlc3QaIS5naXRwbHVzLnJlcG8udjEuTGlzdFJlZnNSZXNwb25zZRJhCg5MaXN0UmVmQ2hhbmdlcxImLmdpdHBsdXMucmVwby52MS5MaXN0UmVmQ2hhbmdlc1JlcXVlc3QaJy5naXRwbHVzLnJlcG8udjEuTGlzdFJlZkNoYW5nZXNSZXNwb25zZULFAQoTY29tLmdpdHBsdXMucmVwby52MUIJUmVwb1Byb3RvUAFaO2dpdGh1Yi5jb20vSW1TaW5nZWUvZ2l0LXBsdXMvcGtnL3JwYy9naXRwbHVzL3JlcG8vdjE7cmVwb3YxogIDR1JYqgIPR2l0cGx1cy5SZXBvLlYxygIPR2l0cGx1c1xSZXBvXFYx4gIbR2l0cGx1c1xSZXBvXFYxXEdQQk1ldGFkYXRh6gIRR2l0cGx1czo6UmVwbzo6VjGSAwcIAdI+AhABYghlZGl0aW9uc3DoBw", [file_buf_validate_validate, file_google_protobuf_go_features, file_google_protobuf_struct, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message gitplus.repo.v1.Repository
@@ -155,7 +155,7 @@ export type ListRepositoriesRequest = Message<"gitplus.repo.v1.ListRepositoriesR
   /**
    * Sort key combining field and direction.
    * Accepted values: "created_at_desc" (default), "created_at_asc",
-   * "full_name_asc", "full_name_desc".
+   * "name_asc", "name_desc".
    *
    * @generated from field: string sort = 5;
    */
@@ -221,16 +221,6 @@ export type GetRepositoryResponse = Message<"gitplus.repo.v1.GetRepositoryRespon
    * @generated from field: gitplus.repo.v1.Repository repository = 1;
    */
   repository?: Repository;
-
-  /**
-   * @generated from field: repeated gitplus.repo.v1.RepoRef refs = 2;
-   */
-  refs: RepoRef[];
-
-  /**
-   * @generated from field: repeated gitplus.repo.v1.RepoRefChange recent_changes = 3;
-   */
-  recentChanges: RepoRefChange[];
 };
 
 /**
@@ -239,6 +229,115 @@ export type GetRepositoryResponse = Message<"gitplus.repo.v1.GetRepositoryRespon
  */
 export const GetRepositoryResponseSchema: GenMessage<GetRepositoryResponse> = /*@__PURE__*/
   messageDesc(file_gitplus_repo_v1_repo, 4);
+
+/**
+ * @generated from message gitplus.repo.v1.ListRefsRequest
+ */
+export type ListRefsRequest = Message<"gitplus.repo.v1.ListRefsRequest"> & {
+  /**
+   * @generated from field: int64 repo_id = 1;
+   */
+  repoId: bigint;
+
+  /**
+   * Filter by ref kind: "head" for branches, "tag" for tags.
+   *
+   * @generated from field: string ref_kind = 2;
+   */
+  refKind: string;
+
+  /**
+   * If true, include deleted refs. Default is false (active only).
+   *
+   * @generated from field: bool include_deleted = 3;
+   */
+  includeDeleted: boolean;
+};
+
+/**
+ * Describes the message gitplus.repo.v1.ListRefsRequest.
+ * Use `create(ListRefsRequestSchema)` to create a new message.
+ */
+export const ListRefsRequestSchema: GenMessage<ListRefsRequest> = /*@__PURE__*/
+  messageDesc(file_gitplus_repo_v1_repo, 5);
+
+/**
+ * @generated from message gitplus.repo.v1.ListRefsResponse
+ */
+export type ListRefsResponse = Message<"gitplus.repo.v1.ListRefsResponse"> & {
+  /**
+   * @generated from field: repeated gitplus.repo.v1.RepoRef refs = 1;
+   */
+  refs: RepoRef[];
+};
+
+/**
+ * Describes the message gitplus.repo.v1.ListRefsResponse.
+ * Use `create(ListRefsResponseSchema)` to create a new message.
+ */
+export const ListRefsResponseSchema: GenMessage<ListRefsResponse> = /*@__PURE__*/
+  messageDesc(file_gitplus_repo_v1_repo, 6);
+
+/**
+ * @generated from message gitplus.repo.v1.ListRefChangesRequest
+ */
+export type ListRefChangesRequest = Message<"gitplus.repo.v1.ListRefChangesRequest"> & {
+  /**
+   * @generated from field: int64 repo_id = 1;
+   */
+  repoId: bigint;
+
+  /**
+   * Optional: filter by ref name (exact match).
+   *
+   * @generated from field: string ref_name = 2;
+   */
+  refName: string;
+
+  /**
+   * @generated from field: int32 page_size = 3;
+   */
+  pageSize: number;
+
+  /**
+   * @generated from field: string page_token = 4;
+   */
+  pageToken: string;
+};
+
+/**
+ * Describes the message gitplus.repo.v1.ListRefChangesRequest.
+ * Use `create(ListRefChangesRequestSchema)` to create a new message.
+ */
+export const ListRefChangesRequestSchema: GenMessage<ListRefChangesRequest> = /*@__PURE__*/
+  messageDesc(file_gitplus_repo_v1_repo, 7);
+
+/**
+ * @generated from message gitplus.repo.v1.ListRefChangesResponse
+ */
+export type ListRefChangesResponse = Message<"gitplus.repo.v1.ListRefChangesResponse"> & {
+  /**
+   * @generated from field: repeated gitplus.repo.v1.RepoRefChange changes = 1;
+   */
+  changes: RepoRefChange[];
+
+  /**
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
+
+  /**
+   * @generated from field: int32 total_count = 3;
+   */
+  totalCount: number;
+};
+
+/**
+ * Describes the message gitplus.repo.v1.ListRefChangesResponse.
+ * Use `create(ListRefChangesResponseSchema)` to create a new message.
+ */
+export const ListRefChangesResponseSchema: GenMessage<ListRefChangesResponse> = /*@__PURE__*/
+  messageDesc(file_gitplus_repo_v1_repo, 8);
 
 /**
  * @generated from message gitplus.repo.v1.RepoRef
@@ -295,7 +394,7 @@ export type RepoRef = Message<"gitplus.repo.v1.RepoRef"> & {
  * Use `create(RepoRefSchema)` to create a new message.
  */
 export const RepoRefSchema: GenMessage<RepoRef> = /*@__PURE__*/
-  messageDesc(file_gitplus_repo_v1_repo, 5);
+  messageDesc(file_gitplus_repo_v1_repo, 9);
 
 /**
  * @generated from message gitplus.repo.v1.RepoRefChange
@@ -347,7 +446,7 @@ export type RepoRefChange = Message<"gitplus.repo.v1.RepoRefChange"> & {
  * Use `create(RepoRefChangeSchema)` to create a new message.
  */
 export const RepoRefChangeSchema: GenMessage<RepoRefChange> = /*@__PURE__*/
-  messageDesc(file_gitplus_repo_v1_repo, 6);
+  messageDesc(file_gitplus_repo_v1_repo, 10);
 
 /**
  * @generated from service gitplus.repo.v1.RepoService
@@ -368,6 +467,22 @@ export const RepoService: GenService<{
     methodKind: "unary";
     input: typeof GetRepositoryRequestSchema;
     output: typeof GetRepositoryResponseSchema;
+  },
+  /**
+   * @generated from rpc gitplus.repo.v1.RepoService.ListRefs
+   */
+  listRefs: {
+    methodKind: "unary";
+    input: typeof ListRefsRequestSchema;
+    output: typeof ListRefsResponseSchema;
+  },
+  /**
+   * @generated from rpc gitplus.repo.v1.RepoService.ListRefChanges
+   */
+  listRefChanges: {
+    methodKind: "unary";
+    input: typeof ListRefChangesRequestSchema;
+    output: typeof ListRefChangesResponseSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_gitplus_repo_v1_repo, 0);

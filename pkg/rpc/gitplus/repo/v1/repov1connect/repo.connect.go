@@ -39,12 +39,19 @@ const (
 	// RepoServiceGetRepositoryProcedure is the fully-qualified name of the RepoService's GetRepository
 	// RPC.
 	RepoServiceGetRepositoryProcedure = "/gitplus.repo.v1.RepoService/GetRepository"
+	// RepoServiceListRefsProcedure is the fully-qualified name of the RepoService's ListRefs RPC.
+	RepoServiceListRefsProcedure = "/gitplus.repo.v1.RepoService/ListRefs"
+	// RepoServiceListRefChangesProcedure is the fully-qualified name of the RepoService's
+	// ListRefChanges RPC.
+	RepoServiceListRefChangesProcedure = "/gitplus.repo.v1.RepoService/ListRefChanges"
 )
 
 // RepoServiceClient is a client for the gitplus.repo.v1.RepoService service.
 type RepoServiceClient interface {
 	ListRepositories(context.Context, *connect.Request[v1.ListRepositoriesRequest]) (*connect.Response[v1.ListRepositoriesResponse], error)
 	GetRepository(context.Context, *connect.Request[v1.GetRepositoryRequest]) (*connect.Response[v1.GetRepositoryResponse], error)
+	ListRefs(context.Context, *connect.Request[v1.ListRefsRequest]) (*connect.Response[v1.ListRefsResponse], error)
+	ListRefChanges(context.Context, *connect.Request[v1.ListRefChangesRequest]) (*connect.Response[v1.ListRefChangesResponse], error)
 }
 
 // NewRepoServiceClient constructs a client for the gitplus.repo.v1.RepoService service. By default,
@@ -70,6 +77,18 @@ func NewRepoServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(repoServiceMethods.ByName("GetRepository")),
 			connect.WithClientOptions(opts...),
 		),
+		listRefs: connect.NewClient[v1.ListRefsRequest, v1.ListRefsResponse](
+			httpClient,
+			baseURL+RepoServiceListRefsProcedure,
+			connect.WithSchema(repoServiceMethods.ByName("ListRefs")),
+			connect.WithClientOptions(opts...),
+		),
+		listRefChanges: connect.NewClient[v1.ListRefChangesRequest, v1.ListRefChangesResponse](
+			httpClient,
+			baseURL+RepoServiceListRefChangesProcedure,
+			connect.WithSchema(repoServiceMethods.ByName("ListRefChanges")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -77,6 +96,8 @@ func NewRepoServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 type repoServiceClient struct {
 	listRepositories *connect.Client[v1.ListRepositoriesRequest, v1.ListRepositoriesResponse]
 	getRepository    *connect.Client[v1.GetRepositoryRequest, v1.GetRepositoryResponse]
+	listRefs         *connect.Client[v1.ListRefsRequest, v1.ListRefsResponse]
+	listRefChanges   *connect.Client[v1.ListRefChangesRequest, v1.ListRefChangesResponse]
 }
 
 // ListRepositories calls gitplus.repo.v1.RepoService.ListRepositories.
@@ -89,10 +110,22 @@ func (c *repoServiceClient) GetRepository(ctx context.Context, req *connect.Requ
 	return c.getRepository.CallUnary(ctx, req)
 }
 
+// ListRefs calls gitplus.repo.v1.RepoService.ListRefs.
+func (c *repoServiceClient) ListRefs(ctx context.Context, req *connect.Request[v1.ListRefsRequest]) (*connect.Response[v1.ListRefsResponse], error) {
+	return c.listRefs.CallUnary(ctx, req)
+}
+
+// ListRefChanges calls gitplus.repo.v1.RepoService.ListRefChanges.
+func (c *repoServiceClient) ListRefChanges(ctx context.Context, req *connect.Request[v1.ListRefChangesRequest]) (*connect.Response[v1.ListRefChangesResponse], error) {
+	return c.listRefChanges.CallUnary(ctx, req)
+}
+
 // RepoServiceHandler is an implementation of the gitplus.repo.v1.RepoService service.
 type RepoServiceHandler interface {
 	ListRepositories(context.Context, *connect.Request[v1.ListRepositoriesRequest]) (*connect.Response[v1.ListRepositoriesResponse], error)
 	GetRepository(context.Context, *connect.Request[v1.GetRepositoryRequest]) (*connect.Response[v1.GetRepositoryResponse], error)
+	ListRefs(context.Context, *connect.Request[v1.ListRefsRequest]) (*connect.Response[v1.ListRefsResponse], error)
+	ListRefChanges(context.Context, *connect.Request[v1.ListRefChangesRequest]) (*connect.Response[v1.ListRefChangesResponse], error)
 }
 
 // NewRepoServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -114,12 +147,28 @@ func NewRepoServiceHandler(svc RepoServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(repoServiceMethods.ByName("GetRepository")),
 		connect.WithHandlerOptions(opts...),
 	)
+	repoServiceListRefsHandler := connect.NewUnaryHandler(
+		RepoServiceListRefsProcedure,
+		svc.ListRefs,
+		connect.WithSchema(repoServiceMethods.ByName("ListRefs")),
+		connect.WithHandlerOptions(opts...),
+	)
+	repoServiceListRefChangesHandler := connect.NewUnaryHandler(
+		RepoServiceListRefChangesProcedure,
+		svc.ListRefChanges,
+		connect.WithSchema(repoServiceMethods.ByName("ListRefChanges")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/gitplus.repo.v1.RepoService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case RepoServiceListRepositoriesProcedure:
 			repoServiceListRepositoriesHandler.ServeHTTP(w, r)
 		case RepoServiceGetRepositoryProcedure:
 			repoServiceGetRepositoryHandler.ServeHTTP(w, r)
+		case RepoServiceListRefsProcedure:
+			repoServiceListRefsHandler.ServeHTTP(w, r)
+		case RepoServiceListRefChangesProcedure:
+			repoServiceListRefChangesHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -135,4 +184,12 @@ func (UnimplementedRepoServiceHandler) ListRepositories(context.Context, *connec
 
 func (UnimplementedRepoServiceHandler) GetRepository(context.Context, *connect.Request[v1.GetRepositoryRequest]) (*connect.Response[v1.GetRepositoryResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitplus.repo.v1.RepoService.GetRepository is not implemented"))
+}
+
+func (UnimplementedRepoServiceHandler) ListRefs(context.Context, *connect.Request[v1.ListRefsRequest]) (*connect.Response[v1.ListRefsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitplus.repo.v1.RepoService.ListRefs is not implemented"))
+}
+
+func (UnimplementedRepoServiceHandler) ListRefChanges(context.Context, *connect.Request[v1.ListRefChangesRequest]) (*connect.Response[v1.ListRefChangesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitplus.repo.v1.RepoService.ListRefChanges is not implemented"))
 }

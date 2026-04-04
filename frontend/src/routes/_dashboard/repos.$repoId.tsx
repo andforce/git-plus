@@ -1,3 +1,4 @@
+import { Suspense, useEffect, useState } from 'react';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import {
   Anchor,
@@ -5,16 +6,23 @@ import {
   Badge,
   Box,
   Breadcrumbs,
+  Center,
   Code,
   Container,
   Group,
+  Loader,
   SimpleGrid,
   Table,
   Tabs,
   Text,
   Title,
 } from '@mantine/core';
-import { useSuspenseQuery } from '@tanstack/react-query';
+import {
+  useQuery,
+  useSuspenseInfiniteQuery,
+  useSuspenseQuery,
+} from '@tanstack/react-query';
+import { useIntersection } from '@mantine/hooks';
 import { timestampDate } from '@bufbuild/protobuf/wkt';
 import dayjs from 'dayjs';
 import {
@@ -24,7 +32,11 @@ import {
   IconTag,
 } from '@tabler/icons-react';
 import type { RepoRef, RepoRefChange } from '~rpc/gitplus/repo/v1/repo_pb';
-import { repoDetailQueryOptions } from '~lib/repo-queries';
+import {
+  repoDetailQueryOptions,
+  repoRefChangesQueryOptions,
+  repoRefsQueryOptions,
+} from '~lib/repo-queries';
 
 export const Route = createFileRoute('/_dashboard/repos/$repoId')({
   loader: ({ context: { queryClient }, params: { repoId } }) =>
@@ -63,13 +75,30 @@ function stripRefPrefix(name: string) {
   return name.replace(/^refs\/(heads|tags)\//, '');
 }
 
+function TabFallback() {
+  return (
+    <Center py="xl">
+      <Loader size="sm" />
+    </Center>
+  );
+}
+
 function RepoDetailPage() {
   const { repoId } = Route.useParams();
   const { data } = useSuspenseQuery(repoDetailQueryOptions(repoId));
 
+  const [activeTab, setActiveTab] = useState<string | null>('branches');
+
+  const { data: branchesData } = useQuery({
+    ...repoRefsQueryOptions(repoId, 'head'),
+    enabled: false,
+  });
+  const { data: tagsData } = useQuery({
+    ...repoRefsQueryOptions(repoId, 'tag'),
+    enabled: false,
+  });
+
   const repo = data.repository!;
-  const refs = data.refs;
-  const changes = data.recentChanges;
 
   const meta = repo.meta as Record<string, unknown> | undefined;
   const ownerMeta = meta?.['owner'] as Record<string, unknown> | undefined;
@@ -78,9 +107,6 @@ function RepoDetailPage() {
   const stars = (meta?.['stargazers_count'] as number) ?? 0;
   const forks = (meta?.['forks_count'] as number) ?? 0;
   const [owner, repoName] = repo.fullName.split('/');
-
-  const branches = refs.filter((r) => r.refKind === 'head');
-  const tags = refs.filter((r) => r.refKind === 'tag');
 
   return (
     <Container fluid py="xl" px="xl">
@@ -160,92 +186,157 @@ function RepoDetailPage() {
         <InfoCard label="Last Seen" value={formatTimeAgo(repo.lastSeenAt)} />
       </SimpleGrid>
 
-      <Tabs defaultValue="branches">
+      <Tabs value={activeTab} onChange={setActiveTab}>
         <Tabs.List>
           <Tabs.Tab value="branches" leftSection={<IconGitBranch size={14} />}>
-            Branches ({branches.length})
+            Branches
+            {branchesData ? ` (${branchesData.refs.length})` : ''}
           </Tabs.Tab>
           <Tabs.Tab value="tags" leftSection={<IconTag size={14} />}>
-            Tags ({tags.length})
+            Tags
+            {tagsData ? ` (${tagsData.refs.length})` : ''}
           </Tabs.Tab>
           <Tabs.Tab value="changes" leftSection={<IconHistory size={14} />}>
-            Changes ({changes.length})
+            Changes
           </Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel value="branches" pt="md">
-          {branches.length === 0 ? (
-            <Text size="sm" c="dimmed">
-              No branches tracked yet.
-            </Text>
-          ) : (
-            <Table striped highlightOnHover>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>Name</Table.Th>
-                  <Table.Th>Hash</Table.Th>
-                  <Table.Th>Status</Table.Th>
-                  <Table.Th>Last Seen</Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {branches.map((r) => (
-                  <RefRow key={r.id.toString()} ref_={r} />
-                ))}
-              </Table.Tbody>
-            </Table>
+          {activeTab === 'branches' && (
+            <Suspense fallback={<TabFallback />}>
+              <BranchesTab repoId={repoId} />
+            </Suspense>
           )}
         </Tabs.Panel>
 
         <Tabs.Panel value="tags" pt="md">
-          {tags.length === 0 ? (
-            <Text size="sm" c="dimmed">
-              No tags tracked yet.
-            </Text>
-          ) : (
-            <Table striped highlightOnHover>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>Name</Table.Th>
-                  <Table.Th>Hash</Table.Th>
-                  <Table.Th>Status</Table.Th>
-                  <Table.Th>Last Seen</Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {tags.map((r) => (
-                  <RefRow key={r.id.toString()} ref_={r} />
-                ))}
-              </Table.Tbody>
-            </Table>
+          {activeTab === 'tags' && (
+            <Suspense fallback={<TabFallback />}>
+              <TagsTab repoId={repoId} />
+            </Suspense>
           )}
         </Tabs.Panel>
 
         <Tabs.Panel value="changes" pt="md">
-          {changes.length === 0 ? (
-            <Text size="sm" c="dimmed">
-              No ref changes recorded yet.
-            </Text>
-          ) : (
-            <Table striped highlightOnHover>
-              <Table.Thead>
-                <Table.Tr>
-                  <Table.Th>Time</Table.Th>
-                  <Table.Th>Ref</Table.Th>
-                  <Table.Th>Action</Table.Th>
-                  <Table.Th>Hash</Table.Th>
-                </Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {changes.map((c) => (
-                  <ChangeRow key={c.id.toString()} change={c} />
-                ))}
-              </Table.Tbody>
-            </Table>
+          {activeTab === 'changes' && (
+            <Suspense fallback={<TabFallback />}>
+              <ChangesTab repoId={repoId} />
+            </Suspense>
           )}
         </Tabs.Panel>
       </Tabs>
     </Container>
+  );
+}
+
+function BranchesTab({ repoId }: { repoId: string }) {
+  const { data } = useSuspenseQuery(repoRefsQueryOptions(repoId, 'head'));
+  const branches = data.refs;
+
+  if (branches.length === 0) {
+    return (
+      <Text size="sm" c="dimmed">
+        No branches tracked yet.
+      </Text>
+    );
+  }
+
+  return (
+    <Table striped highlightOnHover>
+      <Table.Thead>
+        <Table.Tr>
+          <Table.Th>Name</Table.Th>
+          <Table.Th>Hash</Table.Th>
+          <Table.Th>Status</Table.Th>
+          <Table.Th>Last Seen</Table.Th>
+        </Table.Tr>
+      </Table.Thead>
+      <Table.Tbody>
+        {branches.map((r) => (
+          <RefRow key={r.id.toString()} ref_={r} />
+        ))}
+      </Table.Tbody>
+    </Table>
+  );
+}
+
+function TagsTab({ repoId }: { repoId: string }) {
+  const { data } = useSuspenseQuery(repoRefsQueryOptions(repoId, 'tag'));
+  const tags = data.refs;
+
+  if (tags.length === 0) {
+    return (
+      <Text size="sm" c="dimmed">
+        No tags tracked yet.
+      </Text>
+    );
+  }
+
+  return (
+    <Table striped highlightOnHover>
+      <Table.Thead>
+        <Table.Tr>
+          <Table.Th>Name</Table.Th>
+          <Table.Th>Hash</Table.Th>
+          <Table.Th>Status</Table.Th>
+          <Table.Th>Last Seen</Table.Th>
+        </Table.Tr>
+      </Table.Thead>
+      <Table.Tbody>
+        {tags.map((r) => (
+          <RefRow key={r.id.toString()} ref_={r} />
+        ))}
+      </Table.Tbody>
+    </Table>
+  );
+}
+
+function ChangesTab({ repoId }: { repoId: string }) {
+  const { data, hasNextPage, fetchNextPage, isFetchingNextPage } =
+    useSuspenseInfiniteQuery(repoRefChangesQueryOptions(repoId));
+
+  const { ref: sentinelRef, entry } = useIntersection({ threshold: 0 });
+
+  useEffect(() => {
+    if (entry?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [entry?.isIntersecting, hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const changes = data.pages.flatMap((p) => p.changes);
+
+  if (changes.length === 0) {
+    return (
+      <Text size="sm" c="dimmed">
+        No ref changes recorded yet.
+      </Text>
+    );
+  }
+
+  return (
+    <>
+      <Table striped highlightOnHover>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>Time</Table.Th>
+            <Table.Th>Ref</Table.Th>
+            <Table.Th>Action</Table.Th>
+            <Table.Th>Hash</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {changes.map((c) => (
+            <ChangeRow key={c.id.toString()} change={c} />
+          ))}
+        </Table.Tbody>
+      </Table>
+      <div ref={sentinelRef} style={{ height: 1 }} />
+      {isFetchingNextPage && (
+        <Center mt="md">
+          <Loader size="sm" />
+        </Center>
+      )}
+    </>
   );
 }
 
