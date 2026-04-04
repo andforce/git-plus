@@ -2,17 +2,23 @@ package taskservice
 
 import (
 	"context"
+	"database/sql"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"math/rand/v2"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	"connectrpc.com/connect"
 	connectvalidate "connectrpc.com/validate"
+	appdb "github.com/ImSingee/git-plus/db"
+	dbsqlc "github.com/ImSingee/git-plus/db/sqlc"
 	appconfig "github.com/ImSingee/git-plus/pkg/config"
 	taskv1 "github.com/ImSingee/git-plus/pkg/rpc/gitplus/task/v1"
 	"github.com/ImSingee/git-plus/pkg/rpc/gitplus/task/v1/taskv1connect"
@@ -23,6 +29,7 @@ import (
 )
 
 const defaultStubStepDelay = 75 * time.Millisecond
+const defaultListTaskRunsPageSize = 20
 
 type serviceServer struct {
 	dataDir            string
@@ -93,6 +100,119 @@ func WithSourceSyncExecutor(executor SourceSyncExecutor) Option {
 			server.sourceSyncExecutor = executor
 		}
 	}
+}
+
+func (s *serviceServer) ListTaskRuns(
+	ctx context.Context,
+	req *connect.Request[taskv1.ListTaskRunsRequest],
+) (*connect.Response[taskv1.ListTaskRunsResponse], error) {
+	pageSize := int(req.Msg.GetPageSize())
+	if pageSize <= 0 {
+		pageSize = defaultListTaskRunsPageSize
+	}
+
+	offset, err := decodePageToken(req.Msg.GetPageToken())
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, fmt.Errorf("invalid page_token: %w", err))
+	}
+
+	jobType := optionalFilter(req.Msg.GetJobType())
+	parentTaskID := optionalFilter(req.Msg.GetParentTaskId())
+
+	db, queries, err := s.openTaskQueries(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	defer db.Close()
+
+	totalCount, err := queries.CountTaskRuns(ctx, dbsqlc.CountTaskRunsParams{
+		Column1: jobType,
+		Column2: parentTaskID,
+	})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("count task runs: %w", err))
+	}
+
+	taskRuns, err := queries.ListTaskRunsPaginated(ctx, dbsqlc.ListTaskRunsPaginatedParams{
+		Column1: jobType,
+		Column2: parentTaskID,
+		Limit:   int64(pageSize),
+		Offset:  int64(offset),
+	})
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list task runs: %w", err))
+	}
+
+	protoTaskRuns := make([]*taskv1.Task, 0, len(taskRuns))
+	for _, taskRun := range taskRuns {
+		protoTaskRuns = append(protoTaskRuns, toProtoTaskRun(taskRun))
+	}
+
+	response := &taskv1.ListTaskRunsResponse{
+		TaskRuns:   protoTaskRuns,
+		TotalCount: int32Ptr(int32(totalCount)),
+	}
+	if int64(offset)+int64(len(taskRuns)) < totalCount {
+		response.NextPageToken = stringPtr(encodePageToken(offset + len(taskRuns)))
+	}
+
+	return connect.NewResponse(response), nil
+}
+
+func (s *serviceServer) GetTaskRun(
+	ctx context.Context,
+	req *connect.Request[taskv1.GetTaskRunRequest],
+) (*connect.Response[taskv1.GetTaskRunResponse], error) {
+	db, queries, err := s.openTaskQueries(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	defer db.Close()
+
+	taskRun, err := queries.GetTaskRun(ctx, strings.TrimSpace(req.Msg.GetTaskId()))
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("task run %q was not found", req.Msg.GetTaskId()))
+	}
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get task run: %w", err))
+	}
+
+	return connect.NewResponse(&taskv1.GetTaskRunResponse{
+		TaskRun: toProtoTaskRun(taskRun),
+	}), nil
+}
+
+func (s *serviceServer) ListTaskRunLogs(
+	ctx context.Context,
+	req *connect.Request[taskv1.ListTaskRunLogsRequest],
+) (*connect.Response[taskv1.ListTaskRunLogsResponse], error) {
+	taskID := strings.TrimSpace(req.Msg.GetTaskId())
+
+	db, queries, err := s.openTaskQueries(ctx)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	defer db.Close()
+
+	if _, err := queries.GetTaskRun(ctx, taskID); errors.Is(err, sql.ErrNoRows) {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("task run %q was not found", taskID))
+	} else if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("get task run: %w", err))
+	}
+
+	logs, err := queries.ListTaskRunLogs(ctx, taskID)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list task run logs: %w", err))
+	}
+
+	protoLogs := make([]*taskv1.TaskRunLog, 0, len(logs))
+	for _, taskRunLog := range logs {
+		protoLogs = append(protoLogs, toProtoTaskRunLog(taskRunLog))
+	}
+
+	return connect.NewResponse(&taskv1.ListTaskRunLogsResponse{
+		Logs: protoLogs,
+	}), nil
 }
 
 func (s *serviceServer) GetTaskRuntime(
@@ -363,6 +483,15 @@ func (s *serviceServer) loadResolvedSource(sourceID string) (appconfig.SourceCon
 	return appconfig.SourceConfig{}, fmt.Errorf("source %q was not found", sourceID)
 }
 
+func (s *serviceServer) openTaskQueries(ctx context.Context) (*sql.DB, *dbsqlc.Queries, error) {
+	db, err := appdb.Open(ctx, s.dataDir)
+	if err != nil {
+		return nil, nil, fmt.Errorf("open sqlite database: %w", err)
+	}
+
+	return db, dbsqlc.New(db), nil
+}
+
 func randomSourceSyncDuration() time.Duration {
 	return time.Duration(rand.IntN(9)+2) * time.Second
 }
@@ -390,13 +519,15 @@ func testRunner(variant int, duration time.Duration) func(*task.ExecutionContext
 
 func toProtoTask(snapshot task.Snapshot) *taskv1.Task {
 	protoTask := &taskv1.Task{
-		TaskId:       stringPtr(snapshot.TaskID),
-		ParentTaskId: stringPtr(snapshot.ParentTaskID),
-		JobId:        stringPtr(snapshot.JobID),
-		JobType:      stringPtr(snapshot.JobType),
-		Name:         stringPtr(snapshot.Name),
-		State:        taskStatePtr(toProtoTaskState(snapshot.State)),
-		CreatedAt:    timestamppb.New(snapshot.CreatedAt),
+		TaskId:    stringPtr(snapshot.TaskID),
+		JobId:     stringPtr(snapshot.JobID),
+		JobType:   stringPtr(snapshot.JobType),
+		Name:      stringPtr(snapshot.Name),
+		State:     taskStatePtr(toProtoTaskState(snapshot.State)),
+		CreatedAt: timestamppb.New(snapshot.CreatedAt),
+	}
+	if snapshot.ParentTaskID != "" {
+		protoTask.ParentTaskId = stringPtr(snapshot.ParentTaskID)
 	}
 	if args := toProtoStruct(snapshot.Args); args != nil {
 		protoTask.Args = args
@@ -406,6 +537,12 @@ func toProtoTask(snapshot task.Snapshot) *taskv1.Task {
 	}
 	if snapshot.Progress != nil {
 		protoTask.Progress = toProtoProgress(*snapshot.Progress)
+	}
+	if snapshot.FinishedAt != nil {
+		protoTask.FinishedAt = timestamppb.New(*snapshot.FinishedAt)
+	}
+	if snapshot.ErrorMessage != "" {
+		protoTask.ErrorMessage = stringPtr(snapshot.ErrorMessage)
 	}
 
 	return protoTask
@@ -439,9 +576,104 @@ func toProtoTaskState(state task.State) taskv1.TaskState {
 		return taskv1.TaskState_TASK_STATE_QUEUED
 	case task.StateRunning:
 		return taskv1.TaskState_TASK_STATE_RUNNING
+	case task.StateFinished:
+		return taskv1.TaskState_TASK_STATE_FINISHED
+	case task.StateFailed:
+		return taskv1.TaskState_TASK_STATE_FAILED
 	default:
 		return taskv1.TaskState_TASK_STATE_UNSPECIFIED
 	}
+}
+
+func toProtoTaskRun(taskRun dbsqlc.TaskRun) *taskv1.Task {
+	protoTask := &taskv1.Task{
+		TaskId:    stringPtr(taskRun.TaskID),
+		JobId:     stringPtr(taskRun.JobID),
+		JobType:   stringPtr(taskRun.JobType),
+		Name:      stringPtr(taskRun.Name),
+		State:     taskStatePtr(toProtoTaskState(task.State(taskRun.Status))),
+		CreatedAt: toProtoTimestamp(taskRun.CreatedAt),
+		StartedAt: toProtoTimestamp(taskRun.StartedAt),
+	}
+	if taskRun.ParentTaskID.Valid {
+		protoTask.ParentTaskId = stringPtr(taskRun.ParentTaskID.String)
+	}
+	if args := toProtoJSONStruct(taskRun.ArgsJson); args != nil {
+		protoTask.Args = args
+	}
+	if progress := toProtoPersistedProgress(taskRun.LastProgressSummary, taskRun.LastProgressMetaJson, taskRun.UpdatedAt); progress != nil {
+		protoTask.Progress = progress
+	}
+	if taskRun.FinishedAt.Valid {
+		protoTask.FinishedAt = toProtoTimestamp(taskRun.FinishedAt.String)
+	}
+	if taskRun.ErrorMessage.Valid {
+		protoTask.ErrorMessage = stringPtr(taskRun.ErrorMessage.String)
+	}
+
+	return protoTask
+}
+
+func toProtoTaskRunLog(taskRunLog dbsqlc.TaskRunLog) *taskv1.TaskRunLog {
+	protoLog := &taskv1.TaskRunLog{
+		Id:        int64Ptr(taskRunLog.ID),
+		TaskId:    stringPtr(taskRunLog.TaskID),
+		EventType: stringPtr(taskRunLog.EventType),
+		CreatedAt: toProtoTimestamp(taskRunLog.CreatedAt),
+	}
+	if taskRunLog.Summary.Valid {
+		protoLog.Summary = stringPtr(taskRunLog.Summary.String)
+	}
+	if meta := toProtoJSONStruct(taskRunLog.MetaJson); meta != nil {
+		protoLog.Meta = meta
+	}
+	if taskRunLog.ErrorMessage.Valid {
+		protoLog.ErrorMessage = stringPtr(taskRunLog.ErrorMessage.String)
+	}
+
+	return protoLog
+}
+
+func toProtoPersistedProgress(summary sql.NullString, meta sql.NullString, updatedAt string) *taskv1.TaskProgress {
+	if !summary.Valid && !meta.Valid {
+		return nil
+	}
+
+	progress := &taskv1.TaskProgress{
+		UpdatedAt: toProtoTimestamp(updatedAt),
+	}
+	if summary.Valid {
+		progress.Summary = stringPtr(summary.String)
+	}
+	if value := toProtoJSONStruct(meta); value != nil {
+		progress.Meta = value
+	}
+
+	return progress
+}
+
+func toProtoJSONStruct(value sql.NullString) *structpb.Struct {
+	if !value.Valid || strings.TrimSpace(value.String) == "" {
+		return nil
+	}
+
+	var decoded map[string]any
+	if err := json.Unmarshal([]byte(value.String), &decoded); err != nil {
+		log.Printf("task metadata conversion failed: %v", err)
+		return nil
+	}
+
+	return toProtoStruct(decoded)
+}
+
+func toProtoTimestamp(value string) *timestamppb.Timestamp {
+	parsed, err := time.Parse(time.RFC3339Nano, value)
+	if err != nil {
+		log.Printf("task timestamp conversion failed: %v", err)
+		return nil
+	}
+
+	return timestamppb.New(parsed)
 }
 
 func toProtoEnqueueResult(result task.EnqueueResult) taskv1.TaskEnqueueResult {
@@ -470,10 +702,53 @@ func stringPtr(value string) *string {
 	return &value
 }
 
+func int32Ptr(value int32) *int32 {
+	return &value
+}
+
+func int64Ptr(value int64) *int64 {
+	return &value
+}
+
 func taskStatePtr(value taskv1.TaskState) *taskv1.TaskState {
 	return &value
 }
 
 func enqueueResultPtr(value taskv1.TaskEnqueueResult) *taskv1.TaskEnqueueResult {
 	return &value
+}
+
+func optionalFilter(value string) any {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return nil
+	}
+
+	return trimmed
+}
+
+func decodePageToken(token string) (int, error) {
+	trimmed := strings.TrimSpace(token)
+	if trimmed == "" {
+		return 0, nil
+	}
+
+	decoded, err := base64.RawURLEncoding.DecodeString(trimmed)
+	if err != nil {
+		return 0, err
+	}
+
+	offset, err := strconv.Atoi(string(decoded))
+	if err != nil {
+		return 0, err
+	}
+	if offset < 0 {
+		return 0, fmt.Errorf("offset must be non-negative")
+	}
+
+	return offset, nil
+}
+
+func encodePageToken(offset int) string {
+	return base64.RawURLEncoding.EncodeToString([]byte(strconv.Itoa(offset)))
 }

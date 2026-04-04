@@ -10,6 +10,25 @@ import (
 	"database/sql"
 )
 
+const countTaskRuns = `-- name: CountTaskRuns :one
+SELECT COUNT(1)
+FROM task_runs
+WHERE (?1 IS NULL OR job_type = ?1)
+  AND (?2 IS NULL OR parent_task_id = ?2)
+`
+
+type CountTaskRunsParams struct {
+	Column1 interface{}
+	Column2 interface{}
+}
+
+func (q *Queries) CountTaskRuns(ctx context.Context, arg CountTaskRunsParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countTaskRuns, arg.Column1, arg.Column2)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createTaskRun = `-- name: CreateTaskRun :exec
 INSERT INTO task_runs (
   task_id,
@@ -224,6 +243,79 @@ func (q *Queries) ListTaskRunLogs(ctx context.Context, taskID string) ([]TaskRun
 			&i.MetaJson,
 			&i.ErrorMessage,
 			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTaskRunsPaginated = `-- name: ListTaskRunsPaginated :many
+SELECT
+  task_id,
+  parent_task_id,
+  job_id,
+  job_type,
+  name,
+  args_json,
+  status,
+  created_at,
+  started_at,
+  finished_at,
+  error_message,
+  last_progress_summary,
+  last_progress_meta_json,
+  updated_at
+FROM task_runs
+WHERE (?1 IS NULL OR job_type = ?1)
+  AND (?2 IS NULL OR parent_task_id = ?2)
+ORDER BY started_at DESC, task_id DESC
+LIMIT ?3 OFFSET ?4
+`
+
+type ListTaskRunsPaginatedParams struct {
+	Column1 interface{}
+	Column2 interface{}
+	Limit   int64
+	Offset  int64
+}
+
+func (q *Queries) ListTaskRunsPaginated(ctx context.Context, arg ListTaskRunsPaginatedParams) ([]TaskRun, error) {
+	rows, err := q.db.QueryContext(ctx, listTaskRunsPaginated,
+		arg.Column1,
+		arg.Column2,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []TaskRun
+	for rows.Next() {
+		var i TaskRun
+		if err := rows.Scan(
+			&i.TaskID,
+			&i.ParentTaskID,
+			&i.JobID,
+			&i.JobType,
+			&i.Name,
+			&i.ArgsJson,
+			&i.Status,
+			&i.CreatedAt,
+			&i.StartedAt,
+			&i.FinishedAt,
+			&i.ErrorMessage,
+			&i.LastProgressSummary,
+			&i.LastProgressMetaJson,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}

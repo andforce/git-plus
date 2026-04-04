@@ -36,6 +36,14 @@ const (
 	// TaskServiceGetTaskRuntimeProcedure is the fully-qualified name of the TaskService's
 	// GetTaskRuntime RPC.
 	TaskServiceGetTaskRuntimeProcedure = "/gitplus.task.v1.TaskService/GetTaskRuntime"
+	// TaskServiceListTaskRunsProcedure is the fully-qualified name of the TaskService's ListTaskRuns
+	// RPC.
+	TaskServiceListTaskRunsProcedure = "/gitplus.task.v1.TaskService/ListTaskRuns"
+	// TaskServiceGetTaskRunProcedure is the fully-qualified name of the TaskService's GetTaskRun RPC.
+	TaskServiceGetTaskRunProcedure = "/gitplus.task.v1.TaskService/GetTaskRun"
+	// TaskServiceListTaskRunLogsProcedure is the fully-qualified name of the TaskService's
+	// ListTaskRunLogs RPC.
+	TaskServiceListTaskRunLogsProcedure = "/gitplus.task.v1.TaskService/ListTaskRunLogs"
 	// TaskServiceEnqueueFullSyncProcedure is the fully-qualified name of the TaskService's
 	// EnqueueFullSync RPC.
 	TaskServiceEnqueueFullSyncProcedure = "/gitplus.task.v1.TaskService/EnqueueFullSync"
@@ -53,6 +61,9 @@ const (
 // TaskServiceClient is a client for the gitplus.task.v1.TaskService service.
 type TaskServiceClient interface {
 	GetTaskRuntime(context.Context, *connect.Request[v1.GetTaskRuntimeRequest]) (*connect.Response[v1.GetTaskRuntimeResponse], error)
+	ListTaskRuns(context.Context, *connect.Request[v1.ListTaskRunsRequest]) (*connect.Response[v1.ListTaskRunsResponse], error)
+	GetTaskRun(context.Context, *connect.Request[v1.GetTaskRunRequest]) (*connect.Response[v1.GetTaskRunResponse], error)
+	ListTaskRunLogs(context.Context, *connect.Request[v1.ListTaskRunLogsRequest]) (*connect.Response[v1.ListTaskRunLogsResponse], error)
 	EnqueueFullSync(context.Context, *connect.Request[v1.EnqueueFullSyncRequest]) (*connect.Response[v1.EnqueueFullSyncResponse], error)
 	EnqueueSourceSync(context.Context, *connect.Request[v1.EnqueueSourceSyncRequest]) (*connect.Response[v1.EnqueueSourceSyncResponse], error)
 	CancelQueuedTask(context.Context, *connect.Request[v1.CancelQueuedTaskRequest]) (*connect.Response[v1.CancelQueuedTaskResponse], error)
@@ -74,6 +85,24 @@ func NewTaskServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			httpClient,
 			baseURL+TaskServiceGetTaskRuntimeProcedure,
 			connect.WithSchema(taskServiceMethods.ByName("GetTaskRuntime")),
+			connect.WithClientOptions(opts...),
+		),
+		listTaskRuns: connect.NewClient[v1.ListTaskRunsRequest, v1.ListTaskRunsResponse](
+			httpClient,
+			baseURL+TaskServiceListTaskRunsProcedure,
+			connect.WithSchema(taskServiceMethods.ByName("ListTaskRuns")),
+			connect.WithClientOptions(opts...),
+		),
+		getTaskRun: connect.NewClient[v1.GetTaskRunRequest, v1.GetTaskRunResponse](
+			httpClient,
+			baseURL+TaskServiceGetTaskRunProcedure,
+			connect.WithSchema(taskServiceMethods.ByName("GetTaskRun")),
+			connect.WithClientOptions(opts...),
+		),
+		listTaskRunLogs: connect.NewClient[v1.ListTaskRunLogsRequest, v1.ListTaskRunLogsResponse](
+			httpClient,
+			baseURL+TaskServiceListTaskRunLogsProcedure,
+			connect.WithSchema(taskServiceMethods.ByName("ListTaskRunLogs")),
 			connect.WithClientOptions(opts...),
 		),
 		enqueueFullSync: connect.NewClient[v1.EnqueueFullSyncRequest, v1.EnqueueFullSyncResponse](
@@ -106,6 +135,9 @@ func NewTaskServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 // taskServiceClient implements TaskServiceClient.
 type taskServiceClient struct {
 	getTaskRuntime    *connect.Client[v1.GetTaskRuntimeRequest, v1.GetTaskRuntimeResponse]
+	listTaskRuns      *connect.Client[v1.ListTaskRunsRequest, v1.ListTaskRunsResponse]
+	getTaskRun        *connect.Client[v1.GetTaskRunRequest, v1.GetTaskRunResponse]
+	listTaskRunLogs   *connect.Client[v1.ListTaskRunLogsRequest, v1.ListTaskRunLogsResponse]
 	enqueueFullSync   *connect.Client[v1.EnqueueFullSyncRequest, v1.EnqueueFullSyncResponse]
 	enqueueSourceSync *connect.Client[v1.EnqueueSourceSyncRequest, v1.EnqueueSourceSyncResponse]
 	cancelQueuedTask  *connect.Client[v1.CancelQueuedTaskRequest, v1.CancelQueuedTaskResponse]
@@ -115,6 +147,21 @@ type taskServiceClient struct {
 // GetTaskRuntime calls gitplus.task.v1.TaskService.GetTaskRuntime.
 func (c *taskServiceClient) GetTaskRuntime(ctx context.Context, req *connect.Request[v1.GetTaskRuntimeRequest]) (*connect.Response[v1.GetTaskRuntimeResponse], error) {
 	return c.getTaskRuntime.CallUnary(ctx, req)
+}
+
+// ListTaskRuns calls gitplus.task.v1.TaskService.ListTaskRuns.
+func (c *taskServiceClient) ListTaskRuns(ctx context.Context, req *connect.Request[v1.ListTaskRunsRequest]) (*connect.Response[v1.ListTaskRunsResponse], error) {
+	return c.listTaskRuns.CallUnary(ctx, req)
+}
+
+// GetTaskRun calls gitplus.task.v1.TaskService.GetTaskRun.
+func (c *taskServiceClient) GetTaskRun(ctx context.Context, req *connect.Request[v1.GetTaskRunRequest]) (*connect.Response[v1.GetTaskRunResponse], error) {
+	return c.getTaskRun.CallUnary(ctx, req)
+}
+
+// ListTaskRunLogs calls gitplus.task.v1.TaskService.ListTaskRunLogs.
+func (c *taskServiceClient) ListTaskRunLogs(ctx context.Context, req *connect.Request[v1.ListTaskRunLogsRequest]) (*connect.Response[v1.ListTaskRunLogsResponse], error) {
+	return c.listTaskRunLogs.CallUnary(ctx, req)
 }
 
 // EnqueueFullSync calls gitplus.task.v1.TaskService.EnqueueFullSync.
@@ -140,6 +187,9 @@ func (c *taskServiceClient) EnqueueTestTask(ctx context.Context, req *connect.Re
 // TaskServiceHandler is an implementation of the gitplus.task.v1.TaskService service.
 type TaskServiceHandler interface {
 	GetTaskRuntime(context.Context, *connect.Request[v1.GetTaskRuntimeRequest]) (*connect.Response[v1.GetTaskRuntimeResponse], error)
+	ListTaskRuns(context.Context, *connect.Request[v1.ListTaskRunsRequest]) (*connect.Response[v1.ListTaskRunsResponse], error)
+	GetTaskRun(context.Context, *connect.Request[v1.GetTaskRunRequest]) (*connect.Response[v1.GetTaskRunResponse], error)
+	ListTaskRunLogs(context.Context, *connect.Request[v1.ListTaskRunLogsRequest]) (*connect.Response[v1.ListTaskRunLogsResponse], error)
 	EnqueueFullSync(context.Context, *connect.Request[v1.EnqueueFullSyncRequest]) (*connect.Response[v1.EnqueueFullSyncResponse], error)
 	EnqueueSourceSync(context.Context, *connect.Request[v1.EnqueueSourceSyncRequest]) (*connect.Response[v1.EnqueueSourceSyncResponse], error)
 	CancelQueuedTask(context.Context, *connect.Request[v1.CancelQueuedTaskRequest]) (*connect.Response[v1.CancelQueuedTaskResponse], error)
@@ -157,6 +207,24 @@ func NewTaskServiceHandler(svc TaskServiceHandler, opts ...connect.HandlerOption
 		TaskServiceGetTaskRuntimeProcedure,
 		svc.GetTaskRuntime,
 		connect.WithSchema(taskServiceMethods.ByName("GetTaskRuntime")),
+		connect.WithHandlerOptions(opts...),
+	)
+	taskServiceListTaskRunsHandler := connect.NewUnaryHandler(
+		TaskServiceListTaskRunsProcedure,
+		svc.ListTaskRuns,
+		connect.WithSchema(taskServiceMethods.ByName("ListTaskRuns")),
+		connect.WithHandlerOptions(opts...),
+	)
+	taskServiceGetTaskRunHandler := connect.NewUnaryHandler(
+		TaskServiceGetTaskRunProcedure,
+		svc.GetTaskRun,
+		connect.WithSchema(taskServiceMethods.ByName("GetTaskRun")),
+		connect.WithHandlerOptions(opts...),
+	)
+	taskServiceListTaskRunLogsHandler := connect.NewUnaryHandler(
+		TaskServiceListTaskRunLogsProcedure,
+		svc.ListTaskRunLogs,
+		connect.WithSchema(taskServiceMethods.ByName("ListTaskRunLogs")),
 		connect.WithHandlerOptions(opts...),
 	)
 	taskServiceEnqueueFullSyncHandler := connect.NewUnaryHandler(
@@ -187,6 +255,12 @@ func NewTaskServiceHandler(svc TaskServiceHandler, opts ...connect.HandlerOption
 		switch r.URL.Path {
 		case TaskServiceGetTaskRuntimeProcedure:
 			taskServiceGetTaskRuntimeHandler.ServeHTTP(w, r)
+		case TaskServiceListTaskRunsProcedure:
+			taskServiceListTaskRunsHandler.ServeHTTP(w, r)
+		case TaskServiceGetTaskRunProcedure:
+			taskServiceGetTaskRunHandler.ServeHTTP(w, r)
+		case TaskServiceListTaskRunLogsProcedure:
+			taskServiceListTaskRunLogsHandler.ServeHTTP(w, r)
 		case TaskServiceEnqueueFullSyncProcedure:
 			taskServiceEnqueueFullSyncHandler.ServeHTTP(w, r)
 		case TaskServiceEnqueueSourceSyncProcedure:
@@ -206,6 +280,18 @@ type UnimplementedTaskServiceHandler struct{}
 
 func (UnimplementedTaskServiceHandler) GetTaskRuntime(context.Context, *connect.Request[v1.GetTaskRuntimeRequest]) (*connect.Response[v1.GetTaskRuntimeResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitplus.task.v1.TaskService.GetTaskRuntime is not implemented"))
+}
+
+func (UnimplementedTaskServiceHandler) ListTaskRuns(context.Context, *connect.Request[v1.ListTaskRunsRequest]) (*connect.Response[v1.ListTaskRunsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitplus.task.v1.TaskService.ListTaskRuns is not implemented"))
+}
+
+func (UnimplementedTaskServiceHandler) GetTaskRun(context.Context, *connect.Request[v1.GetTaskRunRequest]) (*connect.Response[v1.GetTaskRunResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitplus.task.v1.TaskService.GetTaskRun is not implemented"))
+}
+
+func (UnimplementedTaskServiceHandler) ListTaskRunLogs(context.Context, *connect.Request[v1.ListTaskRunLogsRequest]) (*connect.Response[v1.ListTaskRunLogsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitplus.task.v1.TaskService.ListTaskRunLogs is not implemented"))
 }
 
 func (UnimplementedTaskServiceHandler) EnqueueFullSync(context.Context, *connect.Request[v1.EnqueueFullSyncRequest]) (*connect.Response[v1.EnqueueFullSyncResponse], error) {

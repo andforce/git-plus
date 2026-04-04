@@ -14,7 +14,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file gitplus/task/v1/task.proto.
  */
 export const file_gitplus_task_v1_task: GenFile = /*@__PURE__*/
-  fileDesc("ChpnaXRwbHVzL3Rhc2svdjEvdGFzay5wcm90bxIPZ2l0cGx1cy50YXNrLnYxInYKDFRhc2tQcm9ncmVzcxIPCgdzdW1tYXJ5GAEgASgJEiUKBG1ldGEYAiABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0Ei4KCnVwZGF0ZWRfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIsICCgRUYXNrEg8KB3Rhc2tfaWQYASABKAkSDgoGam9iX2lkGAIgASgJEhAKCGpvYl90eXBlGAMgASgJEgwKBG5hbWUYBCABKAkSKQoFc3RhdGUYBSABKA4yGi5naXRwbHVzLnRhc2sudjEuVGFza1N0YXRlEi4KCmNyZWF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnN0YXJ0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi8KCHByb2dyZXNzGAggASgLMh0uZ2l0cGx1cy50YXNrLnYxLlRhc2tQcm9ncmVzcxIWCg5wYXJlbnRfdGFza19pZBgJIAEoCRIlCgRhcmdzGAogASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdCIXChVHZXRUYXNrUnVudGltZVJlcXVlc3QicgoWR2V0VGFza1J1bnRpbWVSZXNwb25zZRIrCgxydW5uaW5nX3Rhc2sYASABKAsyFS5naXRwbHVzLnRhc2sudjEuVGFzaxIrCgxxdWV1ZWRfdGFza3MYAiADKAsyFS5naXRwbHVzLnRhc2sudjEuVGFzayIYChZFbnF1ZXVlRnVsbFN5bmNSZXF1ZXN0InIKF0VucXVldWVGdWxsU3luY1Jlc3BvbnNlEjIKBnJlc3VsdBgBIAEoDjIiLmdpdHBsdXMudGFzay52MS5UYXNrRW5xdWV1ZVJlc3VsdBIjCgR0YXNrGAIgASgLMhUuZ2l0cGx1cy50YXNrLnYxLlRhc2siNgoYRW5xdWV1ZVNvdXJjZVN5bmNSZXF1ZXN0EhoKCXNvdXJjZV9pZBgBIAEoCUIHukgEcgIQASJ0ChlFbnF1ZXVlU291cmNlU3luY1Jlc3BvbnNlEjIKBnJlc3VsdBgBIAEoDjIiLmdpdHBsdXMudGFzay52MS5UYXNrRW5xdWV1ZVJlc3VsdBIjCgR0YXNrGAIgASgLMhUuZ2l0cGx1cy50YXNrLnYxLlRhc2siMwoXQ2FuY2VsUXVldWVkVGFza1JlcXVlc3QSGAoHdGFza19pZBgBIAEoCUIHukgEcgIQASI/ChhDYW5jZWxRdWV1ZWRUYXNrUmVzcG9uc2USIwoEdGFzaxgBIAEoCzIVLmdpdHBsdXMudGFzay52MS5UYXNrIjQKFkVucXVldWVUZXN0VGFza1JlcXVlc3QSGgoHdmFyaWFudBgBIAEoBUIJukgGGgQYBSgBInIKF0VucXVldWVUZXN0VGFza1Jlc3BvbnNlEjIKBnJlc3VsdBgBIAEoDjIiLmdpdHBsdXMudGFzay52MS5UYXNrRW5xdWV1ZVJlc3VsdBIjCgR0YXNrGAIgASgLMhUuZ2l0cGx1cy50YXNrLnYxLlRhc2sqVgoJVGFza1N0YXRlEhoKFlRBU0tfU1RBVEVfVU5TUEVDSUZJRUQQABIVChFUQVNLX1NUQVRFX1FVRVVFRBABEhYKElRBU0tfU1RBVEVfUlVOTklORxACKpoBChFUYXNrRW5xdWV1ZVJlc3VsdBIjCh9UQVNLX0VOUVVFVUVfUkVTVUxUX1VOU1BFQ0lGSUVEEAASHwobVEFTS19FTlFVRVVFX1JFU1VMVF9TVEFSVEVEEAESHgoaVEFTS19FTlFVRVVFX1JFU1VMVF9RVUVVRUQQAhIfChtUQVNLX0VOUVVFVUVfUkVTVUxUX0RFRFVQRUQQAzKRBAoLVGFza1NlcnZpY2USYQoOR2V0VGFza1J1bnRpbWUSJi5naXRwbHVzLnRhc2sudjEuR2V0VGFza1J1bnRpbWVSZXF1ZXN0GicuZ2l0cGx1cy50YXNrLnYxLkdldFRhc2tSdW50aW1lUmVzcG9uc2USZAoPRW5xdWV1ZUZ1bGxTeW5jEicuZ2l0cGx1cy50YXNrLnYxLkVucXVldWVGdWxsU3luY1JlcXVlc3QaKC5naXRwbHVzLnRhc2sudjEuRW5xdWV1ZUZ1bGxTeW5jUmVzcG9uc2USagoRRW5xdWV1ZVNvdXJjZVN5bmMSKS5naXRwbHVzLnRhc2sudjEuRW5xdWV1ZVNvdXJjZVN5bmNSZXF1ZXN0GiouZ2l0cGx1cy50YXNrLnYxLkVucXVldWVTb3VyY2VTeW5jUmVzcG9uc2USZwoQQ2FuY2VsUXVldWVkVGFzaxIoLmdpdHBsdXMudGFzay52MS5DYW5jZWxRdWV1ZWRUYXNrUmVxdWVzdBopLmdpdHBsdXMudGFzay52MS5DYW5jZWxRdWV1ZWRUYXNrUmVzcG9uc2USZAoPRW5xdWV1ZVRlc3RUYXNrEicuZ2l0cGx1cy50YXNrLnYxLkVucXVldWVUZXN0VGFza1JlcXVlc3QaKC5naXRwbHVzLnRhc2sudjEuRW5xdWV1ZVRlc3RUYXNrUmVzcG9uc2VCxQEKE2NvbS5naXRwbHVzLnRhc2sudjFCCVRhc2tQcm90b1ABWjtnaXRodWIuY29tL0ltU2luZ2VlL2dpdC1wbHVzL3BrZy9ycGMvZ2l0cGx1cy90YXNrL3YxO3Rhc2t2MaICA0dUWKoCD0dpdHBsdXMuVGFzay5WMcoCD0dpdHBsdXNcVGFza1xWMeICG0dpdHBsdXNcVGFza1xWMVxHUEJNZXRhZGF0YeoCEUdpdHBsdXM6OlRhc2s6OlYxkgMHCAHSPgIQAWIIZWRpdGlvbnNw6Ac", [file_buf_validate_validate, file_google_protobuf_go_features, file_google_protobuf_struct, file_google_protobuf_timestamp]);
+  fileDesc("ChpnaXRwbHVzL3Rhc2svdjEvdGFzay5wcm90bxIPZ2l0cGx1cy50YXNrLnYxInYKDFRhc2tQcm9ncmVzcxIPCgdzdW1tYXJ5GAEgASgJEiUKBG1ldGEYAiABKAsyFy5nb29nbGUucHJvdG9idWYuU3RydWN0Ei4KCnVwZGF0ZWRfYXQYAyABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIooDCgRUYXNrEg8KB3Rhc2tfaWQYASABKAkSDgoGam9iX2lkGAIgASgJEhAKCGpvYl90eXBlGAMgASgJEgwKBG5hbWUYBCABKAkSKQoFc3RhdGUYBSABKA4yGi5naXRwbHVzLnRhc2sudjEuVGFza1N0YXRlEi4KCmNyZWF0ZWRfYXQYBiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCnN0YXJ0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi8KCHByb2dyZXNzGAggASgLMh0uZ2l0cGx1cy50YXNrLnYxLlRhc2tQcm9ncmVzcxIWCg5wYXJlbnRfdGFza19pZBgJIAEoCRIlCgRhcmdzGAogASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBIvCgtmaW5pc2hlZF9hdBgLIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASFQoNZXJyb3JfbWVzc2FnZRgMIAEoCSK8AQoKVGFza1J1bkxvZxIKCgJpZBgBIAEoAxIPCgd0YXNrX2lkGAIgASgJEhIKCmV2ZW50X3R5cGUYAyABKAkSDwoHc3VtbWFyeRgEIAEoCRIlCgRtZXRhGAUgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBIVCg1lcnJvcl9tZXNzYWdlGAYgASgJEi4KCmNyZWF0ZWRfYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wIhcKFUdldFRhc2tSdW50aW1lUmVxdWVzdCJyChZHZXRUYXNrUnVudGltZVJlc3BvbnNlEisKDHJ1bm5pbmdfdGFzaxgBIAEoCzIVLmdpdHBsdXMudGFzay52MS5UYXNrEisKDHF1ZXVlZF90YXNrcxgCIAMoCzIVLmdpdHBsdXMudGFzay52MS5UYXNrInEKE0xpc3RUYXNrUnVuc1JlcXVlc3QSHAoJcGFnZV9zaXplGAEgASgFQgm6SAYaBBhkKAESEgoKcGFnZV90b2tlbhgCIAEoCRIQCghqb2JfdHlwZRgDIAEoCRIWCg5wYXJlbnRfdGFza19pZBgEIAEoCSJuChRMaXN0VGFza1J1bnNSZXNwb25zZRIoCgl0YXNrX3J1bnMYASADKAsyFS5naXRwbHVzLnRhc2sudjEuVGFzaxIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkSEwoLdG90YWxfY291bnQYAyABKAUiLQoRR2V0VGFza1J1blJlcXVlc3QSGAoHdGFza19pZBgBIAEoCUIHukgEcgIQASI9ChJHZXRUYXNrUnVuUmVzcG9uc2USJwoIdGFza19ydW4YASABKAsyFS5naXRwbHVzLnRhc2sudjEuVGFzayIyChZMaXN0VGFza1J1bkxvZ3NSZXF1ZXN0EhgKB3Rhc2tfaWQYASABKAlCB7pIBHICEAEiRAoXTGlzdFRhc2tSdW5Mb2dzUmVzcG9uc2USKQoEbG9ncxgBIAMoCzIbLmdpdHBsdXMudGFzay52MS5UYXNrUnVuTG9nIhgKFkVucXVldWVGdWxsU3luY1JlcXVlc3QicgoXRW5xdWV1ZUZ1bGxTeW5jUmVzcG9uc2USMgoGcmVzdWx0GAEgASgOMiIuZ2l0cGx1cy50YXNrLnYxLlRhc2tFbnF1ZXVlUmVzdWx0EiMKBHRhc2sYAiABKAsyFS5naXRwbHVzLnRhc2sudjEuVGFzayI2ChhFbnF1ZXVlU291cmNlU3luY1JlcXVlc3QSGgoJc291cmNlX2lkGAEgASgJQge6SARyAhABInQKGUVucXVldWVTb3VyY2VTeW5jUmVzcG9uc2USMgoGcmVzdWx0GAEgASgOMiIuZ2l0cGx1cy50YXNrLnYxLlRhc2tFbnF1ZXVlUmVzdWx0EiMKBHRhc2sYAiABKAsyFS5naXRwbHVzLnRhc2sudjEuVGFzayIzChdDYW5jZWxRdWV1ZWRUYXNrUmVxdWVzdBIYCgd0YXNrX2lkGAEgASgJQge6SARyAhABIj8KGENhbmNlbFF1ZXVlZFRhc2tSZXNwb25zZRIjCgR0YXNrGAEgASgLMhUuZ2l0cGx1cy50YXNrLnYxLlRhc2siNAoWRW5xdWV1ZVRlc3RUYXNrUmVxdWVzdBIaCgd2YXJpYW50GAEgASgFQgm6SAYaBBgFKAEicgoXRW5xdWV1ZVRlc3RUYXNrUmVzcG9uc2USMgoGcmVzdWx0GAEgASgOMiIuZ2l0cGx1cy50YXNrLnYxLlRhc2tFbnF1ZXVlUmVzdWx0EiMKBHRhc2sYAiABKAsyFS5naXRwbHVzLnRhc2sudjEuVGFzayqGAQoJVGFza1N0YXRlEhoKFlRBU0tfU1RBVEVfVU5TUEVDSUZJRUQQABIVChFUQVNLX1NUQVRFX1FVRVVFRBABEhYKElRBU0tfU1RBVEVfUlVOTklORxACEhcKE1RBU0tfU1RBVEVfRklOSVNIRUQQAxIVChFUQVNLX1NUQVRFX0ZBSUxFRBAEKpoBChFUYXNrRW5xdWV1ZVJlc3VsdBIjCh9UQVNLX0VOUVVFVUVfUkVTVUxUX1VOU1BFQ0lGSUVEEAASHwobVEFTS19FTlFVRVVFX1JFU1VMVF9TVEFSVEVEEAESHgoaVEFTS19FTlFVRVVFX1JFU1VMVF9RVUVVRUQQAhIfChtUQVNLX0VOUVVFVUVfUkVTVUxUX0RFRFVQRUQQAzKrBgoLVGFza1NlcnZpY2USYQoOR2V0VGFza1J1bnRpbWUSJi5naXRwbHVzLnRhc2sudjEuR2V0VGFza1J1bnRpbWVSZXF1ZXN0GicuZ2l0cGx1cy50YXNrLnYxLkdldFRhc2tSdW50aW1lUmVzcG9uc2USWwoMTGlzdFRhc2tSdW5zEiQuZ2l0cGx1cy50YXNrLnYxLkxpc3RUYXNrUnVuc1JlcXVlc3QaJS5naXRwbHVzLnRhc2sudjEuTGlzdFRhc2tSdW5zUmVzcG9uc2USVQoKR2V0VGFza1J1bhIiLmdpdHBsdXMudGFzay52MS5HZXRUYXNrUnVuUmVxdWVzdBojLmdpdHBsdXMudGFzay52MS5HZXRUYXNrUnVuUmVzcG9uc2USZAoPTGlzdFRhc2tSdW5Mb2dzEicuZ2l0cGx1cy50YXNrLnYxLkxpc3RUYXNrUnVuTG9nc1JlcXVlc3QaKC5naXRwbHVzLnRhc2sudjEuTGlzdFRhc2tSdW5Mb2dzUmVzcG9uc2USZAoPRW5xdWV1ZUZ1bGxTeW5jEicuZ2l0cGx1cy50YXNrLnYxLkVucXVldWVGdWxsU3luY1JlcXVlc3QaKC5naXRwbHVzLnRhc2sudjEuRW5xdWV1ZUZ1bGxTeW5jUmVzcG9uc2USagoRRW5xdWV1ZVNvdXJjZVN5bmMSKS5naXRwbHVzLnRhc2sudjEuRW5xdWV1ZVNvdXJjZVN5bmNSZXF1ZXN0GiouZ2l0cGx1cy50YXNrLnYxLkVucXVldWVTb3VyY2VTeW5jUmVzcG9uc2USZwoQQ2FuY2VsUXVldWVkVGFzaxIoLmdpdHBsdXMudGFzay52MS5DYW5jZWxRdWV1ZWRUYXNrUmVxdWVzdBopLmdpdHBsdXMudGFzay52MS5DYW5jZWxRdWV1ZWRUYXNrUmVzcG9uc2USZAoPRW5xdWV1ZVRlc3RUYXNrEicuZ2l0cGx1cy50YXNrLnYxLkVucXVldWVUZXN0VGFza1JlcXVlc3QaKC5naXRwbHVzLnRhc2sudjEuRW5xdWV1ZVRlc3RUYXNrUmVzcG9uc2VCxQEKE2NvbS5naXRwbHVzLnRhc2sudjFCCVRhc2tQcm90b1ABWjtnaXRodWIuY29tL0ltU2luZ2VlL2dpdC1wbHVzL3BrZy9ycGMvZ2l0cGx1cy90YXNrL3YxO3Rhc2t2MaICA0dUWKoCD0dpdHBsdXMuVGFzay5WMcoCD0dpdHBsdXNcVGFza1xWMeICG0dpdHBsdXNcVGFza1xWMVxHUEJNZXRhZGF0YeoCEUdpdHBsdXM6OlRhc2s6OlYxkgMHCAHSPgIQAWIIZWRpdGlvbnNw6Ac", [file_buf_validate_validate, file_google_protobuf_go_features, file_google_protobuf_struct, file_google_protobuf_timestamp]);
 
 /**
  * @generated from message gitplus.task.v1.TaskProgress
@@ -96,6 +96,16 @@ export type Task = Message<"gitplus.task.v1.Task"> & {
    * @generated from field: google.protobuf.Struct args = 10;
    */
   args?: JsonObject;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp finished_at = 11;
+   */
+  finishedAt?: Timestamp;
+
+  /**
+   * @generated from field: string error_message = 12;
+   */
+  errorMessage: string;
 };
 
 /**
@@ -104,6 +114,53 @@ export type Task = Message<"gitplus.task.v1.Task"> & {
  */
 export const TaskSchema: GenMessage<Task> = /*@__PURE__*/
   messageDesc(file_gitplus_task_v1_task, 1);
+
+/**
+ * @generated from message gitplus.task.v1.TaskRunLog
+ */
+export type TaskRunLog = Message<"gitplus.task.v1.TaskRunLog"> & {
+  /**
+   * @generated from field: int64 id = 1;
+   */
+  id: bigint;
+
+  /**
+   * @generated from field: string task_id = 2;
+   */
+  taskId: string;
+
+  /**
+   * @generated from field: string event_type = 3;
+   */
+  eventType: string;
+
+  /**
+   * @generated from field: string summary = 4;
+   */
+  summary: string;
+
+  /**
+   * @generated from field: google.protobuf.Struct meta = 5;
+   */
+  meta?: JsonObject;
+
+  /**
+   * @generated from field: string error_message = 6;
+   */
+  errorMessage: string;
+
+  /**
+   * @generated from field: google.protobuf.Timestamp created_at = 7;
+   */
+  createdAt?: Timestamp;
+};
+
+/**
+ * Describes the message gitplus.task.v1.TaskRunLog.
+ * Use `create(TaskRunLogSchema)` to create a new message.
+ */
+export const TaskRunLogSchema: GenMessage<TaskRunLog> = /*@__PURE__*/
+  messageDesc(file_gitplus_task_v1_task, 2);
 
 /**
  * @generated from message gitplus.task.v1.GetTaskRuntimeRequest
@@ -116,7 +173,7 @@ export type GetTaskRuntimeRequest = Message<"gitplus.task.v1.GetTaskRuntimeReque
  * Use `create(GetTaskRuntimeRequestSchema)` to create a new message.
  */
 export const GetTaskRuntimeRequestSchema: GenMessage<GetTaskRuntimeRequest> = /*@__PURE__*/
-  messageDesc(file_gitplus_task_v1_task, 2);
+  messageDesc(file_gitplus_task_v1_task, 3);
 
 /**
  * @generated from message gitplus.task.v1.GetTaskRuntimeResponse
@@ -138,7 +195,134 @@ export type GetTaskRuntimeResponse = Message<"gitplus.task.v1.GetTaskRuntimeResp
  * Use `create(GetTaskRuntimeResponseSchema)` to create a new message.
  */
 export const GetTaskRuntimeResponseSchema: GenMessage<GetTaskRuntimeResponse> = /*@__PURE__*/
-  messageDesc(file_gitplus_task_v1_task, 3);
+  messageDesc(file_gitplus_task_v1_task, 4);
+
+/**
+ * @generated from message gitplus.task.v1.ListTaskRunsRequest
+ */
+export type ListTaskRunsRequest = Message<"gitplus.task.v1.ListTaskRunsRequest"> & {
+  /**
+   * @generated from field: int32 page_size = 1;
+   */
+  pageSize: number;
+
+  /**
+   * @generated from field: string page_token = 2;
+   */
+  pageToken: string;
+
+  /**
+   * @generated from field: string job_type = 3;
+   */
+  jobType: string;
+
+  /**
+   * @generated from field: string parent_task_id = 4;
+   */
+  parentTaskId: string;
+};
+
+/**
+ * Describes the message gitplus.task.v1.ListTaskRunsRequest.
+ * Use `create(ListTaskRunsRequestSchema)` to create a new message.
+ */
+export const ListTaskRunsRequestSchema: GenMessage<ListTaskRunsRequest> = /*@__PURE__*/
+  messageDesc(file_gitplus_task_v1_task, 5);
+
+/**
+ * @generated from message gitplus.task.v1.ListTaskRunsResponse
+ */
+export type ListTaskRunsResponse = Message<"gitplus.task.v1.ListTaskRunsResponse"> & {
+  /**
+   * @generated from field: repeated gitplus.task.v1.Task task_runs = 1;
+   */
+  taskRuns: Task[];
+
+  /**
+   * @generated from field: string next_page_token = 2;
+   */
+  nextPageToken: string;
+
+  /**
+   * @generated from field: int32 total_count = 3;
+   */
+  totalCount: number;
+};
+
+/**
+ * Describes the message gitplus.task.v1.ListTaskRunsResponse.
+ * Use `create(ListTaskRunsResponseSchema)` to create a new message.
+ */
+export const ListTaskRunsResponseSchema: GenMessage<ListTaskRunsResponse> = /*@__PURE__*/
+  messageDesc(file_gitplus_task_v1_task, 6);
+
+/**
+ * @generated from message gitplus.task.v1.GetTaskRunRequest
+ */
+export type GetTaskRunRequest = Message<"gitplus.task.v1.GetTaskRunRequest"> & {
+  /**
+   * @generated from field: string task_id = 1;
+   */
+  taskId: string;
+};
+
+/**
+ * Describes the message gitplus.task.v1.GetTaskRunRequest.
+ * Use `create(GetTaskRunRequestSchema)` to create a new message.
+ */
+export const GetTaskRunRequestSchema: GenMessage<GetTaskRunRequest> = /*@__PURE__*/
+  messageDesc(file_gitplus_task_v1_task, 7);
+
+/**
+ * @generated from message gitplus.task.v1.GetTaskRunResponse
+ */
+export type GetTaskRunResponse = Message<"gitplus.task.v1.GetTaskRunResponse"> & {
+  /**
+   * @generated from field: gitplus.task.v1.Task task_run = 1;
+   */
+  taskRun?: Task;
+};
+
+/**
+ * Describes the message gitplus.task.v1.GetTaskRunResponse.
+ * Use `create(GetTaskRunResponseSchema)` to create a new message.
+ */
+export const GetTaskRunResponseSchema: GenMessage<GetTaskRunResponse> = /*@__PURE__*/
+  messageDesc(file_gitplus_task_v1_task, 8);
+
+/**
+ * @generated from message gitplus.task.v1.ListTaskRunLogsRequest
+ */
+export type ListTaskRunLogsRequest = Message<"gitplus.task.v1.ListTaskRunLogsRequest"> & {
+  /**
+   * @generated from field: string task_id = 1;
+   */
+  taskId: string;
+};
+
+/**
+ * Describes the message gitplus.task.v1.ListTaskRunLogsRequest.
+ * Use `create(ListTaskRunLogsRequestSchema)` to create a new message.
+ */
+export const ListTaskRunLogsRequestSchema: GenMessage<ListTaskRunLogsRequest> = /*@__PURE__*/
+  messageDesc(file_gitplus_task_v1_task, 9);
+
+/**
+ * @generated from message gitplus.task.v1.ListTaskRunLogsResponse
+ */
+export type ListTaskRunLogsResponse = Message<"gitplus.task.v1.ListTaskRunLogsResponse"> & {
+  /**
+   * @generated from field: repeated gitplus.task.v1.TaskRunLog logs = 1;
+   */
+  logs: TaskRunLog[];
+};
+
+/**
+ * Describes the message gitplus.task.v1.ListTaskRunLogsResponse.
+ * Use `create(ListTaskRunLogsResponseSchema)` to create a new message.
+ */
+export const ListTaskRunLogsResponseSchema: GenMessage<ListTaskRunLogsResponse> = /*@__PURE__*/
+  messageDesc(file_gitplus_task_v1_task, 10);
 
 /**
  * @generated from message gitplus.task.v1.EnqueueFullSyncRequest
@@ -151,7 +335,7 @@ export type EnqueueFullSyncRequest = Message<"gitplus.task.v1.EnqueueFullSyncReq
  * Use `create(EnqueueFullSyncRequestSchema)` to create a new message.
  */
 export const EnqueueFullSyncRequestSchema: GenMessage<EnqueueFullSyncRequest> = /*@__PURE__*/
-  messageDesc(file_gitplus_task_v1_task, 4);
+  messageDesc(file_gitplus_task_v1_task, 11);
 
 /**
  * @generated from message gitplus.task.v1.EnqueueFullSyncResponse
@@ -173,7 +357,7 @@ export type EnqueueFullSyncResponse = Message<"gitplus.task.v1.EnqueueFullSyncRe
  * Use `create(EnqueueFullSyncResponseSchema)` to create a new message.
  */
 export const EnqueueFullSyncResponseSchema: GenMessage<EnqueueFullSyncResponse> = /*@__PURE__*/
-  messageDesc(file_gitplus_task_v1_task, 5);
+  messageDesc(file_gitplus_task_v1_task, 12);
 
 /**
  * @generated from message gitplus.task.v1.EnqueueSourceSyncRequest
@@ -190,7 +374,7 @@ export type EnqueueSourceSyncRequest = Message<"gitplus.task.v1.EnqueueSourceSyn
  * Use `create(EnqueueSourceSyncRequestSchema)` to create a new message.
  */
 export const EnqueueSourceSyncRequestSchema: GenMessage<EnqueueSourceSyncRequest> = /*@__PURE__*/
-  messageDesc(file_gitplus_task_v1_task, 6);
+  messageDesc(file_gitplus_task_v1_task, 13);
 
 /**
  * @generated from message gitplus.task.v1.EnqueueSourceSyncResponse
@@ -212,7 +396,7 @@ export type EnqueueSourceSyncResponse = Message<"gitplus.task.v1.EnqueueSourceSy
  * Use `create(EnqueueSourceSyncResponseSchema)` to create a new message.
  */
 export const EnqueueSourceSyncResponseSchema: GenMessage<EnqueueSourceSyncResponse> = /*@__PURE__*/
-  messageDesc(file_gitplus_task_v1_task, 7);
+  messageDesc(file_gitplus_task_v1_task, 14);
 
 /**
  * @generated from message gitplus.task.v1.CancelQueuedTaskRequest
@@ -229,7 +413,7 @@ export type CancelQueuedTaskRequest = Message<"gitplus.task.v1.CancelQueuedTaskR
  * Use `create(CancelQueuedTaskRequestSchema)` to create a new message.
  */
 export const CancelQueuedTaskRequestSchema: GenMessage<CancelQueuedTaskRequest> = /*@__PURE__*/
-  messageDesc(file_gitplus_task_v1_task, 8);
+  messageDesc(file_gitplus_task_v1_task, 15);
 
 /**
  * @generated from message gitplus.task.v1.CancelQueuedTaskResponse
@@ -246,7 +430,7 @@ export type CancelQueuedTaskResponse = Message<"gitplus.task.v1.CancelQueuedTask
  * Use `create(CancelQueuedTaskResponseSchema)` to create a new message.
  */
 export const CancelQueuedTaskResponseSchema: GenMessage<CancelQueuedTaskResponse> = /*@__PURE__*/
-  messageDesc(file_gitplus_task_v1_task, 9);
+  messageDesc(file_gitplus_task_v1_task, 16);
 
 /**
  * @generated from message gitplus.task.v1.EnqueueTestTaskRequest
@@ -263,7 +447,7 @@ export type EnqueueTestTaskRequest = Message<"gitplus.task.v1.EnqueueTestTaskReq
  * Use `create(EnqueueTestTaskRequestSchema)` to create a new message.
  */
 export const EnqueueTestTaskRequestSchema: GenMessage<EnqueueTestTaskRequest> = /*@__PURE__*/
-  messageDesc(file_gitplus_task_v1_task, 10);
+  messageDesc(file_gitplus_task_v1_task, 17);
 
 /**
  * @generated from message gitplus.task.v1.EnqueueTestTaskResponse
@@ -285,7 +469,7 @@ export type EnqueueTestTaskResponse = Message<"gitplus.task.v1.EnqueueTestTaskRe
  * Use `create(EnqueueTestTaskResponseSchema)` to create a new message.
  */
 export const EnqueueTestTaskResponseSchema: GenMessage<EnqueueTestTaskResponse> = /*@__PURE__*/
-  messageDesc(file_gitplus_task_v1_task, 11);
+  messageDesc(file_gitplus_task_v1_task, 18);
 
 /**
  * @generated from enum gitplus.task.v1.TaskState
@@ -305,6 +489,16 @@ export enum TaskState {
    * @generated from enum value: TASK_STATE_RUNNING = 2;
    */
   RUNNING = 2,
+
+  /**
+   * @generated from enum value: TASK_STATE_FINISHED = 3;
+   */
+  FINISHED = 3,
+
+  /**
+   * @generated from enum value: TASK_STATE_FAILED = 4;
+   */
+  FAILED = 4,
 }
 
 /**
@@ -355,6 +549,30 @@ export const TaskService: GenService<{
     methodKind: "unary";
     input: typeof GetTaskRuntimeRequestSchema;
     output: typeof GetTaskRuntimeResponseSchema;
+  },
+  /**
+   * @generated from rpc gitplus.task.v1.TaskService.ListTaskRuns
+   */
+  listTaskRuns: {
+    methodKind: "unary";
+    input: typeof ListTaskRunsRequestSchema;
+    output: typeof ListTaskRunsResponseSchema;
+  },
+  /**
+   * @generated from rpc gitplus.task.v1.TaskService.GetTaskRun
+   */
+  getTaskRun: {
+    methodKind: "unary";
+    input: typeof GetTaskRunRequestSchema;
+    output: typeof GetTaskRunResponseSchema;
+  },
+  /**
+   * @generated from rpc gitplus.task.v1.TaskService.ListTaskRunLogs
+   */
+  listTaskRunLogs: {
+    methodKind: "unary";
+    input: typeof ListTaskRunLogsRequestSchema;
+    output: typeof ListTaskRunLogsResponseSchema;
   },
   /**
    * @generated from rpc gitplus.task.v1.TaskService.EnqueueFullSync

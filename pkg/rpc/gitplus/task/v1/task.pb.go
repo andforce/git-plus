@@ -31,6 +31,8 @@ const (
 	TaskState_TASK_STATE_UNSPECIFIED TaskState = 0
 	TaskState_TASK_STATE_QUEUED      TaskState = 1
 	TaskState_TASK_STATE_RUNNING     TaskState = 2
+	TaskState_TASK_STATE_FINISHED    TaskState = 3
+	TaskState_TASK_STATE_FAILED      TaskState = 4
 )
 
 // Enum value maps for TaskState.
@@ -39,11 +41,15 @@ var (
 		0: "TASK_STATE_UNSPECIFIED",
 		1: "TASK_STATE_QUEUED",
 		2: "TASK_STATE_RUNNING",
+		3: "TASK_STATE_FINISHED",
+		4: "TASK_STATE_FAILED",
 	}
 	TaskState_value = map[string]int32{
 		"TASK_STATE_UNSPECIFIED": 0,
 		"TASK_STATE_QUEUED":      1,
 		"TASK_STATE_RUNNING":     2,
+		"TASK_STATE_FINISHED":    3,
+		"TASK_STATE_FAILED":      4,
 	}
 )
 
@@ -198,6 +204,8 @@ type Task struct {
 	Progress      *TaskProgress          `protobuf:"bytes,8,opt,name=progress" json:"progress,omitempty"`
 	ParentTaskId  *string                `protobuf:"bytes,9,opt,name=parent_task_id,json=parentTaskId" json:"parent_task_id,omitempty"`
 	Args          *structpb.Struct       `protobuf:"bytes,10,opt,name=args" json:"args,omitempty"`
+	FinishedAt    *timestamppb.Timestamp `protobuf:"bytes,11,opt,name=finished_at,json=finishedAt" json:"finished_at,omitempty"`
+	ErrorMessage  *string                `protobuf:"bytes,12,opt,name=error_message,json=errorMessage" json:"error_message,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -302,6 +310,112 @@ func (x *Task) GetArgs() *structpb.Struct {
 	return nil
 }
 
+func (x *Task) GetFinishedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.FinishedAt
+	}
+	return nil
+}
+
+func (x *Task) GetErrorMessage() string {
+	if x != nil && x.ErrorMessage != nil {
+		return *x.ErrorMessage
+	}
+	return ""
+}
+
+type TaskRunLog struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            *int64                 `protobuf:"varint,1,opt,name=id" json:"id,omitempty"`
+	TaskId        *string                `protobuf:"bytes,2,opt,name=task_id,json=taskId" json:"task_id,omitempty"`
+	EventType     *string                `protobuf:"bytes,3,opt,name=event_type,json=eventType" json:"event_type,omitempty"`
+	Summary       *string                `protobuf:"bytes,4,opt,name=summary" json:"summary,omitempty"`
+	Meta          *structpb.Struct       `protobuf:"bytes,5,opt,name=meta" json:"meta,omitempty"`
+	ErrorMessage  *string                `protobuf:"bytes,6,opt,name=error_message,json=errorMessage" json:"error_message,omitempty"`
+	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TaskRunLog) Reset() {
+	*x = TaskRunLog{}
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TaskRunLog) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TaskRunLog) ProtoMessage() {}
+
+func (x *TaskRunLog) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TaskRunLog.ProtoReflect.Descriptor instead.
+func (*TaskRunLog) Descriptor() ([]byte, []int) {
+	return file_gitplus_task_v1_task_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *TaskRunLog) GetId() int64 {
+	if x != nil && x.Id != nil {
+		return *x.Id
+	}
+	return 0
+}
+
+func (x *TaskRunLog) GetTaskId() string {
+	if x != nil && x.TaskId != nil {
+		return *x.TaskId
+	}
+	return ""
+}
+
+func (x *TaskRunLog) GetEventType() string {
+	if x != nil && x.EventType != nil {
+		return *x.EventType
+	}
+	return ""
+}
+
+func (x *TaskRunLog) GetSummary() string {
+	if x != nil && x.Summary != nil {
+		return *x.Summary
+	}
+	return ""
+}
+
+func (x *TaskRunLog) GetMeta() *structpb.Struct {
+	if x != nil {
+		return x.Meta
+	}
+	return nil
+}
+
+func (x *TaskRunLog) GetErrorMessage() string {
+	if x != nil && x.ErrorMessage != nil {
+		return *x.ErrorMessage
+	}
+	return ""
+}
+
+func (x *TaskRunLog) GetCreatedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return nil
+}
+
 type GetTaskRuntimeRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -310,7 +424,7 @@ type GetTaskRuntimeRequest struct {
 
 func (x *GetTaskRuntimeRequest) Reset() {
 	*x = GetTaskRuntimeRequest{}
-	mi := &file_gitplus_task_v1_task_proto_msgTypes[2]
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -322,7 +436,7 @@ func (x *GetTaskRuntimeRequest) String() string {
 func (*GetTaskRuntimeRequest) ProtoMessage() {}
 
 func (x *GetTaskRuntimeRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitplus_task_v1_task_proto_msgTypes[2]
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -335,7 +449,7 @@ func (x *GetTaskRuntimeRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTaskRuntimeRequest.ProtoReflect.Descriptor instead.
 func (*GetTaskRuntimeRequest) Descriptor() ([]byte, []int) {
-	return file_gitplus_task_v1_task_proto_rawDescGZIP(), []int{2}
+	return file_gitplus_task_v1_task_proto_rawDescGZIP(), []int{3}
 }
 
 type GetTaskRuntimeResponse struct {
@@ -348,7 +462,7 @@ type GetTaskRuntimeResponse struct {
 
 func (x *GetTaskRuntimeResponse) Reset() {
 	*x = GetTaskRuntimeResponse{}
-	mi := &file_gitplus_task_v1_task_proto_msgTypes[3]
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -360,7 +474,7 @@ func (x *GetTaskRuntimeResponse) String() string {
 func (*GetTaskRuntimeResponse) ProtoMessage() {}
 
 func (x *GetTaskRuntimeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitplus_task_v1_task_proto_msgTypes[3]
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -373,7 +487,7 @@ func (x *GetTaskRuntimeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetTaskRuntimeResponse.ProtoReflect.Descriptor instead.
 func (*GetTaskRuntimeResponse) Descriptor() ([]byte, []int) {
-	return file_gitplus_task_v1_task_proto_rawDescGZIP(), []int{3}
+	return file_gitplus_task_v1_task_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *GetTaskRuntimeResponse) GetRunningTask() *Task {
@@ -390,6 +504,310 @@ func (x *GetTaskRuntimeResponse) GetQueuedTasks() []*Task {
 	return nil
 }
 
+type ListTaskRunsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	PageSize      *int32                 `protobuf:"varint,1,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageToken     *string                `protobuf:"bytes,2,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	JobType       *string                `protobuf:"bytes,3,opt,name=job_type,json=jobType" json:"job_type,omitempty"`
+	ParentTaskId  *string                `protobuf:"bytes,4,opt,name=parent_task_id,json=parentTaskId" json:"parent_task_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListTaskRunsRequest) Reset() {
+	*x = ListTaskRunsRequest{}
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListTaskRunsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListTaskRunsRequest) ProtoMessage() {}
+
+func (x *ListTaskRunsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListTaskRunsRequest.ProtoReflect.Descriptor instead.
+func (*ListTaskRunsRequest) Descriptor() ([]byte, []int) {
+	return file_gitplus_task_v1_task_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *ListTaskRunsRequest) GetPageSize() int32 {
+	if x != nil && x.PageSize != nil {
+		return *x.PageSize
+	}
+	return 0
+}
+
+func (x *ListTaskRunsRequest) GetPageToken() string {
+	if x != nil && x.PageToken != nil {
+		return *x.PageToken
+	}
+	return ""
+}
+
+func (x *ListTaskRunsRequest) GetJobType() string {
+	if x != nil && x.JobType != nil {
+		return *x.JobType
+	}
+	return ""
+}
+
+func (x *ListTaskRunsRequest) GetParentTaskId() string {
+	if x != nil && x.ParentTaskId != nil {
+		return *x.ParentTaskId
+	}
+	return ""
+}
+
+type ListTaskRunsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TaskRuns      []*Task                `protobuf:"bytes,1,rep,name=task_runs,json=taskRuns" json:"task_runs,omitempty"`
+	NextPageToken *string                `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	TotalCount    *int32                 `protobuf:"varint,3,opt,name=total_count,json=totalCount" json:"total_count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListTaskRunsResponse) Reset() {
+	*x = ListTaskRunsResponse{}
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListTaskRunsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListTaskRunsResponse) ProtoMessage() {}
+
+func (x *ListTaskRunsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListTaskRunsResponse.ProtoReflect.Descriptor instead.
+func (*ListTaskRunsResponse) Descriptor() ([]byte, []int) {
+	return file_gitplus_task_v1_task_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *ListTaskRunsResponse) GetTaskRuns() []*Task {
+	if x != nil {
+		return x.TaskRuns
+	}
+	return nil
+}
+
+func (x *ListTaskRunsResponse) GetNextPageToken() string {
+	if x != nil && x.NextPageToken != nil {
+		return *x.NextPageToken
+	}
+	return ""
+}
+
+func (x *ListTaskRunsResponse) GetTotalCount() int32 {
+	if x != nil && x.TotalCount != nil {
+		return *x.TotalCount
+	}
+	return 0
+}
+
+type GetTaskRunRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TaskId        *string                `protobuf:"bytes,1,opt,name=task_id,json=taskId" json:"task_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTaskRunRequest) Reset() {
+	*x = GetTaskRunRequest{}
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTaskRunRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTaskRunRequest) ProtoMessage() {}
+
+func (x *GetTaskRunRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTaskRunRequest.ProtoReflect.Descriptor instead.
+func (*GetTaskRunRequest) Descriptor() ([]byte, []int) {
+	return file_gitplus_task_v1_task_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *GetTaskRunRequest) GetTaskId() string {
+	if x != nil && x.TaskId != nil {
+		return *x.TaskId
+	}
+	return ""
+}
+
+type GetTaskRunResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TaskRun       *Task                  `protobuf:"bytes,1,opt,name=task_run,json=taskRun" json:"task_run,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetTaskRunResponse) Reset() {
+	*x = GetTaskRunResponse{}
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetTaskRunResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetTaskRunResponse) ProtoMessage() {}
+
+func (x *GetTaskRunResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetTaskRunResponse.ProtoReflect.Descriptor instead.
+func (*GetTaskRunResponse) Descriptor() ([]byte, []int) {
+	return file_gitplus_task_v1_task_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *GetTaskRunResponse) GetTaskRun() *Task {
+	if x != nil {
+		return x.TaskRun
+	}
+	return nil
+}
+
+type ListTaskRunLogsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TaskId        *string                `protobuf:"bytes,1,opt,name=task_id,json=taskId" json:"task_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListTaskRunLogsRequest) Reset() {
+	*x = ListTaskRunLogsRequest{}
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListTaskRunLogsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListTaskRunLogsRequest) ProtoMessage() {}
+
+func (x *ListTaskRunLogsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListTaskRunLogsRequest.ProtoReflect.Descriptor instead.
+func (*ListTaskRunLogsRequest) Descriptor() ([]byte, []int) {
+	return file_gitplus_task_v1_task_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *ListTaskRunLogsRequest) GetTaskId() string {
+	if x != nil && x.TaskId != nil {
+		return *x.TaskId
+	}
+	return ""
+}
+
+type ListTaskRunLogsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Logs          []*TaskRunLog          `protobuf:"bytes,1,rep,name=logs" json:"logs,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListTaskRunLogsResponse) Reset() {
+	*x = ListTaskRunLogsResponse{}
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListTaskRunLogsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListTaskRunLogsResponse) ProtoMessage() {}
+
+func (x *ListTaskRunLogsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListTaskRunLogsResponse.ProtoReflect.Descriptor instead.
+func (*ListTaskRunLogsResponse) Descriptor() ([]byte, []int) {
+	return file_gitplus_task_v1_task_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *ListTaskRunLogsResponse) GetLogs() []*TaskRunLog {
+	if x != nil {
+		return x.Logs
+	}
+	return nil
+}
+
 type EnqueueFullSyncRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	unknownFields protoimpl.UnknownFields
@@ -398,7 +816,7 @@ type EnqueueFullSyncRequest struct {
 
 func (x *EnqueueFullSyncRequest) Reset() {
 	*x = EnqueueFullSyncRequest{}
-	mi := &file_gitplus_task_v1_task_proto_msgTypes[4]
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -410,7 +828,7 @@ func (x *EnqueueFullSyncRequest) String() string {
 func (*EnqueueFullSyncRequest) ProtoMessage() {}
 
 func (x *EnqueueFullSyncRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitplus_task_v1_task_proto_msgTypes[4]
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -423,7 +841,7 @@ func (x *EnqueueFullSyncRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnqueueFullSyncRequest.ProtoReflect.Descriptor instead.
 func (*EnqueueFullSyncRequest) Descriptor() ([]byte, []int) {
-	return file_gitplus_task_v1_task_proto_rawDescGZIP(), []int{4}
+	return file_gitplus_task_v1_task_proto_rawDescGZIP(), []int{11}
 }
 
 type EnqueueFullSyncResponse struct {
@@ -436,7 +854,7 @@ type EnqueueFullSyncResponse struct {
 
 func (x *EnqueueFullSyncResponse) Reset() {
 	*x = EnqueueFullSyncResponse{}
-	mi := &file_gitplus_task_v1_task_proto_msgTypes[5]
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -448,7 +866,7 @@ func (x *EnqueueFullSyncResponse) String() string {
 func (*EnqueueFullSyncResponse) ProtoMessage() {}
 
 func (x *EnqueueFullSyncResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitplus_task_v1_task_proto_msgTypes[5]
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -461,7 +879,7 @@ func (x *EnqueueFullSyncResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnqueueFullSyncResponse.ProtoReflect.Descriptor instead.
 func (*EnqueueFullSyncResponse) Descriptor() ([]byte, []int) {
-	return file_gitplus_task_v1_task_proto_rawDescGZIP(), []int{5}
+	return file_gitplus_task_v1_task_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *EnqueueFullSyncResponse) GetResult() TaskEnqueueResult {
@@ -487,7 +905,7 @@ type EnqueueSourceSyncRequest struct {
 
 func (x *EnqueueSourceSyncRequest) Reset() {
 	*x = EnqueueSourceSyncRequest{}
-	mi := &file_gitplus_task_v1_task_proto_msgTypes[6]
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -499,7 +917,7 @@ func (x *EnqueueSourceSyncRequest) String() string {
 func (*EnqueueSourceSyncRequest) ProtoMessage() {}
 
 func (x *EnqueueSourceSyncRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitplus_task_v1_task_proto_msgTypes[6]
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -512,7 +930,7 @@ func (x *EnqueueSourceSyncRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnqueueSourceSyncRequest.ProtoReflect.Descriptor instead.
 func (*EnqueueSourceSyncRequest) Descriptor() ([]byte, []int) {
-	return file_gitplus_task_v1_task_proto_rawDescGZIP(), []int{6}
+	return file_gitplus_task_v1_task_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *EnqueueSourceSyncRequest) GetSourceId() string {
@@ -532,7 +950,7 @@ type EnqueueSourceSyncResponse struct {
 
 func (x *EnqueueSourceSyncResponse) Reset() {
 	*x = EnqueueSourceSyncResponse{}
-	mi := &file_gitplus_task_v1_task_proto_msgTypes[7]
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -544,7 +962,7 @@ func (x *EnqueueSourceSyncResponse) String() string {
 func (*EnqueueSourceSyncResponse) ProtoMessage() {}
 
 func (x *EnqueueSourceSyncResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitplus_task_v1_task_proto_msgTypes[7]
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -557,7 +975,7 @@ func (x *EnqueueSourceSyncResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnqueueSourceSyncResponse.ProtoReflect.Descriptor instead.
 func (*EnqueueSourceSyncResponse) Descriptor() ([]byte, []int) {
-	return file_gitplus_task_v1_task_proto_rawDescGZIP(), []int{7}
+	return file_gitplus_task_v1_task_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *EnqueueSourceSyncResponse) GetResult() TaskEnqueueResult {
@@ -583,7 +1001,7 @@ type CancelQueuedTaskRequest struct {
 
 func (x *CancelQueuedTaskRequest) Reset() {
 	*x = CancelQueuedTaskRequest{}
-	mi := &file_gitplus_task_v1_task_proto_msgTypes[8]
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -595,7 +1013,7 @@ func (x *CancelQueuedTaskRequest) String() string {
 func (*CancelQueuedTaskRequest) ProtoMessage() {}
 
 func (x *CancelQueuedTaskRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitplus_task_v1_task_proto_msgTypes[8]
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -608,7 +1026,7 @@ func (x *CancelQueuedTaskRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelQueuedTaskRequest.ProtoReflect.Descriptor instead.
 func (*CancelQueuedTaskRequest) Descriptor() ([]byte, []int) {
-	return file_gitplus_task_v1_task_proto_rawDescGZIP(), []int{8}
+	return file_gitplus_task_v1_task_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *CancelQueuedTaskRequest) GetTaskId() string {
@@ -627,7 +1045,7 @@ type CancelQueuedTaskResponse struct {
 
 func (x *CancelQueuedTaskResponse) Reset() {
 	*x = CancelQueuedTaskResponse{}
-	mi := &file_gitplus_task_v1_task_proto_msgTypes[9]
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -639,7 +1057,7 @@ func (x *CancelQueuedTaskResponse) String() string {
 func (*CancelQueuedTaskResponse) ProtoMessage() {}
 
 func (x *CancelQueuedTaskResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitplus_task_v1_task_proto_msgTypes[9]
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -652,7 +1070,7 @@ func (x *CancelQueuedTaskResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CancelQueuedTaskResponse.ProtoReflect.Descriptor instead.
 func (*CancelQueuedTaskResponse) Descriptor() ([]byte, []int) {
-	return file_gitplus_task_v1_task_proto_rawDescGZIP(), []int{9}
+	return file_gitplus_task_v1_task_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *CancelQueuedTaskResponse) GetTask() *Task {
@@ -671,7 +1089,7 @@ type EnqueueTestTaskRequest struct {
 
 func (x *EnqueueTestTaskRequest) Reset() {
 	*x = EnqueueTestTaskRequest{}
-	mi := &file_gitplus_task_v1_task_proto_msgTypes[10]
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -683,7 +1101,7 @@ func (x *EnqueueTestTaskRequest) String() string {
 func (*EnqueueTestTaskRequest) ProtoMessage() {}
 
 func (x *EnqueueTestTaskRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_gitplus_task_v1_task_proto_msgTypes[10]
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -696,7 +1114,7 @@ func (x *EnqueueTestTaskRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnqueueTestTaskRequest.ProtoReflect.Descriptor instead.
 func (*EnqueueTestTaskRequest) Descriptor() ([]byte, []int) {
-	return file_gitplus_task_v1_task_proto_rawDescGZIP(), []int{10}
+	return file_gitplus_task_v1_task_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *EnqueueTestTaskRequest) GetVariant() int32 {
@@ -716,7 +1134,7 @@ type EnqueueTestTaskResponse struct {
 
 func (x *EnqueueTestTaskResponse) Reset() {
 	*x = EnqueueTestTaskResponse{}
-	mi := &file_gitplus_task_v1_task_proto_msgTypes[11]
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -728,7 +1146,7 @@ func (x *EnqueueTestTaskResponse) String() string {
 func (*EnqueueTestTaskResponse) ProtoMessage() {}
 
 func (x *EnqueueTestTaskResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_gitplus_task_v1_task_proto_msgTypes[11]
+	mi := &file_gitplus_task_v1_task_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -741,7 +1159,7 @@ func (x *EnqueueTestTaskResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use EnqueueTestTaskResponse.ProtoReflect.Descriptor instead.
 func (*EnqueueTestTaskResponse) Descriptor() ([]byte, []int) {
-	return file_gitplus_task_v1_task_proto_rawDescGZIP(), []int{11}
+	return file_gitplus_task_v1_task_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *EnqueueTestTaskResponse) GetResult() TaskEnqueueResult {
@@ -767,7 +1185,7 @@ const file_gitplus_task_v1_task_proto_rawDesc = "" +
 	"\asummary\x18\x01 \x01(\tR\asummary\x12+\n" +
 	"\x04meta\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x04meta\x129\n" +
 	"\n" +
-	"updated_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\x9b\x03\n" +
+	"updated_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xfd\x03\n" +
 	"\x04Task\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x15\n" +
 	"\x06job_id\x18\x02 \x01(\tR\x05jobId\x12\x19\n" +
@@ -781,11 +1199,44 @@ const file_gitplus_task_v1_task_proto_rawDesc = "" +
 	"\bprogress\x18\b \x01(\v2\x1d.gitplus.task.v1.TaskProgressR\bprogress\x12$\n" +
 	"\x0eparent_task_id\x18\t \x01(\tR\fparentTaskId\x12+\n" +
 	"\x04args\x18\n" +
-	" \x01(\v2\x17.google.protobuf.StructR\x04args\"\x17\n" +
+	" \x01(\v2\x17.google.protobuf.StructR\x04args\x12;\n" +
+	"\vfinished_at\x18\v \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"finishedAt\x12#\n" +
+	"\rerror_message\x18\f \x01(\tR\ferrorMessage\"\xfb\x01\n" +
+	"\n" +
+	"TaskRunLog\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x17\n" +
+	"\atask_id\x18\x02 \x01(\tR\x06taskId\x12\x1d\n" +
+	"\n" +
+	"event_type\x18\x03 \x01(\tR\teventType\x12\x18\n" +
+	"\asummary\x18\x04 \x01(\tR\asummary\x12+\n" +
+	"\x04meta\x18\x05 \x01(\v2\x17.google.protobuf.StructR\x04meta\x12#\n" +
+	"\rerror_message\x18\x06 \x01(\tR\ferrorMessage\x129\n" +
+	"\n" +
+	"created_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\"\x17\n" +
 	"\x15GetTaskRuntimeRequest\"\x8c\x01\n" +
 	"\x16GetTaskRuntimeResponse\x128\n" +
 	"\frunning_task\x18\x01 \x01(\v2\x15.gitplus.task.v1.TaskR\vrunningTask\x128\n" +
-	"\fqueued_tasks\x18\x02 \x03(\v2\x15.gitplus.task.v1.TaskR\vqueuedTasks\"\x18\n" +
+	"\fqueued_tasks\x18\x02 \x03(\v2\x15.gitplus.task.v1.TaskR\vqueuedTasks\"\x9d\x01\n" +
+	"\x13ListTaskRunsRequest\x12&\n" +
+	"\tpage_size\x18\x01 \x01(\x05B\t\xbaH\x06\x1a\x04\x18d(\x01R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x02 \x01(\tR\tpageToken\x12\x19\n" +
+	"\bjob_type\x18\x03 \x01(\tR\ajobType\x12$\n" +
+	"\x0eparent_task_id\x18\x04 \x01(\tR\fparentTaskId\"\x93\x01\n" +
+	"\x14ListTaskRunsResponse\x122\n" +
+	"\ttask_runs\x18\x01 \x03(\v2\x15.gitplus.task.v1.TaskR\btaskRuns\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\x12\x1f\n" +
+	"\vtotal_count\x18\x03 \x01(\x05R\n" +
+	"totalCount\"5\n" +
+	"\x11GetTaskRunRequest\x12 \n" +
+	"\atask_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06taskId\"F\n" +
+	"\x12GetTaskRunResponse\x120\n" +
+	"\btask_run\x18\x01 \x01(\v2\x15.gitplus.task.v1.TaskR\ataskRun\":\n" +
+	"\x16ListTaskRunLogsRequest\x12 \n" +
+	"\atask_id\x18\x01 \x01(\tB\a\xbaH\x04r\x02\x10\x01R\x06taskId\"J\n" +
+	"\x17ListTaskRunLogsResponse\x12/\n" +
+	"\x04logs\x18\x01 \x03(\v2\x1b.gitplus.task.v1.TaskRunLogR\x04logs\"\x18\n" +
 	"\x16EnqueueFullSyncRequest\"\x80\x01\n" +
 	"\x17EnqueueFullSyncResponse\x12:\n" +
 	"\x06result\x18\x01 \x01(\x0e2\".gitplus.task.v1.TaskEnqueueResultR\x06result\x12)\n" +
@@ -803,18 +1254,24 @@ const file_gitplus_task_v1_task_proto_rawDesc = "" +
 	"\avariant\x18\x01 \x01(\x05B\t\xbaH\x06\x1a\x04\x18\x05(\x01R\avariant\"\x80\x01\n" +
 	"\x17EnqueueTestTaskResponse\x12:\n" +
 	"\x06result\x18\x01 \x01(\x0e2\".gitplus.task.v1.TaskEnqueueResultR\x06result\x12)\n" +
-	"\x04task\x18\x02 \x01(\v2\x15.gitplus.task.v1.TaskR\x04task*V\n" +
+	"\x04task\x18\x02 \x01(\v2\x15.gitplus.task.v1.TaskR\x04task*\x86\x01\n" +
 	"\tTaskState\x12\x1a\n" +
 	"\x16TASK_STATE_UNSPECIFIED\x10\x00\x12\x15\n" +
 	"\x11TASK_STATE_QUEUED\x10\x01\x12\x16\n" +
-	"\x12TASK_STATE_RUNNING\x10\x02*\x9a\x01\n" +
+	"\x12TASK_STATE_RUNNING\x10\x02\x12\x17\n" +
+	"\x13TASK_STATE_FINISHED\x10\x03\x12\x15\n" +
+	"\x11TASK_STATE_FAILED\x10\x04*\x9a\x01\n" +
 	"\x11TaskEnqueueResult\x12#\n" +
 	"\x1fTASK_ENQUEUE_RESULT_UNSPECIFIED\x10\x00\x12\x1f\n" +
 	"\x1bTASK_ENQUEUE_RESULT_STARTED\x10\x01\x12\x1e\n" +
 	"\x1aTASK_ENQUEUE_RESULT_QUEUED\x10\x02\x12\x1f\n" +
-	"\x1bTASK_ENQUEUE_RESULT_DEDUPED\x10\x032\x91\x04\n" +
+	"\x1bTASK_ENQUEUE_RESULT_DEDUPED\x10\x032\xab\x06\n" +
 	"\vTaskService\x12a\n" +
-	"\x0eGetTaskRuntime\x12&.gitplus.task.v1.GetTaskRuntimeRequest\x1a'.gitplus.task.v1.GetTaskRuntimeResponse\x12d\n" +
+	"\x0eGetTaskRuntime\x12&.gitplus.task.v1.GetTaskRuntimeRequest\x1a'.gitplus.task.v1.GetTaskRuntimeResponse\x12[\n" +
+	"\fListTaskRuns\x12$.gitplus.task.v1.ListTaskRunsRequest\x1a%.gitplus.task.v1.ListTaskRunsResponse\x12U\n" +
+	"\n" +
+	"GetTaskRun\x12\".gitplus.task.v1.GetTaskRunRequest\x1a#.gitplus.task.v1.GetTaskRunResponse\x12d\n" +
+	"\x0fListTaskRunLogs\x12'.gitplus.task.v1.ListTaskRunLogsRequest\x1a(.gitplus.task.v1.ListTaskRunLogsResponse\x12d\n" +
 	"\x0fEnqueueFullSync\x12'.gitplus.task.v1.EnqueueFullSyncRequest\x1a(.gitplus.task.v1.EnqueueFullSyncResponse\x12j\n" +
 	"\x11EnqueueSourceSync\x12).gitplus.task.v1.EnqueueSourceSyncRequest\x1a*.gitplus.task.v1.EnqueueSourceSyncResponse\x12g\n" +
 	"\x10CancelQueuedTask\x12(.gitplus.task.v1.CancelQueuedTaskRequest\x1a).gitplus.task.v1.CancelQueuedTaskResponse\x12d\n" +
@@ -834,57 +1291,76 @@ func file_gitplus_task_v1_task_proto_rawDescGZIP() []byte {
 }
 
 var file_gitplus_task_v1_task_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_gitplus_task_v1_task_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_gitplus_task_v1_task_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_gitplus_task_v1_task_proto_goTypes = []any{
 	(TaskState)(0),                    // 0: gitplus.task.v1.TaskState
 	(TaskEnqueueResult)(0),            // 1: gitplus.task.v1.TaskEnqueueResult
 	(*TaskProgress)(nil),              // 2: gitplus.task.v1.TaskProgress
 	(*Task)(nil),                      // 3: gitplus.task.v1.Task
-	(*GetTaskRuntimeRequest)(nil),     // 4: gitplus.task.v1.GetTaskRuntimeRequest
-	(*GetTaskRuntimeResponse)(nil),    // 5: gitplus.task.v1.GetTaskRuntimeResponse
-	(*EnqueueFullSyncRequest)(nil),    // 6: gitplus.task.v1.EnqueueFullSyncRequest
-	(*EnqueueFullSyncResponse)(nil),   // 7: gitplus.task.v1.EnqueueFullSyncResponse
-	(*EnqueueSourceSyncRequest)(nil),  // 8: gitplus.task.v1.EnqueueSourceSyncRequest
-	(*EnqueueSourceSyncResponse)(nil), // 9: gitplus.task.v1.EnqueueSourceSyncResponse
-	(*CancelQueuedTaskRequest)(nil),   // 10: gitplus.task.v1.CancelQueuedTaskRequest
-	(*CancelQueuedTaskResponse)(nil),  // 11: gitplus.task.v1.CancelQueuedTaskResponse
-	(*EnqueueTestTaskRequest)(nil),    // 12: gitplus.task.v1.EnqueueTestTaskRequest
-	(*EnqueueTestTaskResponse)(nil),   // 13: gitplus.task.v1.EnqueueTestTaskResponse
-	(*structpb.Struct)(nil),           // 14: google.protobuf.Struct
-	(*timestamppb.Timestamp)(nil),     // 15: google.protobuf.Timestamp
+	(*TaskRunLog)(nil),                // 4: gitplus.task.v1.TaskRunLog
+	(*GetTaskRuntimeRequest)(nil),     // 5: gitplus.task.v1.GetTaskRuntimeRequest
+	(*GetTaskRuntimeResponse)(nil),    // 6: gitplus.task.v1.GetTaskRuntimeResponse
+	(*ListTaskRunsRequest)(nil),       // 7: gitplus.task.v1.ListTaskRunsRequest
+	(*ListTaskRunsResponse)(nil),      // 8: gitplus.task.v1.ListTaskRunsResponse
+	(*GetTaskRunRequest)(nil),         // 9: gitplus.task.v1.GetTaskRunRequest
+	(*GetTaskRunResponse)(nil),        // 10: gitplus.task.v1.GetTaskRunResponse
+	(*ListTaskRunLogsRequest)(nil),    // 11: gitplus.task.v1.ListTaskRunLogsRequest
+	(*ListTaskRunLogsResponse)(nil),   // 12: gitplus.task.v1.ListTaskRunLogsResponse
+	(*EnqueueFullSyncRequest)(nil),    // 13: gitplus.task.v1.EnqueueFullSyncRequest
+	(*EnqueueFullSyncResponse)(nil),   // 14: gitplus.task.v1.EnqueueFullSyncResponse
+	(*EnqueueSourceSyncRequest)(nil),  // 15: gitplus.task.v1.EnqueueSourceSyncRequest
+	(*EnqueueSourceSyncResponse)(nil), // 16: gitplus.task.v1.EnqueueSourceSyncResponse
+	(*CancelQueuedTaskRequest)(nil),   // 17: gitplus.task.v1.CancelQueuedTaskRequest
+	(*CancelQueuedTaskResponse)(nil),  // 18: gitplus.task.v1.CancelQueuedTaskResponse
+	(*EnqueueTestTaskRequest)(nil),    // 19: gitplus.task.v1.EnqueueTestTaskRequest
+	(*EnqueueTestTaskResponse)(nil),   // 20: gitplus.task.v1.EnqueueTestTaskResponse
+	(*structpb.Struct)(nil),           // 21: google.protobuf.Struct
+	(*timestamppb.Timestamp)(nil),     // 22: google.protobuf.Timestamp
 }
 var file_gitplus_task_v1_task_proto_depIdxs = []int32{
-	14, // 0: gitplus.task.v1.TaskProgress.meta:type_name -> google.protobuf.Struct
-	15, // 1: gitplus.task.v1.TaskProgress.updated_at:type_name -> google.protobuf.Timestamp
+	21, // 0: gitplus.task.v1.TaskProgress.meta:type_name -> google.protobuf.Struct
+	22, // 1: gitplus.task.v1.TaskProgress.updated_at:type_name -> google.protobuf.Timestamp
 	0,  // 2: gitplus.task.v1.Task.state:type_name -> gitplus.task.v1.TaskState
-	15, // 3: gitplus.task.v1.Task.created_at:type_name -> google.protobuf.Timestamp
-	15, // 4: gitplus.task.v1.Task.started_at:type_name -> google.protobuf.Timestamp
+	22, // 3: gitplus.task.v1.Task.created_at:type_name -> google.protobuf.Timestamp
+	22, // 4: gitplus.task.v1.Task.started_at:type_name -> google.protobuf.Timestamp
 	2,  // 5: gitplus.task.v1.Task.progress:type_name -> gitplus.task.v1.TaskProgress
-	14, // 6: gitplus.task.v1.Task.args:type_name -> google.protobuf.Struct
-	3,  // 7: gitplus.task.v1.GetTaskRuntimeResponse.running_task:type_name -> gitplus.task.v1.Task
-	3,  // 8: gitplus.task.v1.GetTaskRuntimeResponse.queued_tasks:type_name -> gitplus.task.v1.Task
-	1,  // 9: gitplus.task.v1.EnqueueFullSyncResponse.result:type_name -> gitplus.task.v1.TaskEnqueueResult
-	3,  // 10: gitplus.task.v1.EnqueueFullSyncResponse.task:type_name -> gitplus.task.v1.Task
-	1,  // 11: gitplus.task.v1.EnqueueSourceSyncResponse.result:type_name -> gitplus.task.v1.TaskEnqueueResult
-	3,  // 12: gitplus.task.v1.EnqueueSourceSyncResponse.task:type_name -> gitplus.task.v1.Task
-	3,  // 13: gitplus.task.v1.CancelQueuedTaskResponse.task:type_name -> gitplus.task.v1.Task
-	1,  // 14: gitplus.task.v1.EnqueueTestTaskResponse.result:type_name -> gitplus.task.v1.TaskEnqueueResult
-	3,  // 15: gitplus.task.v1.EnqueueTestTaskResponse.task:type_name -> gitplus.task.v1.Task
-	4,  // 16: gitplus.task.v1.TaskService.GetTaskRuntime:input_type -> gitplus.task.v1.GetTaskRuntimeRequest
-	6,  // 17: gitplus.task.v1.TaskService.EnqueueFullSync:input_type -> gitplus.task.v1.EnqueueFullSyncRequest
-	8,  // 18: gitplus.task.v1.TaskService.EnqueueSourceSync:input_type -> gitplus.task.v1.EnqueueSourceSyncRequest
-	10, // 19: gitplus.task.v1.TaskService.CancelQueuedTask:input_type -> gitplus.task.v1.CancelQueuedTaskRequest
-	12, // 20: gitplus.task.v1.TaskService.EnqueueTestTask:input_type -> gitplus.task.v1.EnqueueTestTaskRequest
-	5,  // 21: gitplus.task.v1.TaskService.GetTaskRuntime:output_type -> gitplus.task.v1.GetTaskRuntimeResponse
-	7,  // 22: gitplus.task.v1.TaskService.EnqueueFullSync:output_type -> gitplus.task.v1.EnqueueFullSyncResponse
-	9,  // 23: gitplus.task.v1.TaskService.EnqueueSourceSync:output_type -> gitplus.task.v1.EnqueueSourceSyncResponse
-	11, // 24: gitplus.task.v1.TaskService.CancelQueuedTask:output_type -> gitplus.task.v1.CancelQueuedTaskResponse
-	13, // 25: gitplus.task.v1.TaskService.EnqueueTestTask:output_type -> gitplus.task.v1.EnqueueTestTaskResponse
-	21, // [21:26] is the sub-list for method output_type
-	16, // [16:21] is the sub-list for method input_type
-	16, // [16:16] is the sub-list for extension type_name
-	16, // [16:16] is the sub-list for extension extendee
-	0,  // [0:16] is the sub-list for field type_name
+	21, // 6: gitplus.task.v1.Task.args:type_name -> google.protobuf.Struct
+	22, // 7: gitplus.task.v1.Task.finished_at:type_name -> google.protobuf.Timestamp
+	21, // 8: gitplus.task.v1.TaskRunLog.meta:type_name -> google.protobuf.Struct
+	22, // 9: gitplus.task.v1.TaskRunLog.created_at:type_name -> google.protobuf.Timestamp
+	3,  // 10: gitplus.task.v1.GetTaskRuntimeResponse.running_task:type_name -> gitplus.task.v1.Task
+	3,  // 11: gitplus.task.v1.GetTaskRuntimeResponse.queued_tasks:type_name -> gitplus.task.v1.Task
+	3,  // 12: gitplus.task.v1.ListTaskRunsResponse.task_runs:type_name -> gitplus.task.v1.Task
+	3,  // 13: gitplus.task.v1.GetTaskRunResponse.task_run:type_name -> gitplus.task.v1.Task
+	4,  // 14: gitplus.task.v1.ListTaskRunLogsResponse.logs:type_name -> gitplus.task.v1.TaskRunLog
+	1,  // 15: gitplus.task.v1.EnqueueFullSyncResponse.result:type_name -> gitplus.task.v1.TaskEnqueueResult
+	3,  // 16: gitplus.task.v1.EnqueueFullSyncResponse.task:type_name -> gitplus.task.v1.Task
+	1,  // 17: gitplus.task.v1.EnqueueSourceSyncResponse.result:type_name -> gitplus.task.v1.TaskEnqueueResult
+	3,  // 18: gitplus.task.v1.EnqueueSourceSyncResponse.task:type_name -> gitplus.task.v1.Task
+	3,  // 19: gitplus.task.v1.CancelQueuedTaskResponse.task:type_name -> gitplus.task.v1.Task
+	1,  // 20: gitplus.task.v1.EnqueueTestTaskResponse.result:type_name -> gitplus.task.v1.TaskEnqueueResult
+	3,  // 21: gitplus.task.v1.EnqueueTestTaskResponse.task:type_name -> gitplus.task.v1.Task
+	5,  // 22: gitplus.task.v1.TaskService.GetTaskRuntime:input_type -> gitplus.task.v1.GetTaskRuntimeRequest
+	7,  // 23: gitplus.task.v1.TaskService.ListTaskRuns:input_type -> gitplus.task.v1.ListTaskRunsRequest
+	9,  // 24: gitplus.task.v1.TaskService.GetTaskRun:input_type -> gitplus.task.v1.GetTaskRunRequest
+	11, // 25: gitplus.task.v1.TaskService.ListTaskRunLogs:input_type -> gitplus.task.v1.ListTaskRunLogsRequest
+	13, // 26: gitplus.task.v1.TaskService.EnqueueFullSync:input_type -> gitplus.task.v1.EnqueueFullSyncRequest
+	15, // 27: gitplus.task.v1.TaskService.EnqueueSourceSync:input_type -> gitplus.task.v1.EnqueueSourceSyncRequest
+	17, // 28: gitplus.task.v1.TaskService.CancelQueuedTask:input_type -> gitplus.task.v1.CancelQueuedTaskRequest
+	19, // 29: gitplus.task.v1.TaskService.EnqueueTestTask:input_type -> gitplus.task.v1.EnqueueTestTaskRequest
+	6,  // 30: gitplus.task.v1.TaskService.GetTaskRuntime:output_type -> gitplus.task.v1.GetTaskRuntimeResponse
+	8,  // 31: gitplus.task.v1.TaskService.ListTaskRuns:output_type -> gitplus.task.v1.ListTaskRunsResponse
+	10, // 32: gitplus.task.v1.TaskService.GetTaskRun:output_type -> gitplus.task.v1.GetTaskRunResponse
+	12, // 33: gitplus.task.v1.TaskService.ListTaskRunLogs:output_type -> gitplus.task.v1.ListTaskRunLogsResponse
+	14, // 34: gitplus.task.v1.TaskService.EnqueueFullSync:output_type -> gitplus.task.v1.EnqueueFullSyncResponse
+	16, // 35: gitplus.task.v1.TaskService.EnqueueSourceSync:output_type -> gitplus.task.v1.EnqueueSourceSyncResponse
+	18, // 36: gitplus.task.v1.TaskService.CancelQueuedTask:output_type -> gitplus.task.v1.CancelQueuedTaskResponse
+	20, // 37: gitplus.task.v1.TaskService.EnqueueTestTask:output_type -> gitplus.task.v1.EnqueueTestTaskResponse
+	30, // [30:38] is the sub-list for method output_type
+	22, // [22:30] is the sub-list for method input_type
+	22, // [22:22] is the sub-list for extension type_name
+	22, // [22:22] is the sub-list for extension extendee
+	0,  // [0:22] is the sub-list for field type_name
 }
 
 func init() { file_gitplus_task_v1_task_proto_init() }
@@ -898,7 +1374,7 @@ func file_gitplus_task_v1_task_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gitplus_task_v1_task_proto_rawDesc), len(file_gitplus_task_v1_task_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   12,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

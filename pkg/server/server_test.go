@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"io"
@@ -1075,6 +1076,229 @@ sources:
 	}
 }
 
+func TestTaskServiceListTaskRunsSupportsPaginationAndFilters(t *testing.T) {
+	dataDir := t.TempDir()
+	server, queries := newPersistentTestServer(t, dataDir)
+	client := newTaskServiceClient(server.URL)
+
+	seedTaskRun(t, queries, dbsqlc.CreateTaskRunParams{
+		TaskID:               "task-1",
+		ParentTaskID:         testNullString("parent-1"),
+		JobID:                task.BuildSourceSyncJobID("source-a"),
+		JobType:              task.JobTypeSyncSource,
+		Name:                 "Sync source source-a",
+		ArgsJson:             testNullString(`{"source_id":"source-a"}`),
+		Status:               string(task.StateFinished),
+		CreatedAt:            "2026-04-04T08:00:00Z",
+		StartedAt:            "2026-04-04T08:01:00Z",
+		FinishedAt:           testNullString("2026-04-04T08:02:00Z"),
+		ErrorMessage:         sql.NullString{},
+		LastProgressSummary:  testNullString("Finished source-a"),
+		LastProgressMetaJson: testNullString(`{"phase":"done"}`),
+		UpdatedAt:            "2026-04-04T08:02:00Z",
+	})
+	seedTaskRun(t, queries, dbsqlc.CreateTaskRunParams{
+		TaskID:               "task-2",
+		ParentTaskID:         testNullString("parent-1"),
+		JobID:                task.BuildSourceSyncJobID("source-b"),
+		JobType:              task.JobTypeSyncSource,
+		Name:                 "Sync source source-b",
+		ArgsJson:             testNullString(`{"source_id":"source-b"}`),
+		Status:               string(task.StateFailed),
+		CreatedAt:            "2026-04-04T07:00:00Z",
+		StartedAt:            "2026-04-04T07:01:00Z",
+		FinishedAt:           testNullString("2026-04-04T07:02:00Z"),
+		ErrorMessage:         testNullString("boom"),
+		LastProgressSummary:  testNullString("Failed source-b"),
+		LastProgressMetaJson: testNullString(`{"phase":"persist_upserts"}`),
+		UpdatedAt:            "2026-04-04T07:02:00Z",
+	})
+	seedTaskRun(t, queries, dbsqlc.CreateTaskRunParams{
+		TaskID:               "task-3",
+		ParentTaskID:         sql.NullString{},
+		JobID:                task.JobIDSyncAll,
+		JobType:              task.JobTypeSyncAll,
+		Name:                 "Sync all sources",
+		ArgsJson:             sql.NullString{},
+		Status:               string(task.StateFinished),
+		CreatedAt:            "2026-04-04T06:00:00Z",
+		StartedAt:            "2026-04-04T06:01:00Z",
+		FinishedAt:           testNullString("2026-04-04T06:03:00Z"),
+		ErrorMessage:         sql.NullString{},
+		LastProgressSummary:  sql.NullString{},
+		LastProgressMetaJson: sql.NullString{},
+		UpdatedAt:            "2026-04-04T06:03:00Z",
+	})
+
+	firstPage, err := client.ListTaskRuns(
+		context.Background(),
+		connect.NewRequest(&taskv1.ListTaskRunsRequest{
+			PageSize:     testInt32Ptr(1),
+			JobType:      testStringPtr(task.JobTypeSyncSource),
+			ParentTaskId: testStringPtr("parent-1"),
+		}),
+	)
+	if err != nil {
+		t.Fatalf("list task runs first page: %v", err)
+	}
+
+	if firstPage.Msg.GetTotalCount() != 2 {
+		t.Fatalf("expected total_count=2, got %d", firstPage.Msg.GetTotalCount())
+	}
+	if len(firstPage.Msg.GetTaskRuns()) != 1 {
+		t.Fatalf("expected 1 task run on first page, got %d", len(firstPage.Msg.GetTaskRuns()))
+	}
+	firstRun := firstPage.Msg.GetTaskRuns()[0]
+	if firstRun.GetTaskId() != "task-1" {
+		t.Fatalf("expected first task run task-1, got %q", firstRun.GetTaskId())
+	}
+	if firstRun.GetState() != taskv1.TaskState_TASK_STATE_FINISHED {
+		t.Fatalf("expected finished state, got %s", firstRun.GetState())
+	}
+	if firstRun.GetFinishedAt() == nil {
+		t.Fatal("expected finished_at to be present")
+	}
+	if firstRun.GetProgress().GetSummary() != "Finished source-a" {
+		t.Fatalf("unexpected first task progress summary: %q", firstRun.GetProgress().GetSummary())
+	}
+	if firstRun.GetProgress().GetMeta().GetFields()["phase"].GetStringValue() != "done" {
+		t.Fatalf("unexpected first task progress meta: %#v", firstRun.GetProgress().GetMeta())
+	}
+	if firstPage.Msg.GetNextPageToken() == "" {
+		t.Fatal("expected next_page_token to be present")
+	}
+
+	secondPage, err := client.ListTaskRuns(
+		context.Background(),
+		connect.NewRequest(&taskv1.ListTaskRunsRequest{
+			PageSize:     testInt32Ptr(1),
+			PageToken:    testStringPtr(firstPage.Msg.GetNextPageToken()),
+			JobType:      testStringPtr(task.JobTypeSyncSource),
+			ParentTaskId: testStringPtr("parent-1"),
+		}),
+	)
+	if err != nil {
+		t.Fatalf("list task runs second page: %v", err)
+	}
+
+	if secondPage.Msg.GetTotalCount() != 2 {
+		t.Fatalf("expected second page total_count=2, got %d", secondPage.Msg.GetTotalCount())
+	}
+	if len(secondPage.Msg.GetTaskRuns()) != 1 {
+		t.Fatalf("expected 1 task run on second page, got %d", len(secondPage.Msg.GetTaskRuns()))
+	}
+	secondRun := secondPage.Msg.GetTaskRuns()[0]
+	if secondRun.GetTaskId() != "task-2" {
+		t.Fatalf("expected second task run task-2, got %q", secondRun.GetTaskId())
+	}
+	if secondRun.GetState() != taskv1.TaskState_TASK_STATE_FAILED {
+		t.Fatalf("expected failed state, got %s", secondRun.GetState())
+	}
+	if secondRun.GetErrorMessage() != "boom" {
+		t.Fatalf("unexpected second task error message: %q", secondRun.GetErrorMessage())
+	}
+	if secondPage.Msg.GetNextPageToken() != "" {
+		t.Fatalf("expected no next_page_token on final page, got %q", secondPage.Msg.GetNextPageToken())
+	}
+}
+
+func TestTaskServiceGetTaskRunAndListTaskRunLogsReturnPersistedData(t *testing.T) {
+	dataDir := t.TempDir()
+	server, queries := newPersistentTestServer(t, dataDir)
+	client := newTaskServiceClient(server.URL)
+
+	seedTaskRun(t, queries, dbsqlc.CreateTaskRunParams{
+		TaskID:               "task-detail",
+		ParentTaskID:         testNullString("parent-detail"),
+		JobID:                task.BuildSourceSyncJobID("source-detail"),
+		JobType:              task.JobTypeSyncSource,
+		Name:                 "Sync source source-detail",
+		ArgsJson:             testNullString(`{"source_id":"source-detail"}`),
+		Status:               string(task.StateFailed),
+		CreatedAt:            "2026-04-04T05:00:00Z",
+		StartedAt:            "2026-04-04T05:01:00Z",
+		FinishedAt:           testNullString("2026-04-04T05:02:00Z"),
+		ErrorMessage:         testNullString("sync failed"),
+		LastProgressSummary:  testNullString("Persisting repositories"),
+		LastProgressMetaJson: testNullString(`{"phase":"persist_upserts","processed":1}`),
+		UpdatedAt:            "2026-04-04T05:02:00Z",
+	})
+	seedTaskRunLog(t, queries, dbsqlc.CreateTaskRunLogParams{
+		TaskID:       "task-detail",
+		EventType:    "started",
+		Summary:      testNullString("Task started"),
+		MetaJson:     sql.NullString{},
+		ErrorMessage: sql.NullString{},
+		CreatedAt:    "2026-04-04T05:01:00Z",
+	})
+	seedTaskRunLog(t, queries, dbsqlc.CreateTaskRunLogParams{
+		TaskID:       "task-detail",
+		EventType:    "failed",
+		Summary:      testNullString("Task failed"),
+		MetaJson:     testNullString(`{"phase":"persist_upserts"}`),
+		ErrorMessage: testNullString("sync failed"),
+		CreatedAt:    "2026-04-04T05:02:00Z",
+	})
+
+	taskRunResponse, err := client.GetTaskRun(
+		context.Background(),
+		connect.NewRequest(&taskv1.GetTaskRunRequest{
+			TaskId: testStringPtr("task-detail"),
+		}),
+	)
+	if err != nil {
+		t.Fatalf("get task run: %v", err)
+	}
+
+	taskRun := taskRunResponse.Msg.GetTaskRun()
+	if taskRun.GetTaskId() != "task-detail" {
+		t.Fatalf("unexpected task id: %q", taskRun.GetTaskId())
+	}
+	if taskRun.GetParentTaskId() != "parent-detail" {
+		t.Fatalf("unexpected parent task id: %q", taskRun.GetParentTaskId())
+	}
+	if taskRun.GetState() != taskv1.TaskState_TASK_STATE_FAILED {
+		t.Fatalf("unexpected task state: %s", taskRun.GetState())
+	}
+	if taskRun.GetArgs().GetFields()["source_id"].GetStringValue() != "source-detail" {
+		t.Fatalf("unexpected args: %#v", taskRun.GetArgs())
+	}
+	if taskRun.GetProgress().GetMeta().GetFields()["processed"].GetNumberValue() != 1 {
+		t.Fatalf("unexpected progress meta: %#v", taskRun.GetProgress())
+	}
+	if taskRun.GetErrorMessage() != "sync failed" {
+		t.Fatalf("unexpected task error message: %q", taskRun.GetErrorMessage())
+	}
+	if taskRun.GetFinishedAt() == nil {
+		t.Fatal("expected finished_at to be present on task detail")
+	}
+
+	logsResponse, err := client.ListTaskRunLogs(
+		context.Background(),
+		connect.NewRequest(&taskv1.ListTaskRunLogsRequest{
+			TaskId: testStringPtr("task-detail"),
+		}),
+	)
+	if err != nil {
+		t.Fatalf("list task run logs: %v", err)
+	}
+
+	if len(logsResponse.Msg.GetLogs()) != 2 {
+		t.Fatalf("expected 2 task run logs, got %d", len(logsResponse.Msg.GetLogs()))
+	}
+	firstLog := logsResponse.Msg.GetLogs()[0]
+	secondLog := logsResponse.Msg.GetLogs()[1]
+	if firstLog.GetEventType() != "started" || secondLog.GetEventType() != "failed" {
+		t.Fatalf("unexpected log order: %#v", logsResponse.Msg.GetLogs())
+	}
+	if secondLog.GetMeta().GetFields()["phase"].GetStringValue() != "persist_upserts" {
+		t.Fatalf("unexpected second log meta: %#v", secondLog.GetMeta())
+	}
+	if secondLog.GetErrorMessage() != "sync failed" {
+		t.Fatalf("unexpected second log error message: %q", secondLog.GetErrorMessage())
+	}
+}
+
 func TestTaskServiceEnqueueSourceSyncValidatesSourceID(t *testing.T) {
 	dataDir := t.TempDir()
 	server := newTestServer(t, dataDir)
@@ -1680,6 +1904,22 @@ func writeConfigFile(t *testing.T, dataDir string, content string) {
 	}
 }
 
+func seedTaskRun(t *testing.T, queries *dbsqlc.Queries, arg dbsqlc.CreateTaskRunParams) {
+	t.Helper()
+
+	if err := queries.CreateTaskRun(context.Background(), arg); err != nil {
+		t.Fatalf("create task run %q: %v", arg.TaskID, err)
+	}
+}
+
+func seedTaskRunLog(t *testing.T, queries *dbsqlc.Queries, arg dbsqlc.CreateTaskRunLogParams) {
+	t.Helper()
+
+	if err := queries.CreateTaskRunLog(context.Background(), arg); err != nil {
+		t.Fatalf("create task run log for %q: %v", arg.TaskID, err)
+	}
+}
+
 func mustEncryptServerToken(t *testing.T, plaintext string) string {
 	t.Helper()
 
@@ -1699,6 +1939,13 @@ func mustEncryptServerTokenWithPassphrase(t *testing.T, plaintext string, passph
 
 func testInt32Ptr(value int32) *int32 {
 	return &value
+}
+
+func testNullString(value string) sql.NullString {
+	return sql.NullString{
+		String: value,
+		Valid:  true,
+	}
 }
 
 func mustNewTestCronRuntime(t *testing.T, dataDir string, taskManager *task.Manager) *cronruntime.Runtime {

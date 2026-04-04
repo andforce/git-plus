@@ -14,6 +14,8 @@ enum TaskState {
   TASK_STATE_UNSPECIFIED = 0;
   TASK_STATE_QUEUED = 1;
   TASK_STATE_RUNNING = 2;
+  TASK_STATE_FINISHED = 3;
+  TASK_STATE_FAILED = 4;
 }
 
 enum TaskEnqueueResult {
@@ -40,6 +42,18 @@ message Task {
   TaskProgress progress = 8;
   string parent_task_id = 9;
   google.protobuf.Struct args = 10;
+  google.protobuf.Timestamp finished_at = 11;
+  string error_message = 12;
+}
+
+message TaskRunLog {
+  int64 id = 1;
+  string task_id = 2;
+  string event_type = 3;
+  string summary = 4;
+  google.protobuf.Struct meta = 5;
+  string error_message = 6;
+  google.protobuf.Timestamp created_at = 7;
 }
 
 message GetTaskRuntimeRequest {}
@@ -47,6 +61,38 @@ message GetTaskRuntimeRequest {}
 message GetTaskRuntimeResponse {
   Task running_task = 1;
   repeated Task queued_tasks = 2;
+}
+
+message ListTaskRunsRequest {
+  int32 page_size = 1 [(buf.validate.field).int32 = {
+    gte: 1
+    lte: 100
+  }];
+  string page_token = 2;
+  string job_type = 3;
+  string parent_task_id = 4;
+}
+
+message ListTaskRunsResponse {
+  repeated Task task_runs = 1;
+  string next_page_token = 2;
+  int32 total_count = 3;
+}
+
+message GetTaskRunRequest {
+  string task_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+message GetTaskRunResponse {
+  Task task_run = 1;
+}
+
+message ListTaskRunLogsRequest {
+  string task_id = 1 [(buf.validate.field).string.min_len = 1];
+}
+
+message ListTaskRunLogsResponse {
+  repeated TaskRunLog logs = 1;
 }
 
 message EnqueueFullSyncRequest {}
@@ -87,6 +133,9 @@ message EnqueueTestTaskResponse {
 
 service TaskService {
   rpc GetTaskRuntime(GetTaskRuntimeRequest) returns (GetTaskRuntimeResponse);
+  rpc ListTaskRuns(ListTaskRunsRequest) returns (ListTaskRunsResponse);
+  rpc GetTaskRun(GetTaskRunRequest) returns (GetTaskRunResponse);
+  rpc ListTaskRunLogs(ListTaskRunLogsRequest) returns (ListTaskRunLogsResponse);
   rpc EnqueueFullSync(EnqueueFullSyncRequest) returns (EnqueueFullSyncResponse);
   rpc EnqueueSourceSync(EnqueueSourceSyncRequest) returns (EnqueueSourceSyncResponse);
   rpc CancelQueuedTask(CancelQueuedTaskRequest) returns (CancelQueuedTaskResponse);

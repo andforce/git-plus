@@ -76,6 +76,34 @@ FROM task_runs
 WHERE task_id = ?1
 LIMIT 1;
 
+-- name: CountTaskRuns :one
+SELECT COUNT(1)
+FROM task_runs
+WHERE (?1 IS NULL OR job_type = ?1)
+  AND (?2 IS NULL OR parent_task_id = ?2);
+
+-- name: ListTaskRunsPaginated :many
+SELECT
+  task_id,
+  parent_task_id,
+  job_id,
+  job_type,
+  name,
+  args_json,
+  status,
+  created_at,
+  started_at,
+  finished_at,
+  error_message,
+  last_progress_summary,
+  last_progress_meta_json,
+  updated_at
+FROM task_runs
+WHERE (?1 IS NULL OR job_type = ?1)
+  AND (?2 IS NULL OR parent_task_id = ?2)
+ORDER BY started_at DESC, task_id DESC
+LIMIT ?3 OFFSET ?4;
+
 -- name: ListTaskRunLogs :many
 SELECT
   id,
