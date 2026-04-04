@@ -61,14 +61,15 @@ type Progress struct {
 }
 
 type Snapshot struct {
-	TaskID    string
-	JobID     string
-	JobType   string
-	Name      string
-	State     State
-	CreatedAt time.Time
-	StartedAt *time.Time
-	Progress  *Progress
+	TaskID       string
+	ParentTaskID string
+	JobID        string
+	JobType      string
+	Name         string
+	State        State
+	CreatedAt    time.Time
+	StartedAt    *time.Time
+	Progress     *Progress
 }
 
 type Event struct {
@@ -83,10 +84,11 @@ type RuntimeSnapshot struct {
 }
 
 type Spec struct {
-	JobID   string
-	JobType string
-	Name    string
-	Run     func(*ExecutionContext)
+	ParentTaskID string
+	JobID        string
+	JobType      string
+	Name         string
+	Run          func(*ExecutionContext)
 }
 
 type ExecutionContext struct {
@@ -112,15 +114,16 @@ type Manager struct {
 }
 
 type entry struct {
-	taskID    string
-	jobID     string
-	jobType   string
-	name      string
-	state     State
-	createdAt time.Time
-	startedAt *time.Time
-	progress  *Progress
-	run       func(*ExecutionContext)
+	taskID       string
+	parentTaskID string
+	jobID        string
+	jobType      string
+	name         string
+	state        State
+	createdAt    time.Time
+	startedAt    *time.Time
+	progress     *Progress
+	run          func(*ExecutionContext)
 }
 
 func NewManager(options ...Option) *Manager {
@@ -222,13 +225,14 @@ func (manager *Manager) Enqueue(spec Spec) (EnqueueResult, Snapshot, error) {
 
 	createdAt := manager.now()
 	taskEntry := &entry{
-		taskID:    manager.idGen(),
-		jobID:     spec.JobID,
-		jobType:   spec.JobType,
-		name:      spec.Name,
-		state:     StateQueued,
-		createdAt: createdAt,
-		run:       spec.Run,
+		taskID:       manager.idGen(),
+		parentTaskID: spec.ParentTaskID,
+		jobID:        spec.JobID,
+		jobType:      spec.JobType,
+		name:         spec.Name,
+		state:        StateQueued,
+		createdAt:    createdAt,
+		run:          spec.Run,
 	}
 	enqueuedSnapshot := taskEntry.snapshot()
 
@@ -312,6 +316,14 @@ func (ctx *ExecutionContext) SetProgress(summary string, meta map[string]any) {
 	}
 
 	ctx.manager.setProgress(ctx.taskID, summary, meta)
+}
+
+func (ctx *ExecutionContext) TaskID() string {
+	if ctx == nil {
+		return ""
+	}
+
+	return ctx.taskID
 }
 
 func validateSpec(spec Spec) error {
@@ -451,14 +463,15 @@ func (manager *Manager) dispatch(event Event) {
 
 func (taskEntry *entry) snapshot() Snapshot {
 	return Snapshot{
-		TaskID:    taskEntry.taskID,
-		JobID:     taskEntry.jobID,
-		JobType:   taskEntry.jobType,
-		Name:      taskEntry.name,
-		State:     taskEntry.state,
-		CreatedAt: taskEntry.createdAt,
-		StartedAt: cloneTimePointer(taskEntry.startedAt),
-		Progress:  cloneProgress(taskEntry.progress),
+		TaskID:       taskEntry.taskID,
+		ParentTaskID: taskEntry.parentTaskID,
+		JobID:        taskEntry.jobID,
+		JobType:      taskEntry.jobType,
+		Name:         taskEntry.name,
+		State:        taskEntry.state,
+		CreatedAt:    taskEntry.createdAt,
+		StartedAt:    cloneTimePointer(taskEntry.startedAt),
+		Progress:     cloneProgress(taskEntry.progress),
 	}
 }
 
@@ -510,12 +523,13 @@ func BuildSourceSyncJobID(sourceID string) string {
 
 func taskEventEnvelope(event Event) map[string]any {
 	return map[string]any{
-		"event_name":  string(event.Name),
-		"channel":     TaskChannel,
-		"occurred_at": event.OccurredAt.Format(time.RFC3339Nano),
-		"task_id":     event.Task.TaskID,
-		"job_id":      event.Task.JobID,
-		"job_type":    event.Task.JobType,
+		"event_name":     string(event.Name),
+		"channel":        TaskChannel,
+		"occurred_at":    event.OccurredAt.Format(time.RFC3339Nano),
+		"task_id":        event.Task.TaskID,
+		"parent_task_id": event.Task.ParentTaskID,
+		"job_id":         event.Task.JobID,
+		"job_type":       event.Task.JobType,
 		"data": map[string]any{
 			"task": taskSnapshotValue(event.Task),
 		},
@@ -524,12 +538,13 @@ func taskEventEnvelope(event Event) map[string]any {
 
 func taskSnapshotValue(snapshot Snapshot) map[string]any {
 	value := map[string]any{
-		"task_id":    snapshot.TaskID,
-		"job_id":     snapshot.JobID,
-		"job_type":   snapshot.JobType,
-		"name":       snapshot.Name,
-		"state":      string(snapshot.State),
-		"created_at": snapshot.CreatedAt.Format(time.RFC3339Nano),
+		"task_id":        snapshot.TaskID,
+		"parent_task_id": snapshot.ParentTaskID,
+		"job_id":         snapshot.JobID,
+		"job_type":       snapshot.JobType,
+		"name":           snapshot.Name,
+		"state":          string(snapshot.State),
+		"created_at":     snapshot.CreatedAt.Format(time.RFC3339Nano),
 	}
 	if snapshot.StartedAt != nil {
 		value["started_at"] = snapshot.StartedAt.Format(time.RFC3339Nano)

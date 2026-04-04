@@ -954,6 +954,9 @@ sources:
 		t.Fatalf("unexpected enqueue result: %s", response.Msg.GetResult())
 	}
 	assertTaskIdentity(t, response.Msg.GetTask(), task.JobTypeSyncAll, task.JobIDSyncAll)
+	if response.Msg.GetTask().GetParentTaskId() != "" {
+		t.Fatalf("expected sync-all to have no parent task id, got %q", response.Msg.GetTask().GetParentTaskId())
+	}
 
 	waitUntil(t, func() bool {
 		runtimeResponse, runtimeErr := client.GetTaskRuntime(
@@ -971,8 +974,13 @@ sources:
 		if runningTask.GetJobId() != task.BuildSourceSyncJobID("source-a") {
 			return false
 		}
+		if runningTask.GetParentTaskId() != response.Msg.GetTask().GetTaskId() {
+			return false
+		}
 		queuedTasks := runtimeResponse.Msg.GetQueuedTasks()
-		return len(queuedTasks) == 1 && queuedTasks[0].GetJobId() == task.BuildSourceSyncJobID("source-b")
+		return len(queuedTasks) == 1 &&
+			queuedTasks[0].GetJobId() == task.BuildSourceSyncJobID("source-b") &&
+			queuedTasks[0].GetParentTaskId() == response.Msg.GetTask().GetTaskId()
 	}, "sync-all to enqueue source sync tasks in config order")
 }
 
@@ -1019,6 +1027,9 @@ sources:
 	}
 
 	assertTaskIdentity(t, response.Msg.GetTask(), task.JobTypeSyncSource, "sync-source::github-main")
+	if response.Msg.GetTask().GetParentTaskId() != "" {
+		t.Fatalf("expected direct source sync to have no parent task id, got %q", response.Msg.GetTask().GetParentTaskId())
+	}
 }
 
 func TestTaskServiceSourceSyncReportsTickingProgress(t *testing.T) {

@@ -38,6 +38,7 @@ message Task {
   google.protobuf.Timestamp created_at = 6;
   google.protobuf.Timestamp started_at = 7;
   TaskProgress progress = 8;
+  string parent_task_id = 9;
 }
 
 message GetTaskRuntimeRequest {}

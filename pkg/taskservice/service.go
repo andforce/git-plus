@@ -127,7 +127,7 @@ func (s *serviceServer) EnqueueSourceSync(
 		return nil, err
 	}
 
-	result, snapshot, err := s.manager.Enqueue(s.sourceSyncSpec(sourceID))
+	result, snapshot, err := s.manager.Enqueue(s.sourceSyncSpec(sourceID, ""))
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("enqueue source sync: %w", err))
 	}
@@ -204,12 +204,13 @@ func (s *serviceServer) ensureSourceExists(sourceID string) error {
 	return connect.NewError(connect.CodeNotFound, fmt.Errorf("source %q was not found", sourceID))
 }
 
-func (s *serviceServer) sourceSyncSpec(sourceID string) task.Spec {
+func (s *serviceServer) sourceSyncSpec(sourceID string, parentTaskID string) task.Spec {
 	return task.Spec{
-		JobID:   task.BuildSourceSyncJobID(sourceID),
-		JobType: task.JobTypeSyncSource,
-		Name:    fmt.Sprintf("Sync source %s", sourceID),
-		Run:     s.sourceSyncRunner(sourceID),
+		ParentTaskID: parentTaskID,
+		JobID:        task.BuildSourceSyncJobID(sourceID),
+		JobType:      task.JobTypeSyncSource,
+		Name:         fmt.Sprintf("Sync source %s", sourceID),
+		Run:          s.sourceSyncRunner(sourceID),
 	}
 }
 
@@ -263,7 +264,7 @@ func (s *serviceServer) syncAllRunnerWithLogger(logger *log.Logger) func(*task.E
 				"total":     total,
 			})
 
-			result, _, enqueueErr := s.manager.Enqueue(s.sourceSyncSpec(source.ID))
+			result, _, enqueueErr := s.manager.Enqueue(s.sourceSyncSpec(source.ID, ctx.TaskID()))
 			if enqueueErr != nil {
 				failedCount++
 				logger.Printf("sync-all enqueue source %q failed: %v", source.ID, enqueueErr)
@@ -338,12 +339,13 @@ func testRunner(variant int, duration time.Duration) func(*task.ExecutionContext
 
 func toProtoTask(snapshot task.Snapshot) *taskv1.Task {
 	protoTask := &taskv1.Task{
-		TaskId:    stringPtr(snapshot.TaskID),
-		JobId:     stringPtr(snapshot.JobID),
-		JobType:   stringPtr(snapshot.JobType),
-		Name:      stringPtr(snapshot.Name),
-		State:     taskStatePtr(toProtoTaskState(snapshot.State)),
-		CreatedAt: timestamppb.New(snapshot.CreatedAt),
+		TaskId:       stringPtr(snapshot.TaskID),
+		ParentTaskId: stringPtr(snapshot.ParentTaskID),
+		JobId:        stringPtr(snapshot.JobID),
+		JobType:      stringPtr(snapshot.JobType),
+		Name:         stringPtr(snapshot.Name),
+		State:        taskStatePtr(toProtoTaskState(snapshot.State)),
+		CreatedAt:    timestamppb.New(snapshot.CreatedAt),
 	}
 	if snapshot.StartedAt != nil {
 		protoTask.StartedAt = timestamppb.New(*snapshot.StartedAt)

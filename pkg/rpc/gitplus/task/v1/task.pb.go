@@ -196,6 +196,7 @@ type Task struct {
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,6,opt,name=created_at,json=createdAt" json:"created_at,omitempty"`
 	StartedAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=started_at,json=startedAt" json:"started_at,omitempty"`
 	Progress      *TaskProgress          `protobuf:"bytes,8,opt,name=progress" json:"progress,omitempty"`
+	ParentTaskId  *string                `protobuf:"bytes,9,opt,name=parent_task_id,json=parentTaskId" json:"parent_task_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -284,6 +285,13 @@ func (x *Task) GetProgress() *TaskProgress {
 		return x.Progress
 	}
 	return nil
+}
+
+func (x *Task) GetParentTaskId() string {
+	if x != nil && x.ParentTaskId != nil {
+		return *x.ParentTaskId
+	}
+	return ""
 }
 
 type GetTaskRuntimeRequest struct {
@@ -751,7 +759,7 @@ const file_gitplus_task_v1_task_proto_rawDesc = "" +
 	"\asummary\x18\x01 \x01(\tR\asummary\x12+\n" +
 	"\x04meta\x18\x02 \x01(\v2\x17.google.protobuf.StructR\x04meta\x129\n" +
 	"\n" +
-	"updated_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xc8\x02\n" +
+	"updated_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\"\xee\x02\n" +
 	"\x04Task\x12\x17\n" +
 	"\atask_id\x18\x01 \x01(\tR\x06taskId\x12\x15\n" +
 	"\x06job_id\x18\x02 \x01(\tR\x05jobId\x12\x19\n" +
@@ -762,7 +770,8 @@ const file_gitplus_task_v1_task_proto_rawDesc = "" +
 	"created_at\x18\x06 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
 	"\n" +
 	"started_at\x18\a \x01(\v2\x1a.google.protobuf.TimestampR\tstartedAt\x129\n" +
-	"\bprogress\x18\b \x01(\v2\x1d.gitplus.task.v1.TaskProgressR\bprogress\"\x17\n" +
+	"\bprogress\x18\b \x01(\v2\x1d.gitplus.task.v1.TaskProgressR\bprogress\x12$\n" +
+	"\x0eparent_task_id\x18\t \x01(\tR\fparentTaskId\"\x17\n" +
 	"\x15GetTaskRuntimeRequest\"\x8c\x01\n" +
 	"\x16GetTaskRuntimeResponse\x128\n" +
 	"\frunning_task\x18\x01 \x01(\v2\x15.gitplus.task.v1.TaskR\vrunningTask\x128\n" +
