@@ -36,6 +36,13 @@ func RegisterHandlers(mux *http.ServeMux, dataDir string) {
 	mux.Handle(path, handler)
 }
 
+func (s *serviceServer) Ping(
+	_ context.Context,
+	_ *connect.Request[configv1.PingRequest],
+) (*connect.Response[configv1.PingResponse], error) {
+	return connect.NewResponse(&configv1.PingResponse{}), nil
+}
+
 func (s *serviceServer) CheckConfig(
 	_ context.Context,
 	_ *connect.Request[configv1.CheckConfigRequest],

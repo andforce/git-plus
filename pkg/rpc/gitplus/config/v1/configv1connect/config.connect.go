@@ -33,6 +33,8 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
+	// ConfigServicePingProcedure is the fully-qualified name of the ConfigService's Ping RPC.
+	ConfigServicePingProcedure = "/gitplus.config.v1.ConfigService/Ping"
 	// ConfigServiceCheckConfigProcedure is the fully-qualified name of the ConfigService's CheckConfig
 	// RPC.
 	ConfigServiceCheckConfigProcedure = "/gitplus.config.v1.ConfigService/CheckConfig"
@@ -60,6 +62,7 @@ const (
 
 // ConfigServiceClient is a client for the gitplus.config.v1.ConfigService service.
 type ConfigServiceClient interface {
+	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
 	CheckConfig(context.Context, *connect.Request[v1.CheckConfigRequest]) (*connect.Response[v1.CheckConfigResponse], error)
 	CheckSourceConfig(context.Context, *connect.Request[v1.CheckSourceConfigRequest]) (*connect.Response[v1.CheckSourceConfigResponse], error)
 	GetConfig(context.Context, *connect.Request[v1.GetConfigRequest]) (*connect.Response[v1.GetConfigResponse], error)
@@ -81,6 +84,12 @@ func NewConfigServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 	baseURL = strings.TrimRight(baseURL, "/")
 	configServiceMethods := v1.File_gitplus_config_v1_config_proto.Services().ByName("ConfigService").Methods()
 	return &configServiceClient{
+		ping: connect.NewClient[v1.PingRequest, v1.PingResponse](
+			httpClient,
+			baseURL+ConfigServicePingProcedure,
+			connect.WithSchema(configServiceMethods.ByName("Ping")),
+			connect.WithClientOptions(opts...),
+		),
 		checkConfig: connect.NewClient[v1.CheckConfigRequest, v1.CheckConfigResponse](
 			httpClient,
 			baseURL+ConfigServiceCheckConfigProcedure,
@@ -134,6 +143,7 @@ func NewConfigServiceClient(httpClient connect.HTTPClient, baseURL string, opts 
 
 // configServiceClient implements ConfigServiceClient.
 type configServiceClient struct {
+	ping               *connect.Client[v1.PingRequest, v1.PingResponse]
 	checkConfig        *connect.Client[v1.CheckConfigRequest, v1.CheckConfigResponse]
 	checkSourceConfig  *connect.Client[v1.CheckSourceConfigRequest, v1.CheckSourceConfigResponse]
 	getConfig          *connect.Client[v1.GetConfigRequest, v1.GetConfigResponse]
@@ -142,6 +152,11 @@ type configServiceClient struct {
 	updateSource       *connect.Client[v1.UpdateSourceRequest, v1.UpdateSourceResponse]
 	replaceSourceToken *connect.Client[v1.ReplaceSourceTokenRequest, v1.ReplaceSourceTokenResponse]
 	deleteSource       *connect.Client[v1.DeleteSourceRequest, v1.DeleteSourceResponse]
+}
+
+// Ping calls gitplus.config.v1.ConfigService.Ping.
+func (c *configServiceClient) Ping(ctx context.Context, req *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error) {
+	return c.ping.CallUnary(ctx, req)
 }
 
 // CheckConfig calls gitplus.config.v1.ConfigService.CheckConfig.
@@ -186,6 +201,7 @@ func (c *configServiceClient) DeleteSource(ctx context.Context, req *connect.Req
 
 // ConfigServiceHandler is an implementation of the gitplus.config.v1.ConfigService service.
 type ConfigServiceHandler interface {
+	Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error)
 	CheckConfig(context.Context, *connect.Request[v1.CheckConfigRequest]) (*connect.Response[v1.CheckConfigResponse], error)
 	CheckSourceConfig(context.Context, *connect.Request[v1.CheckSourceConfigRequest]) (*connect.Response[v1.CheckSourceConfigResponse], error)
 	GetConfig(context.Context, *connect.Request[v1.GetConfigRequest]) (*connect.Response[v1.GetConfigResponse], error)
@@ -203,6 +219,12 @@ type ConfigServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewConfigServiceHandler(svc ConfigServiceHandler, opts ...connect.HandlerOption) (string, http.Handler) {
 	configServiceMethods := v1.File_gitplus_config_v1_config_proto.Services().ByName("ConfigService").Methods()
+	configServicePingHandler := connect.NewUnaryHandler(
+		ConfigServicePingProcedure,
+		svc.Ping,
+		connect.WithSchema(configServiceMethods.ByName("Ping")),
+		connect.WithHandlerOptions(opts...),
+	)
 	configServiceCheckConfigHandler := connect.NewUnaryHandler(
 		ConfigServiceCheckConfigProcedure,
 		svc.CheckConfig,
@@ -253,6 +275,8 @@ func NewConfigServiceHandler(svc ConfigServiceHandler, opts ...connect.HandlerOp
 	)
 	return "/gitplus.config.v1.ConfigService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
+		case ConfigServicePingProcedure:
+			configServicePingHandler.ServeHTTP(w, r)
 		case ConfigServiceCheckConfigProcedure:
 			configServiceCheckConfigHandler.ServeHTTP(w, r)
 		case ConfigServiceCheckSourceConfigProcedure:
@@ -277,6 +301,10 @@ func NewConfigServiceHandler(svc ConfigServiceHandler, opts ...connect.HandlerOp
 
 // UnimplementedConfigServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedConfigServiceHandler struct{}
+
+func (UnimplementedConfigServiceHandler) Ping(context.Context, *connect.Request[v1.PingRequest]) (*connect.Response[v1.PingResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitplus.config.v1.ConfigService.Ping is not implemented"))
+}
 
 func (UnimplementedConfigServiceHandler) CheckConfig(context.Context, *connect.Request[v1.CheckConfigRequest]) (*connect.Response[v1.CheckConfigResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitplus.config.v1.ConfigService.CheckConfig is not implemented"))

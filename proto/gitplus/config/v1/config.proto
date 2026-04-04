@@ -196,7 +196,12 @@ message DeleteSourceResponse {
   ConfigSnapshot config = 1;
 }
 
+message PingRequest {}
+
+message PingResponse {}
+
 service ConfigService {
+  rpc Ping(PingRequest) returns (PingResponse);
   rpc CheckConfig(CheckConfigRequest) returns (CheckConfigResponse);
   rpc CheckSourceConfig(CheckSourceConfigRequest) returns (CheckSourceConfigResponse);
   rpc GetConfig(GetConfigRequest) returns (GetConfigResponse);
