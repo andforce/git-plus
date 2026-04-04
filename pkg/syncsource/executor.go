@@ -21,6 +21,7 @@ type Option func(*Executor)
 
 type Executor struct {
 	dataDir      string
+	db           *sql.DB
 	perPage      int
 	now          func() time.Time
 	openDB       func(context.Context, string) (*sql.DB, error)
@@ -100,6 +101,14 @@ func WithDBOpener(openDB func(context.Context, string) (*sql.DB, error)) Option 
 	}
 }
 
+func WithDatabase(db *sql.DB) Option {
+	return func(executor *Executor) {
+		if db != nil {
+			executor.db = db
+		}
+	}
+}
+
 func (executor *Executor) Sync(ctx context.Context, source appconfig.SourceConfig, reporter ProgressReporter) error {
 	if executor == nil {
 		return fmt.Errorf("sync executor is required")
@@ -130,11 +139,19 @@ func (executor *Executor) Sync(ctx context.Context, source appconfig.SourceConfi
 		return err
 	}
 
-	db, err := executor.openDB(ctx, executor.dataDir)
-	if err != nil {
-		return fmt.Errorf("open sqlite database: %w", err)
+	db := executor.db
+	closeDB := func() {}
+	if db == nil {
+		openedDB, err := executor.openDB(ctx, executor.dataDir)
+		if err != nil {
+			return fmt.Errorf("open sqlite database: %w", err)
+		}
+		db = openedDB
+		closeDB = func() {
+			_ = openedDB.Close()
+		}
 	}
-	defer db.Close()
+	defer closeDB()
 
 	result, err := executor.syncSnapshot(ctx, db, source.ID, filteredRepos, reporter)
 	if err != nil {

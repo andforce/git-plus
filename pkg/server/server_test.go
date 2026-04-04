@@ -1683,8 +1683,8 @@ func TestServerHandlerKeepsHealthzReadyAndFrontendRoutes(t *testing.T) {
 	t.Cleanup(taskManager.Close)
 	bus := eventbus.New()
 	t.Cleanup(bus.Close)
-	cron := mustNewTestCronRuntime(t, dataDir, taskManager)
-	server := httptest.NewServer(NewHandler(dataDir, taskManager, bus, cron, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	cron := mustNewTestCronRuntime(t, dataDir, nil, taskManager)
+	server := httptest.NewServer(NewHandler(dataDir, nil, taskManager, bus, cron, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("frontend-ok"))
 	}),
@@ -1741,9 +1741,9 @@ func newTestServerWithPassword(t *testing.T, dataDir string, password string) *h
 	t.Cleanup(taskManager.Close)
 	bus := eventbus.New()
 	t.Cleanup(bus.Close)
-	cron := mustNewTestCronRuntime(t, dataDir, taskManager)
+	cron := mustNewTestCronRuntime(t, dataDir, nil, taskManager)
 
-	server := httptest.NewServer(NewHandler(dataDir, taskManager, bus, cron, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(NewHandler(dataDir, nil, taskManager, bus, cron, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 	}),
 		taskservice.WithSourceSyncExecutor(newTestSourceSyncExecutor(2*time.Second, 10*time.Millisecond)),
@@ -1781,9 +1781,9 @@ func newPersistentTestServer(t *testing.T, dataDir string) (*httptest.Server, *d
 
 	bus := eventbus.New()
 	t.Cleanup(bus.Close)
-	cron := mustNewTestCronRuntime(t, dataDir, taskManager)
+	cron := mustNewTestCronRuntime(t, dataDir, sqliteDB, taskManager)
 
-	server := httptest.NewServer(NewHandler(dataDir, taskManager, bus, cron, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewServer(NewHandler(dataDir, sqliteDB, taskManager, bus, cron, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 	}),
 		taskservice.WithSourceSyncExecutor(newInstantSourceSyncExecutor()),
@@ -1948,10 +1948,10 @@ func testNullString(value string) sql.NullString {
 	}
 }
 
-func mustNewTestCronRuntime(t *testing.T, dataDir string, taskManager *task.Manager) *cronruntime.Runtime {
+func mustNewTestCronRuntime(t *testing.T, dataDir string, sqliteDB *sql.DB, taskManager *task.Manager) *cronruntime.Runtime {
 	t.Helper()
 
-	cron, err := newCronRuntime(dataDir, taskManager)
+	cron, err := newCronRuntime(dataDir, sqliteDB, taskManager)
 	if err != nil {
 		t.Fatalf("new cron runtime: %v", err)
 	}

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,6 +16,8 @@ import (
 )
 
 const sqliteFilename = "db.sqlite"
+
+const sqliteBusyTimeoutMillis = 5000
 
 //go:embed migrations/*/migration.sql
 var embeddedMigrations embed.FS
@@ -223,15 +226,35 @@ func migrationApplied(ctx context.Context, sqliteDB *sql.DB, filename string) (b
 }
 
 func openSQLite(path string) (*sql.DB, error) {
-	sqliteDB, err := sql.Open("sqlite", path)
+	dsn, err := sqliteDSN(path)
+	if err != nil {
+		return nil, err
+	}
+
+	sqliteDB, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite database: %w", err)
 	}
 
-	if _, err := sqliteDB.Exec("PRAGMA foreign_keys = ON;"); err != nil {
-		sqliteDB.Close()
-		return nil, fmt.Errorf("enable foreign keys: %w", err)
+	return sqliteDB, nil
+}
+
+func sqliteDSN(path string) (string, error) {
+	absolutePath, err := filepath.Abs(path)
+	if err != nil {
+		return "", fmt.Errorf("resolve sqlite path: %w", err)
 	}
 
-	return sqliteDB, nil
+	dsn := &url.URL{
+		Scheme: "file",
+		Path:   filepath.ToSlash(absolutePath),
+	}
+
+	query := url.Values{}
+	query.Add("_pragma", fmt.Sprintf("busy_timeout(%d)", sqliteBusyTimeoutMillis))
+	query.Add("_pragma", "foreign_keys(1)")
+	query.Add("_pragma", "journal_mode(WAL)")
+	dsn.RawQuery = query.Encode()
+
+	return dsn.String(), nil
 }

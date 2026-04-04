@@ -33,6 +33,7 @@ const defaultListTaskRunsPageSize = 20
 
 type serviceServer struct {
 	dataDir            string
+	db                 *sql.DB
 	manager            *task.Manager
 	stepDelay          time.Duration
 	progressTick       time.Duration
@@ -69,13 +70,28 @@ func newServiceServer(dataDir string, manager *task.Manager, options ...Option) 
 		stepDelay:          defaultStubStepDelay,
 		progressTick:       time.Second,
 		sourceSyncDuration: randomSourceSyncDuration,
-		sourceSyncExecutor: syncsource.NewExecutor(dataDir),
 	}
 	for _, option := range options {
 		option(server)
 	}
 
+	if server.sourceSyncExecutor == nil {
+		executorOptions := make([]syncsource.Option, 0, 1)
+		if server.db != nil {
+			executorOptions = append(executorOptions, syncsource.WithDatabase(server.db))
+		}
+		server.sourceSyncExecutor = syncsource.NewExecutor(dataDir, executorOptions...)
+	}
+
 	return server
+}
+
+func WithDatabase(db *sql.DB) Option {
+	return func(server *serviceServer) {
+		if db != nil {
+			server.db = db
+		}
+	}
 }
 
 func WithSourceSyncDuration(fn func() time.Duration) Option {
@@ -119,11 +135,11 @@ func (s *serviceServer) ListTaskRuns(
 	jobType := optionalFilter(req.Msg.GetJobType())
 	parentTaskID := optionalFilter(req.Msg.GetParentTaskId())
 
-	db, queries, err := s.openTaskQueries(ctx)
+	queries, cleanup, err := s.openTaskQueries(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	defer db.Close()
+	defer cleanup()
 
 	totalCount, err := queries.CountTaskRuns(ctx, dbsqlc.CountTaskRunsParams{
 		Column1: jobType,
@@ -163,11 +179,11 @@ func (s *serviceServer) GetTaskRun(
 	ctx context.Context,
 	req *connect.Request[taskv1.GetTaskRunRequest],
 ) (*connect.Response[taskv1.GetTaskRunResponse], error) {
-	db, queries, err := s.openTaskQueries(ctx)
+	queries, cleanup, err := s.openTaskQueries(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	defer db.Close()
+	defer cleanup()
 
 	taskRun, err := queries.GetTaskRun(ctx, strings.TrimSpace(req.Msg.GetTaskId()))
 	if errors.Is(err, sql.ErrNoRows) {
@@ -188,11 +204,11 @@ func (s *serviceServer) ListTaskRunLogs(
 ) (*connect.Response[taskv1.ListTaskRunLogsResponse], error) {
 	taskID := strings.TrimSpace(req.Msg.GetTaskId())
 
-	db, queries, err := s.openTaskQueries(ctx)
+	queries, cleanup, err := s.openTaskQueries(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	defer db.Close()
+	defer cleanup()
 
 	if _, err := queries.GetTaskRun(ctx, taskID); errors.Is(err, sql.ErrNoRows) {
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("task run %q was not found", taskID))
@@ -277,8 +293,8 @@ func (s *serviceServer) EnqueueSourceSync(
 	}), nil
 }
 
-func NewSyncAllRun(dataDir string, manager *task.Manager, logger *log.Logger) func(*task.ExecutionContext) error {
-	server := newServiceServer(dataDir, manager)
+func NewSyncAllRun(dataDir string, db *sql.DB, manager *task.Manager, logger *log.Logger) func(*task.ExecutionContext) error {
+	server := newServiceServer(dataDir, manager, WithDatabase(db))
 
 	return server.syncAllRunnerWithLogger(logger)
 }
@@ -483,13 +499,19 @@ func (s *serviceServer) loadResolvedSource(sourceID string) (appconfig.SourceCon
 	return appconfig.SourceConfig{}, fmt.Errorf("source %q was not found", sourceID)
 }
 
-func (s *serviceServer) openTaskQueries(ctx context.Context) (*sql.DB, *dbsqlc.Queries, error) {
+func (s *serviceServer) openTaskQueries(ctx context.Context) (*dbsqlc.Queries, func(), error) {
+	if s.db != nil {
+		return dbsqlc.New(s.db), func() {}, nil
+	}
+
 	db, err := appdb.Open(ctx, s.dataDir)
 	if err != nil {
 		return nil, nil, fmt.Errorf("open sqlite database: %w", err)
 	}
 
-	return db, dbsqlc.New(db), nil
+	return dbsqlc.New(db), func() {
+		_ = db.Close()
+	}, nil
 }
 
 func randomSourceSyncDuration() time.Duration {

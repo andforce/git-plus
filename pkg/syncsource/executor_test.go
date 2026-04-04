@@ -246,8 +246,74 @@ func TestExecutorSyncSnapshotReportsProgressAfterTransactionCommit(t *testing.T)
 	}
 }
 
+func TestExecutorSyncWithSharedDatabaseDoesNotCloseIt(t *testing.T) {
+	dataDir := t.TempDir()
+	if err := appdb.Migrate(context.Background(), dataDir); err != nil {
+		t.Fatalf("migrate database: %v", err)
+	}
+
+	sqliteDB, err := appdb.Open(context.Background(), dataDir)
+	if err != nil {
+		t.Fatalf("open database: %v", err)
+	}
+	defer sqliteDB.Close()
+
+	executor := NewExecutor(
+		dataDir,
+		WithDatabase(sqliteDB),
+		WithGitHubClient(stubGitHubClient{
+			defaultPage: githubPage{
+				Repos: []ResolvedRepo{
+					testResolvedRepo("source-a", "1", "acme/core", []string{"default"}, "Core repo"),
+				},
+			},
+		}),
+		WithNow(func() time.Time {
+			return time.Date(2026, time.April, 4, 8, 0, 0, 0, time.UTC)
+		}),
+	)
+
+	source := appconfig.SourceConfig{
+		ID:              "source-a",
+		Platform:        "github",
+		Token:           "plain-token",
+		IncludeDefaults: true,
+	}
+
+	if err := executor.Sync(context.Background(), source, &recordingReporter{}); err != nil {
+		t.Fatalf("sync source with shared database: %v", err)
+	}
+
+	if err := sqliteDB.PingContext(context.Background()); err != nil {
+		t.Fatalf("shared database should remain open: %v", err)
+	}
+
+	repos := loadRepoRows(t, sqliteDB, source.ID)
+	if len(repos) != 1 {
+		t.Fatalf("expected 1 repo, got %d", len(repos))
+	}
+}
+
 type recordingReporter struct {
 	progresses []progressRecord
+}
+
+type stubGitHubClient struct {
+	defaultPage  githubPage
+	starredPage  githubPage
+	watchingPage githubPage
+}
+
+func (client stubGitHubClient) ListDefaultRepositories(_ context.Context, _ appconfig.SourceConfig, _ int, _ int) (githubPage, error) {
+	return client.defaultPage, nil
+}
+
+func (client stubGitHubClient) ListStarredRepositories(_ context.Context, _ appconfig.SourceConfig, _ int, _ int) (githubPage, error) {
+	return client.starredPage, nil
+}
+
+func (client stubGitHubClient) ListWatchingRepositories(_ context.Context, _ appconfig.SourceConfig, _ int, _ int) (githubPage, error) {
+	return client.watchingPage, nil
 }
 
 type progressRecord struct {

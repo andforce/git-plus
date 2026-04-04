@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -34,11 +35,6 @@ func Run(ctx context.Context, cfg Config, frontendHandlerFactory FrontendHandler
 		task.WithEventBus(bus),
 	)
 	defer taskManager.Close()
-	cronRuntime, err := newCronRuntime(cfg.DataDir, taskManager)
-	if err != nil {
-		return fmt.Errorf("create cron runtime: %w", err)
-	}
-	defer func() { _ = cronRuntime.Close() }()
 
 	if cfg.AutoMigrate {
 		if err := appdb.Migrate(ctx, cfg.DataDir); err != nil {
@@ -53,6 +49,12 @@ func Run(ctx context.Context, cfg Config, frontendHandlerFactory FrontendHandler
 	defer sqliteDB.Close()
 	taskManager.SetRecorder(taskstore.NewRecorder(sqliteDB))
 
+	cronRuntime, err := newCronRuntime(cfg.DataDir, sqliteDB, taskManager)
+	if err != nil {
+		return fmt.Errorf("create cron runtime: %w", err)
+	}
+	defer func() { _ = cronRuntime.Close() }()
+
 	configservice.LogIssuesOnStartup(cfg.DataDir, log.Default())
 	if err := cronRuntime.LoadFromFileAndApply(); err != nil {
 		log.Printf("cron reload failed on startup: %v", err)
@@ -65,10 +67,10 @@ func Run(ctx context.Context, cfg Config, frontendHandlerFactory FrontendHandler
 
 	log.Printf("listening on http://localhost%s", cfg.ListenAddr)
 
-	return http.ListenAndServe(cfg.ListenAddr, NewHandler(cfg.DataDir, taskManager, bus, cronRuntime, frontendHandler))
+	return http.ListenAndServe(cfg.ListenAddr, NewHandler(cfg.DataDir, sqliteDB, taskManager, bus, cronRuntime, frontendHandler))
 }
 
-func NewHandler(dataDir string, taskManager *task.Manager, bus *eventbus.Bus, cronRuntime *cronruntime.Runtime, frontendHandler http.Handler, taskServiceOptions ...taskservice.Option) http.Handler {
+func NewHandler(dataDir string, sqliteDB *sql.DB, taskManager *task.Manager, bus *eventbus.Bus, cronRuntime *cronruntime.Runtime, frontendHandler http.Handler, taskServiceOptions ...taskservice.Option) http.Handler {
 	if bus == nil {
 		bus = eventbus.New()
 	}
@@ -82,7 +84,7 @@ func NewHandler(dataDir string, taskManager *task.Manager, bus *eventbus.Bus, cr
 	}
 	if cronRuntime == nil {
 		var err error
-		cronRuntime, err = newCronRuntime(dataDir, taskManager)
+		cronRuntime, err = newCronRuntime(dataDir, sqliteDB, taskManager)
 		if err != nil {
 			panic(fmt.Sprintf("create cron runtime: %v", err))
 		}
@@ -97,6 +99,7 @@ func NewHandler(dataDir string, taskManager *task.Manager, bus *eventbus.Bus, cr
 	apiMux := http.NewServeMux()
 	configservice.RegisterHandlers(apiMux, dataDir)
 	cronservice.RegisterHandlers(apiMux, dataDir, cronRuntime)
+	taskServiceOptions = append(taskServiceOptions, taskservice.WithDatabase(sqliteDB))
 	taskservice.RegisterHandlers(apiMux, dataDir, taskManager, taskServiceOptions...)
 	eventservice.RegisterHandlers(apiMux, bus)
 	mux.Handle("/api/", apiAuthMiddleware(http.StripPrefix("/api", apiMux)))
@@ -108,12 +111,12 @@ func NewHandler(dataDir string, taskManager *task.Manager, bus *eventbus.Bus, cr
 	return mux
 }
 
-func newCronRuntime(dataDir string, taskManager *task.Manager) (*cronruntime.Runtime, error) {
+func newCronRuntime(dataDir string, sqliteDB *sql.DB, taskManager *task.Manager) (*cronruntime.Runtime, error) {
 	return cronruntime.New(
 		appconfig.PathForDataDir(dataDir),
 		taskManager,
 		cronruntime.WithLogger(log.Default()),
-		cronruntime.WithSyncAllRun(taskservice.NewSyncAllRun(dataDir, taskManager, log.Default())),
+		cronruntime.WithSyncAllRun(taskservice.NewSyncAllRun(dataDir, sqliteDB, taskManager, log.Default())),
 	)
 }
 

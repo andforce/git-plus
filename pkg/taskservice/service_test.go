@@ -1,9 +1,12 @@
 package taskservice
 
 import (
+	"context"
 	"os"
 	"testing"
 
+	appdb "github.com/ImSingee/git-plus/db"
+	dbsqlc "github.com/ImSingee/git-plus/db/sqlc"
 	appconfig "github.com/ImSingee/git-plus/pkg/config"
 )
 
@@ -84,5 +87,34 @@ func TestLoadResolvedSourceReturnsNotFoundWhenSourceMissing(t *testing.T) {
 	server := newServiceServer(dataDir, nil)
 	if _, err := server.loadResolvedSource("missing"); err == nil {
 		t.Fatal("expected missing source to fail")
+	}
+}
+
+func TestOpenTaskQueriesUsesSharedDatabaseWithoutClosingIt(t *testing.T) {
+	dataDir := t.TempDir()
+	if err := appdb.Migrate(context.Background(), dataDir); err != nil {
+		t.Fatalf("migrate database: %v", err)
+	}
+
+	sqliteDB, err := appdb.Open(context.Background(), dataDir)
+	if err != nil {
+		t.Fatalf("open database: %v", err)
+	}
+	defer sqliteDB.Close()
+
+	server := newServiceServer(dataDir, nil, WithDatabase(sqliteDB))
+
+	queries, cleanup, err := server.openTaskQueries(context.Background())
+	if err != nil {
+		t.Fatalf("open task queries: %v", err)
+	}
+	cleanup()
+
+	if _, err := queries.CountTaskRuns(context.Background(), dbsqlc.CountTaskRunsParams{}); err != nil {
+		t.Fatalf("count task runs with shared database: %v", err)
+	}
+
+	if err := sqliteDB.PingContext(context.Background()); err != nil {
+		t.Fatalf("shared database should remain open: %v", err)
 	}
 }

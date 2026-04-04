@@ -172,6 +172,61 @@ func TestRecorderRejectsNonJSONMetadata(t *testing.T) {
 	}
 }
 
+func TestRecorderCommitsWhileAnotherConnectionHasOpenReadTransaction(t *testing.T) {
+	dataDir := t.TempDir()
+	if err := appdb.Migrate(context.Background(), dataDir); err != nil {
+		t.Fatalf("migrate test database: %v", err)
+	}
+
+	writerDB, err := appdb.Open(context.Background(), dataDir)
+	if err != nil {
+		t.Fatalf("open writer database: %v", err)
+	}
+	defer writerDB.Close()
+
+	readerDB, err := appdb.Open(context.Background(), dataDir)
+	if err != nil {
+		t.Fatalf("open reader database: %v", err)
+	}
+	defer readerDB.Close()
+
+	recorder := NewRecorder(writerDB)
+
+	startedAt := time.Date(2026, 4, 4, 12, 0, 0, 0, time.UTC)
+	finishedAt := startedAt.Add(time.Second)
+	snapshot := task.Snapshot{
+		TaskID:    "task-reader-lock",
+		JobID:     task.BuildSourceSyncJobID("octocat"),
+		JobType:   task.JobTypeSyncSource,
+		Name:      "Sync source octocat",
+		State:     task.StateRunning,
+		CreatedAt: startedAt,
+		StartedAt: &startedAt,
+	}
+
+	if err := recorder.RecordStarted(snapshot); err != nil {
+		t.Fatalf("record started: %v", err)
+	}
+
+	readTx, err := readerDB.BeginTx(context.Background(), &sql.TxOptions{ReadOnly: true})
+	if err != nil {
+		t.Fatalf("begin read transaction: %v", err)
+	}
+	defer readTx.Rollback()
+
+	var count int
+	if err := readTx.QueryRowContext(context.Background(), "SELECT COUNT(1) FROM task_runs").Scan(&count); err != nil {
+		t.Fatalf("query task runs in read transaction: %v", err)
+	}
+
+	snapshot.State = task.StateFailed
+	snapshot.FinishedAt = &finishedAt
+	snapshot.ErrorMessage = "boom"
+	if err := recorder.RecordFailed(snapshot, errors.New("boom")); err != nil {
+		t.Fatalf("record failed with concurrent reader: %v", err)
+	}
+}
+
 func openTestDB(t *testing.T) *sql.DB {
 	t.Helper()
 
