@@ -53,9 +53,6 @@ const (
 	// TaskServiceCancelQueuedTaskProcedure is the fully-qualified name of the TaskService's
 	// CancelQueuedTask RPC.
 	TaskServiceCancelQueuedTaskProcedure = "/gitplus.task.v1.TaskService/CancelQueuedTask"
-	// TaskServiceEnqueueTestTaskProcedure is the fully-qualified name of the TaskService's
-	// EnqueueTestTask RPC.
-	TaskServiceEnqueueTestTaskProcedure = "/gitplus.task.v1.TaskService/EnqueueTestTask"
 )
 
 // TaskServiceClient is a client for the gitplus.task.v1.TaskService service.
@@ -67,7 +64,6 @@ type TaskServiceClient interface {
 	EnqueueFullSync(context.Context, *connect.Request[v1.EnqueueFullSyncRequest]) (*connect.Response[v1.EnqueueFullSyncResponse], error)
 	EnqueueSourceSync(context.Context, *connect.Request[v1.EnqueueSourceSyncRequest]) (*connect.Response[v1.EnqueueSourceSyncResponse], error)
 	CancelQueuedTask(context.Context, *connect.Request[v1.CancelQueuedTaskRequest]) (*connect.Response[v1.CancelQueuedTaskResponse], error)
-	EnqueueTestTask(context.Context, *connect.Request[v1.EnqueueTestTaskRequest]) (*connect.Response[v1.EnqueueTestTaskResponse], error)
 }
 
 // NewTaskServiceClient constructs a client for the gitplus.task.v1.TaskService service. By default,
@@ -123,12 +119,6 @@ func NewTaskServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(taskServiceMethods.ByName("CancelQueuedTask")),
 			connect.WithClientOptions(opts...),
 		),
-		enqueueTestTask: connect.NewClient[v1.EnqueueTestTaskRequest, v1.EnqueueTestTaskResponse](
-			httpClient,
-			baseURL+TaskServiceEnqueueTestTaskProcedure,
-			connect.WithSchema(taskServiceMethods.ByName("EnqueueTestTask")),
-			connect.WithClientOptions(opts...),
-		),
 	}
 }
 
@@ -141,7 +131,6 @@ type taskServiceClient struct {
 	enqueueFullSync   *connect.Client[v1.EnqueueFullSyncRequest, v1.EnqueueFullSyncResponse]
 	enqueueSourceSync *connect.Client[v1.EnqueueSourceSyncRequest, v1.EnqueueSourceSyncResponse]
 	cancelQueuedTask  *connect.Client[v1.CancelQueuedTaskRequest, v1.CancelQueuedTaskResponse]
-	enqueueTestTask   *connect.Client[v1.EnqueueTestTaskRequest, v1.EnqueueTestTaskResponse]
 }
 
 // GetTaskRuntime calls gitplus.task.v1.TaskService.GetTaskRuntime.
@@ -179,11 +168,6 @@ func (c *taskServiceClient) CancelQueuedTask(ctx context.Context, req *connect.R
 	return c.cancelQueuedTask.CallUnary(ctx, req)
 }
 
-// EnqueueTestTask calls gitplus.task.v1.TaskService.EnqueueTestTask.
-func (c *taskServiceClient) EnqueueTestTask(ctx context.Context, req *connect.Request[v1.EnqueueTestTaskRequest]) (*connect.Response[v1.EnqueueTestTaskResponse], error) {
-	return c.enqueueTestTask.CallUnary(ctx, req)
-}
-
 // TaskServiceHandler is an implementation of the gitplus.task.v1.TaskService service.
 type TaskServiceHandler interface {
 	GetTaskRuntime(context.Context, *connect.Request[v1.GetTaskRuntimeRequest]) (*connect.Response[v1.GetTaskRuntimeResponse], error)
@@ -193,7 +177,6 @@ type TaskServiceHandler interface {
 	EnqueueFullSync(context.Context, *connect.Request[v1.EnqueueFullSyncRequest]) (*connect.Response[v1.EnqueueFullSyncResponse], error)
 	EnqueueSourceSync(context.Context, *connect.Request[v1.EnqueueSourceSyncRequest]) (*connect.Response[v1.EnqueueSourceSyncResponse], error)
 	CancelQueuedTask(context.Context, *connect.Request[v1.CancelQueuedTaskRequest]) (*connect.Response[v1.CancelQueuedTaskResponse], error)
-	EnqueueTestTask(context.Context, *connect.Request[v1.EnqueueTestTaskRequest]) (*connect.Response[v1.EnqueueTestTaskResponse], error)
 }
 
 // NewTaskServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -245,12 +228,6 @@ func NewTaskServiceHandler(svc TaskServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(taskServiceMethods.ByName("CancelQueuedTask")),
 		connect.WithHandlerOptions(opts...),
 	)
-	taskServiceEnqueueTestTaskHandler := connect.NewUnaryHandler(
-		TaskServiceEnqueueTestTaskProcedure,
-		svc.EnqueueTestTask,
-		connect.WithSchema(taskServiceMethods.ByName("EnqueueTestTask")),
-		connect.WithHandlerOptions(opts...),
-	)
 	return "/gitplus.task.v1.TaskService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case TaskServiceGetTaskRuntimeProcedure:
@@ -267,8 +244,6 @@ func NewTaskServiceHandler(svc TaskServiceHandler, opts ...connect.HandlerOption
 			taskServiceEnqueueSourceSyncHandler.ServeHTTP(w, r)
 		case TaskServiceCancelQueuedTaskProcedure:
 			taskServiceCancelQueuedTaskHandler.ServeHTTP(w, r)
-		case TaskServiceEnqueueTestTaskProcedure:
-			taskServiceEnqueueTestTaskHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -304,8 +279,4 @@ func (UnimplementedTaskServiceHandler) EnqueueSourceSync(context.Context, *conne
 
 func (UnimplementedTaskServiceHandler) CancelQueuedTask(context.Context, *connect.Request[v1.CancelQueuedTaskRequest]) (*connect.Response[v1.CancelQueuedTaskResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitplus.task.v1.TaskService.CancelQueuedTask is not implemented"))
-}
-
-func (UnimplementedTaskServiceHandler) EnqueueTestTask(context.Context, *connect.Request[v1.EnqueueTestTaskRequest]) (*connect.Response[v1.EnqueueTestTaskResponse], error) {
-	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitplus.task.v1.TaskService.EnqueueTestTask is not implemented"))
 }

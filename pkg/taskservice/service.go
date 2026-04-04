@@ -320,33 +320,6 @@ func (s *serviceServer) CancelQueuedTask(
 	}
 }
 
-func (s *serviceServer) EnqueueTestTask(
-	_ context.Context,
-	req *connect.Request[taskv1.EnqueueTestTaskRequest],
-) (*connect.Response[taskv1.EnqueueTestTaskResponse], error) {
-	variant := int(req.Msg.GetVariant())
-	jobID := fmt.Sprintf("test-%d", variant)
-	duration := time.Duration(variant*2) * time.Second
-
-	result, snapshot, err := s.manager.Enqueue(task.Spec{
-		JobID:   jobID,
-		JobType: "test",
-		Name:    fmt.Sprintf("Test task %d (%ds)", variant, variant*2),
-		Args: map[string]any{
-			"variant": variant,
-		},
-		Run: testRunner(variant, duration),
-	})
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("enqueue test task: %w", err))
-	}
-
-	return connect.NewResponse(&taskv1.EnqueueTestTaskResponse{
-		Result: enqueueResultPtr(toProtoEnqueueResult(result)),
-		Task:   toProtoTask(snapshot),
-	}), nil
-}
-
 func (s *serviceServer) ensureSourceExists(sourceID string) error {
 	loaded, _, err := appconfig.LoadOrDefault(appconfig.PathForDataDir(s.dataDir))
 	if err != nil {
@@ -523,27 +496,6 @@ func (s *serviceServer) openTaskQueries(ctx context.Context) (*dbsqlc.Queries, f
 
 func randomSourceSyncDuration() time.Duration {
 	return time.Duration(rand.IntN(9)+2) * time.Second
-}
-
-func testRunner(variant int, duration time.Duration) func(*task.ExecutionContext) error {
-	return func(ctx *task.ExecutionContext) error {
-		totalSeconds := int(duration.Seconds())
-		for i := 1; i <= totalSeconds; i++ {
-			if err := ctx.SetProgress(
-				fmt.Sprintf("Processing (%d/%ds)", i, totalSeconds),
-				map[string]any{
-					"variant": variant,
-					"step":    i,
-					"total":   totalSeconds,
-				},
-			); err != nil {
-				return err
-			}
-			time.Sleep(time.Second)
-		}
-
-		return nil
-	}
 }
 
 func toProtoTask(snapshot task.Snapshot) *taskv1.Task {

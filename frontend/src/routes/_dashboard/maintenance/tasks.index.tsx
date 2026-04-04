@@ -22,7 +22,6 @@ import {
   IconClock,
   IconRefresh,
   IconServer,
-  IconTestPipe,
   IconX,
 } from '@tabler/icons-react';
 import {
@@ -83,10 +82,6 @@ function formatTime(ts: Parameters<typeof timestampDate>[0] | undefined) {
 function formatTimestamp(ts: Parameters<typeof timestampDate>[0] | undefined) {
   if (!ts) return '—';
   return dayjs(timestampDate(ts)).format('YYYY-MM-DD HH:mm:ss');
-}
-
-function randomVariant(): number {
-  return Math.floor(Math.random() * 5) + 1;
 }
 
 function stateLabel(state: TaskState): string {
@@ -155,15 +150,6 @@ function TasksPage() {
     onError: (error) => toast.error(getErrorMessage(error)),
   });
 
-  const testMutation = useMutation({
-    mutationFn: () => taskClient.enqueueTestTask({ variant: randomVariant() }),
-    onSuccess: (response) => {
-      queryClient.invalidateQueries({ queryKey: ['task'] });
-      toast.success(`Task ${enqueueResultLabel(response.result)}`);
-    },
-    onError: (error) => toast.error(getErrorMessage(error)),
-  });
-
   const cancelMutation = useMutation({
     mutationFn: (taskId: string) => taskClient.cancelQueuedTask({ taskId }),
     onSuccess: () => {
@@ -226,14 +212,6 @@ function TasksPage() {
               </Menu.Dropdown>
             </Menu>
           </Group>
-          <Button
-            variant="default"
-            leftSection={<IconTestPipe size={16} />}
-            onClick={() => testMutation.mutate()}
-            loading={testMutation.isPending}
-          >
-            Enqueue Test Task
-          </Button>
         </Group>
       </Group>
 

@@ -119,18 +119,6 @@ message CancelQueuedTaskResponse {
   Task task = 1;
 }
 
-message EnqueueTestTaskRequest {
-  int32 variant = 1 [(buf.validate.field).int32 = {
-    gte: 1
-    lte: 5
-  }];
-}
-
-message EnqueueTestTaskResponse {
-  TaskEnqueueResult result = 1;
-  Task task = 2;
-}
-
 service TaskService {
   rpc GetTaskRuntime(GetTaskRuntimeRequest) returns (GetTaskRuntimeResponse);
   rpc ListTaskRuns(ListTaskRunsRequest) returns (ListTaskRunsResponse);
@@ -139,5 +127,4 @@ service TaskService {
   rpc EnqueueFullSync(EnqueueFullSyncRequest) returns (EnqueueFullSyncResponse);
   rpc EnqueueSourceSync(EnqueueSourceSyncRequest) returns (EnqueueSourceSyncResponse);
   rpc CancelQueuedTask(CancelQueuedTaskRequest) returns (CancelQueuedTaskResponse);
-  rpc EnqueueTestTask(EnqueueTestTaskRequest) returns (EnqueueTestTaskResponse);
 }

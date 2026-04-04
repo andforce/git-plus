@@ -1513,7 +1513,16 @@ sources:
 }
 
 func TestEventServiceSubscribeStreamsTaskEvents(t *testing.T) {
+	t.Setenv(appconfig.TokenPassphraseEnvVar, serverTestPassphrase)
+	encryptedToken := mustEncryptServerToken(t, "secret")
 	dataDir := t.TempDir()
+	writeConfigFile(t, dataDir, `
+sources:
+  - id: github-main
+    platform: github
+    username: octocat
+    token: `+encryptedToken+`
+`)
 	server := newTestServer(t, dataDir)
 	eventClient := newEventServiceClient(server.URL)
 	taskClient := newTaskServiceClient(server.URL)
@@ -1544,11 +1553,11 @@ func TestEventServiceSubscribeStreamsTaskEvents(t *testing.T) {
 			t.Fatalf("subscribe to task events: %v", err)
 		case stream = <-streamResult:
 		case <-ticker.C:
-			if _, err := taskClient.EnqueueTestTask(
+			if _, err := taskClient.EnqueueSourceSync(
 				context.Background(),
-				connect.NewRequest(&taskv1.EnqueueTestTaskRequest{Variant: testInt32Ptr(2)}),
+				connect.NewRequest(&taskv1.EnqueueSourceSyncRequest{SourceId: testStringPtr("github-main")}),
 			); err != nil {
-				t.Fatalf("enqueue test task: %v", err)
+				t.Fatalf("enqueue source sync: %v", err)
 			}
 		case <-deadline:
 			t.Fatal("timed out waiting for event stream")
@@ -1559,7 +1568,7 @@ func TestEventServiceSubscribeStreamsTaskEvents(t *testing.T) {
 	if got := firstEvent.Fields["channel"].GetStringValue(); got != "task" {
 		t.Fatalf("unexpected event channel: %q", got)
 	}
-	if got := firstEvent.Fields["job_type"].GetStringValue(); got != "test" {
+	if got := firstEvent.Fields["job_type"].GetStringValue(); got != task.JobTypeSyncSource {
 		t.Fatalf("unexpected event job_type: %q", got)
 	}
 	if got := firstEvent.Fields["task_id"].GetStringValue(); got == "" {
