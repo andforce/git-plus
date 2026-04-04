@@ -81,6 +81,10 @@ func ListRemoteRefs(ctx context.Context, repo *git.Repository, auth transport.Au
 		Timeout: int(defaultListTimeout.Seconds()),
 	})
 	if err != nil {
+		if errors.Is(err, transport.ErrEmptyRemoteRepository) {
+			return []RemoteRef{}, nil
+		}
+
 		return nil, fmt.Errorf("list remote refs: %w", err)
 	}
 

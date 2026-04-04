@@ -1,9 +1,13 @@
 package archivegit
 
 import (
+	"context"
+	"path/filepath"
 	"slices"
 	"strings"
 	"testing"
+
+	git "github.com/go-git/go-git/v5"
 )
 
 func TestArchiveRefName(t *testing.T) {
@@ -100,5 +104,27 @@ func TestDiffRefsTracksCreateUpdateDeleteAndDeletedRowsAsAbsent(t *testing.T) {
 		"refs/tags/v0.9.0:create",
 	}) {
 		t.Fatalf("unexpected changes: %v", got)
+	}
+}
+
+func TestListRemoteRefsTreatsEmptyRemoteAsNoRefs(t *testing.T) {
+	tempDir := t.TempDir()
+	remotePath := filepath.Join(tempDir, "remote.git")
+	if _, err := git.PlainInit(remotePath, true); err != nil {
+		t.Fatalf("init empty remote: %v", err)
+	}
+
+	archivePath := filepath.Join(tempDir, "archive.git")
+	repo, err := OpenArchive(archivePath, remotePath)
+	if err != nil {
+		t.Fatalf("open archive: %v", err)
+	}
+
+	refs, err := ListRemoteRefs(context.Background(), repo, nil)
+	if err != nil {
+		t.Fatalf("list remote refs: %v", err)
+	}
+	if len(refs) != 0 {
+		t.Fatalf("expected no refs for empty remote, got %#v", refs)
 	}
 }
