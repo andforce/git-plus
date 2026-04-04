@@ -8,12 +8,12 @@ import {
   Container,
   Divider,
   Group,
-  Modal,
   NumberInput,
   Stack,
   Text,
   Title,
 } from '@mantine/core';
+import { modals } from '@mantine/modals';
 import {
   IconAlertTriangle,
   IconCircleCheck,
@@ -52,7 +52,6 @@ function getErrorMessage(error: unknown): string {
 function ConfigOverview() {
   const { data: configData } = useSuspenseQuery(configQueryOptions);
   const { data: checkData } = useSuspenseQuery(configCheckQueryOptions);
-  const queryClient = useQueryClient();
 
   const config = configData.config;
   const sourceCount = config?.sources.length ?? 0;
@@ -63,36 +62,20 @@ function ConfigOverview() {
   const warningCount = checkData.summary?.warning ?? 0;
   const hasIssues = checkData.issues.length > 0;
 
-  const [editField, setEditField] = useState<
-    'concurrency' | 'maxRetryTimes' | null
-  >(null);
-  const [editValue, setEditValue] = useState<number>(0);
-
   const openEdit = (field: 'concurrency' | 'maxRetryTimes') => {
-    setEditField(field);
-    setEditValue(field === 'concurrency' ? concurrency : maxRetryTimes);
-  };
-
-  const invalidateConfig = () =>
-    queryClient.invalidateQueries({ queryKey: ['config'] });
-
-  const updateMutation = useMutation({
-    mutationFn: (params: { concurrency: number; maxRetryTimes: number }) =>
-      configClient.updateConfig(params),
-    onSuccess: () => {
-      invalidateConfig();
-      setEditField(null);
-      toast.success('Configuration updated');
-    },
-    onError: (error) => toast.error(getErrorMessage(error)),
-  });
-
-  const handleSave = () => {
-    if (editField === 'concurrency') {
-      updateMutation.mutate({ concurrency: editValue, maxRetryTimes });
-    } else {
-      updateMutation.mutate({ concurrency, maxRetryTimes: editValue });
-    }
+    modals.open({
+      title:
+        field === 'concurrency' ? 'Edit Concurrency' : 'Edit Max Retry Times',
+      size: 'xs',
+      centered: true,
+      children: (
+        <EditConfigContent
+          field={field}
+          concurrency={concurrency}
+          maxRetryTimes={maxRetryTimes}
+        />
+      ),
+    });
   };
 
   return (
@@ -246,42 +229,64 @@ function ConfigOverview() {
           </ActionIcon>
         </Box>
       </Stack>
-
-      <Modal
-        opened={editField !== null}
-        onClose={() => setEditField(null)}
-        title={
-          editField === 'concurrency'
-            ? 'Edit Concurrency'
-            : 'Edit Max Retry Times'
-        }
-        size="xs"
-        centered
-      >
-        <Stack gap="md">
-          <NumberInput
-            label={
-              editField === 'concurrency'
-                ? 'Concurrent parallel tasks'
-                : 'Maximum retry attempts'
-            }
-            value={editValue}
-            onChange={(v) =>
-              setEditValue(typeof v === 'number' ? v : editValue)
-            }
-            min={editField === 'concurrency' ? 1 : 0}
-          />
-          <Group justify="flex-end">
-            <Button variant="default" onClick={() => setEditField(null)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSave} loading={updateMutation.isPending}>
-              Save
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
     </Container>
+  );
+}
+
+function EditConfigContent({
+  field,
+  concurrency,
+  maxRetryTimes,
+}: {
+  field: 'concurrency' | 'maxRetryTimes';
+  concurrency: number;
+  maxRetryTimes: number;
+}) {
+  const [value, setValue] = useState(
+    field === 'concurrency' ? concurrency : maxRetryTimes,
+  );
+  const queryClient = useQueryClient();
+
+  const updateMutation = useMutation({
+    mutationFn: (params: { concurrency: number; maxRetryTimes: number }) =>
+      configClient.updateConfig(params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['config'] });
+      modals.closeAll();
+      toast.success('Configuration updated');
+    },
+    onError: (error) => toast.error(getErrorMessage(error)),
+  });
+
+  const handleSave = () => {
+    if (field === 'concurrency') {
+      updateMutation.mutate({ concurrency: value, maxRetryTimes });
+    } else {
+      updateMutation.mutate({ concurrency, maxRetryTimes: value });
+    }
+  };
+
+  return (
+    <Stack gap="md">
+      <NumberInput
+        label={
+          field === 'concurrency'
+            ? 'Concurrent parallel tasks'
+            : 'Maximum retry attempts'
+        }
+        value={value}
+        onChange={(v) => setValue(typeof v === 'number' ? v : value)}
+        min={field === 'concurrency' ? 1 : 0}
+      />
+      <Group justify="flex-end">
+        <Button variant="default" onClick={() => modals.closeAll()}>
+          Cancel
+        </Button>
+        <Button onClick={handleSave} loading={updateMutation.isPending}>
+          Save
+        </Button>
+      </Group>
+    </Stack>
   );
 }
 

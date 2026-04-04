@@ -9,11 +9,11 @@ import {
   Group,
   Loader,
   Menu,
-  Modal,
   Stack,
   Text,
   Title,
 } from '@mantine/core';
+import { modals } from '@mantine/modals';
 import {
   IconChevronDown,
   IconClock,
@@ -32,7 +32,7 @@ import { timestampDate } from '@bufbuild/protobuf/wkt';
 import { toast } from 'sonner';
 import dayjs from 'dayjs';
 import type { Task } from '~rpc/gitplus/task/v1/task_pb';
-import { configClient, taskClient } from '~lib/connect/client';
+import { taskClient } from '~lib/connect/client';
 import { configQueryOptions } from '~lib/config-queries';
 import { taskRuntimeQueryOptions } from '~lib/task-queries';
 import { useTaskEvents } from '~lib/use-task-events';
@@ -82,47 +82,14 @@ function TasksPage() {
   useTaskEvents();
 
   const sources = configData.config?.sources ?? [];
-  const [syncSourceOpened, setSyncSourceOpened] = useState(false);
-  const [selectedSources, setSelectedSources] = useState<Array<string>>([]);
-
-  const toggleSource = (id: string) => {
-    setSelectedSources((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
-    );
-  };
 
   const openSyncSourceModal = () => {
-    setSelectedSources([]);
-    setSyncSourceOpened(true);
+    modals.open({
+      title: 'Sync Source',
+      centered: true,
+      children: <SyncSourceContent sources={sources} />,
+    });
   };
-
-  const syncSourceMutation = useMutation({
-    mutationFn: async (sourceIds: Array<string>) => {
-      const results = await Promise.all(
-        sourceIds.map((sourceId) => taskClient.enqueueSourceSync({ sourceId })),
-      );
-      return results;
-    },
-    onSuccess: (results) => {
-      queryClient.invalidateQueries({ queryKey: ['task', 'runtime'] });
-      setSyncSourceOpened(false);
-      const started = results.filter(
-        (r) => r.result === TaskEnqueueResult.STARTED,
-      ).length;
-      const queued = results.filter(
-        (r) => r.result === TaskEnqueueResult.QUEUED,
-      ).length;
-      const deduped = results.filter(
-        (r) => r.result === TaskEnqueueResult.DEDUPED,
-      ).length;
-      const parts: Array<string> = [];
-      if (started > 0) parts.push(`${started} started`);
-      if (queued > 0) parts.push(`${queued} queued`);
-      if (deduped > 0) parts.push(`${deduped} deduped`);
-      toast.success(`Source sync: ${parts.join(', ')}`);
-    },
-    onError: (error) => toast.error(getErrorMessage(error)),
-  });
 
   const syncAllMutation = useMutation({
     mutationFn: () => taskClient.enqueueFullSync({}),
@@ -246,50 +213,85 @@ function TasksPage() {
           )}
         </Stack>
       )}
-      <Modal
-        opened={syncSourceOpened}
-        onClose={() => setSyncSourceOpened(false)}
-        title="Sync Source"
-        centered
-      >
-        {sources.length === 0 ? (
-          <Text size="sm" c="dimmed">
-            No sources configured. Add sources in Configuration first.
-          </Text>
-        ) : (
-          <Stack gap="md">
-            <Stack gap="xs">
-              {sources.map((source) => (
-                <Checkbox
-                  key={source.id}
-                  label={`${source.id} — @${source.username}`}
-                  checked={selectedSources.includes(source.id)}
-                  onChange={() => toggleSource(source.id)}
-                />
-              ))}
-            </Stack>
-            <Group justify="flex-end">
-              <Button
-                variant="default"
-                onClick={() => setSyncSourceOpened(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={() => syncSourceMutation.mutate(selectedSources)}
-                loading={syncSourceMutation.isPending}
-                disabled={selectedSources.length === 0}
-              >
-                Sync{' '}
-                {selectedSources.length > 0
-                  ? `(${selectedSources.length})`
-                  : ''}
-              </Button>
-            </Group>
-          </Stack>
-        )}
-      </Modal>
     </Container>
+  );
+}
+
+function SyncSourceContent({
+  sources,
+}: {
+  sources: Array<{ id: string; username: string }>;
+}) {
+  const [selected, setSelected] = useState<Array<string>>([]);
+  const queryClient = useQueryClient();
+
+  const toggle = (id: string) => {
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
+    );
+  };
+
+  const syncMutation = useMutation({
+    mutationFn: async (sourceIds: Array<string>) => {
+      const results = await Promise.all(
+        sourceIds.map((sourceId) => taskClient.enqueueSourceSync({ sourceId })),
+      );
+      return results;
+    },
+    onSuccess: (results) => {
+      queryClient.invalidateQueries({ queryKey: ['task', 'runtime'] });
+      modals.closeAll();
+      const started = results.filter(
+        (r) => r.result === TaskEnqueueResult.STARTED,
+      ).length;
+      const queued = results.filter(
+        (r) => r.result === TaskEnqueueResult.QUEUED,
+      ).length;
+      const deduped = results.filter(
+        (r) => r.result === TaskEnqueueResult.DEDUPED,
+      ).length;
+      const parts: Array<string> = [];
+      if (started > 0) parts.push(`${started} started`);
+      if (queued > 0) parts.push(`${queued} queued`);
+      if (deduped > 0) parts.push(`${deduped} deduped`);
+      toast.success(`Source sync: ${parts.join(', ')}`);
+    },
+    onError: (error) => toast.error(getErrorMessage(error)),
+  });
+
+  if (sources.length === 0) {
+    return (
+      <Text size="sm" c="dimmed">
+        No sources configured. Add sources in Configuration first.
+      </Text>
+    );
+  }
+
+  return (
+    <Stack gap="md">
+      <Stack gap="xs">
+        {sources.map((source) => (
+          <Checkbox
+            key={source.id}
+            label={`${source.id} — @${source.username}`}
+            checked={selected.includes(source.id)}
+            onChange={() => toggle(source.id)}
+          />
+        ))}
+      </Stack>
+      <Group justify="flex-end">
+        <Button variant="default" onClick={() => modals.closeAll()}>
+          Cancel
+        </Button>
+        <Button
+          onClick={() => syncMutation.mutate(selected)}
+          loading={syncMutation.isPending}
+          disabled={selected.length === 0}
+        >
+          Sync {selected.length > 0 ? `(${selected.length})` : ''}
+        </Button>
+      </Group>
+    </Stack>
   );
 }
 
