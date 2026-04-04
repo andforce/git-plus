@@ -292,17 +292,18 @@ func persistRepoRefState(ctx context.Context, db *sql.DB, repoID int64, taskRunI
 		}
 
 		if err := queries.UpsertRepoRefCurrent(ctx, dbsqlc.UpsertRepoRefCurrentParams{
-			RepoID:         repoID,
-			RefName:        remoteRef.Name,
-			RefKind:        remoteRef.Kind,
-			CurrentHash:    remoteRef.Hash,
-			Status:         archivegit.RefStatusActive,
-			ArchiveRefName: archiveRefName,
-			FirstSeenAt:    now,
-			LastSeenAt:     now,
-			DeletedAt:      sql.NullString{},
-			CreatedAt:      now,
-			UpdatedAt:      now,
+			RepoID:            repoID,
+			RefName:           remoteRef.Name,
+			RefKind:           remoteRef.Kind,
+			CurrentHash:       remoteRef.Hash,
+			Status:            archivegit.RefStatusActive,
+			ArchiveRefName:    archiveRefName,
+			FirstSeenAt:       now,
+			LastSeenAt:        now,
+			LastHashUpdatedAt: now,
+			DeletedAt:         sql.NullString{},
+			CreatedAt:         now,
+			UpdatedAt:         now,
 		}); err != nil {
 			_ = tx.Rollback()
 			return fmt.Errorf("upsert current ref %q: %w", remoteRef.Name, err)

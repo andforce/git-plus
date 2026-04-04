@@ -376,32 +376,34 @@ func TestExecutorSyncActiveReposRetriesPersistsRefsAndLogsFailures(t *testing.T)
 	}
 
 	if err := queries.UpsertRepoRefCurrent(context.Background(), dbsqlc.UpsertRepoRefCurrentParams{
-		RepoID:         coreRepo.ID,
-		RefName:        "refs/heads/main",
-		RefKind:        "head",
-		CurrentHash:    strings.Repeat("1", 40),
-		Status:         "active",
-		ArchiveRefName: nullableString("refs/archive/heads/main/" + strings.Repeat("1", 40)),
-		FirstSeenAt:    "2026-04-04T08:00:00Z",
-		LastSeenAt:     "2026-04-04T08:00:00Z",
-		DeletedAt:      sql.NullString{},
-		CreatedAt:      "2026-04-04T08:00:00Z",
-		UpdatedAt:      "2026-04-04T08:00:00Z",
+		RepoID:            coreRepo.ID,
+		RefName:           "refs/heads/main",
+		RefKind:           "head",
+		CurrentHash:       strings.Repeat("1", 40),
+		Status:            "active",
+		ArchiveRefName:    nullableString("refs/archive/heads/main/" + strings.Repeat("1", 40)),
+		FirstSeenAt:       "2026-04-04T08:00:00Z",
+		LastSeenAt:        "2026-04-04T08:00:00Z",
+		LastHashUpdatedAt: "2026-04-04T08:00:00Z",
+		DeletedAt:         sql.NullString{},
+		CreatedAt:         "2026-04-04T08:00:00Z",
+		UpdatedAt:         "2026-04-04T08:00:00Z",
 	}); err != nil {
 		t.Fatalf("seed main ref: %v", err)
 	}
 	if err := queries.UpsertRepoRefCurrent(context.Background(), dbsqlc.UpsertRepoRefCurrentParams{
-		RepoID:         coreRepo.ID,
-		RefName:        "refs/heads/legacy",
-		RefKind:        "head",
-		CurrentHash:    strings.Repeat("2", 40),
-		Status:         "active",
-		ArchiveRefName: nullableString("refs/archive/heads/legacy/" + strings.Repeat("2", 40)),
-		FirstSeenAt:    "2026-04-04T08:00:00Z",
-		LastSeenAt:     "2026-04-04T08:00:00Z",
-		DeletedAt:      sql.NullString{},
-		CreatedAt:      "2026-04-04T08:00:00Z",
-		UpdatedAt:      "2026-04-04T08:00:00Z",
+		RepoID:            coreRepo.ID,
+		RefName:           "refs/heads/legacy",
+		RefKind:           "head",
+		CurrentHash:       strings.Repeat("2", 40),
+		Status:            "active",
+		ArchiveRefName:    nullableString("refs/archive/heads/legacy/" + strings.Repeat("2", 40)),
+		FirstSeenAt:       "2026-04-04T08:00:00Z",
+		LastSeenAt:        "2026-04-04T08:00:00Z",
+		LastHashUpdatedAt: "2026-04-04T08:00:00Z",
+		DeletedAt:         sql.NullString{},
+		CreatedAt:         "2026-04-04T08:00:00Z",
+		UpdatedAt:         "2026-04-04T08:00:00Z",
 	}); err != nil {
 		t.Fatalf("seed legacy ref: %v", err)
 	}
@@ -532,11 +534,20 @@ func TestExecutorSyncActiveReposRetriesPersistsRefsAndLogsFailures(t *testing.T)
 	if currentByName["refs/heads/main"].CurrentHash != strings.Repeat("3", 40) {
 		t.Fatalf("unexpected main hash: %#v", currentByName["refs/heads/main"])
 	}
+	if currentByName["refs/heads/main"].LastHashUpdatedAt != "2026-04-04T10:00:00Z" {
+		t.Fatalf("expected main last_hash_updated_at to advance, got %#v", currentByName["refs/heads/main"])
+	}
 	if currentByName["refs/heads/legacy"].Status != archivegit.RefStatusDeleted {
 		t.Fatalf("expected legacy branch to be deleted, got %#v", currentByName["refs/heads/legacy"])
 	}
+	if currentByName["refs/heads/legacy"].LastHashUpdatedAt != "2026-04-04T08:00:00Z" {
+		t.Fatalf("expected deleted ref to keep last_hash_updated_at, got %#v", currentByName["refs/heads/legacy"])
+	}
 	if currentByName["refs/tags/v1.0.0"].Status != archivegit.RefStatusActive {
 		t.Fatalf("expected tag to be active, got %#v", currentByName["refs/tags/v1.0.0"])
+	}
+	if currentByName["refs/tags/v1.0.0"].LastHashUpdatedAt != "2026-04-04T10:00:00Z" {
+		t.Fatalf("expected created tag to set last_hash_updated_at, got %#v", currentByName["refs/tags/v1.0.0"])
 	}
 
 	rows, err := sqliteDB.Query(`

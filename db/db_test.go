@@ -106,3 +106,85 @@ func TestOpenConfiguresSQLitePragmas(t *testing.T) {
 		t.Fatalf("expected busy_timeout=%d, got %d", sqliteBusyTimeoutMillis, busyTimeout)
 	}
 }
+
+func TestLatestMigrationBackfillsRepoRefsLastHashUpdatedAtFromUpdatedAt(t *testing.T) {
+	dataDir := t.TempDir()
+	sqlitePath := filepath.Join(dataDir, sqliteFilename)
+
+	sqliteDB, err := openSQLite(sqlitePath)
+	if err != nil {
+		t.Fatalf("open sqlite db: %v", err)
+	}
+	defer sqliteDB.Close()
+
+	if err := ensureMigrationsTable(context.Background(), sqliteDB); err != nil {
+		t.Fatalf("ensure migrations table: %v", err)
+	}
+
+	migrationEntries, err := fs.ReadDir(embeddedMigrations, "migrations")
+	if err != nil {
+		t.Fatalf("read embedded migrations: %v", err)
+	}
+	if len(migrationEntries) < 2 {
+		t.Fatalf("expected at least 2 migrations, got %d", len(migrationEntries))
+	}
+
+	latestMigration := migrationEntries[len(migrationEntries)-1].Name()
+	for _, entry := range migrationEntries[:len(migrationEntries)-1] {
+		if !entry.IsDir() {
+			continue
+		}
+		if _, err := applyMigration(context.Background(), sqliteDB, entry.Name()); err != nil {
+			t.Fatalf("apply pre-latest migration %s: %v", entry.Name(), err)
+		}
+	}
+
+	_, err = sqliteDB.ExecContext(context.Background(), `
+		INSERT INTO repos (
+			id, source_id, platform, ref_id, status, name, full_name, owner,
+			description, html_url, clone_url, ssh_url, default_branch, visibility,
+			is_private, is_fork, is_archived, origin, meta, last_seen_at, disabled_at,
+			created_at, updated_at
+		) VALUES (
+			1, 'source-a', 'github', '1', 'active', 'core', 'acme/core', 'acme',
+			NULL, NULL, NULL, NULL, NULL, NULL,
+			0, 0, 0, '{}', '{}', '2026-04-04T08:00:00Z', NULL,
+			'2026-04-04T08:00:00Z', '2026-04-04T08:00:00Z'
+		)
+	`)
+	if err != nil {
+		t.Fatalf("insert repo: %v", err)
+	}
+
+	_, err = sqliteDB.ExecContext(context.Background(), `
+		INSERT INTO repo_refs_current (
+			id, repo_id, ref_name, ref_kind, current_hash, status, archive_ref_name,
+			first_seen_at, last_seen_at, deleted_at, created_at, updated_at
+		) VALUES (
+			1, 1, 'refs/heads/main', 'head', 'abc123', 'active', 'refs/archive/heads/main/abc123',
+			'2026-04-04T08:00:00Z', '2026-04-04T09:00:00Z', NULL,
+			'2026-04-04T08:00:00Z', '2026-04-04T09:00:00Z'
+		)
+	`)
+	if err != nil {
+		t.Fatalf("insert repo ref current: %v", err)
+	}
+
+	if _, err := applyMigration(context.Background(), sqliteDB, latestMigration); err != nil {
+		t.Fatalf("apply latest migration %s: %v", latestMigration, err)
+	}
+
+	var lastHashUpdatedAt string
+	var updatedAt string
+	if err := sqliteDB.QueryRowContext(context.Background(), `
+		SELECT last_hash_updated_at, updated_at
+		FROM repo_refs_current
+		WHERE id = 1
+	`).Scan(&lastHashUpdatedAt, &updatedAt); err != nil {
+		t.Fatalf("query migrated repo ref current: %v", err)
+	}
+
+	if lastHashUpdatedAt != updatedAt {
+		t.Fatalf("expected last_hash_updated_at to equal updated_at, got %q vs %q", lastHashUpdatedAt, updatedAt)
+	}
+}

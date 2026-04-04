@@ -9,6 +9,7 @@ SELECT
   archive_ref_name,
   first_seen_at,
   last_seen_at,
+  last_hash_updated_at,
   deleted_at,
   created_at,
   updated_at
@@ -26,11 +27,12 @@ INSERT INTO repo_refs_current (
   archive_ref_name,
   first_seen_at,
   last_seen_at,
+  last_hash_updated_at,
   deleted_at,
   created_at,
   updated_at
 ) VALUES (
-  ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11
+  ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12
 )
 ON CONFLICT(repo_id, ref_name) DO UPDATE SET
   ref_kind = excluded.ref_kind,
@@ -38,6 +40,10 @@ ON CONFLICT(repo_id, ref_name) DO UPDATE SET
   status = excluded.status,
   archive_ref_name = excluded.archive_ref_name,
   last_seen_at = excluded.last_seen_at,
+  last_hash_updated_at = CASE
+    WHEN repo_refs_current.current_hash <> excluded.current_hash THEN excluded.last_hash_updated_at
+    ELSE repo_refs_current.last_hash_updated_at
+  END,
   deleted_at = excluded.deleted_at,
   updated_at = excluded.updated_at;
 

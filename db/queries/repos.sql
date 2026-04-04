@@ -123,7 +123,7 @@ FROM repos
 WHERE (?1 IS NULL OR source_id = ?1)
   AND (?2 IS NULL OR (full_name LIKE '%' || ?2 || '%' OR description LIKE '%' || ?2 || '%'));
 
--- name: ListReposFiltered :many
+-- name: ListReposFilteredCreatedAtDesc :many
 SELECT
   id,
   source_id,
@@ -149,15 +149,139 @@ SELECT
   created_at,
   updated_at
 FROM repos
-WHERE (@source_id IS NULL OR source_id = @source_id)
-  AND (@search IS NULL OR (full_name LIKE '%' || @search || '%' OR description LIKE '%' || @search || '%'))
-  AND @sort IS NOT NULL
-ORDER BY
-  CASE WHEN @sort = 'created_at_desc' THEN created_at END DESC,
-  CASE WHEN @sort = 'created_at_asc'  THEN created_at END ASC,
-  CASE WHEN @sort = 'name_asc'   THEN name  END ASC,
-  CASE WHEN @sort = 'name_desc'  THEN name  END DESC
-LIMIT @limit OFFSET @offset;
+WHERE (
+    sqlc.narg(source_id) IS NULL
+    OR repos.source_id = sqlc.narg(source_id)
+  )
+  AND (
+    sqlc.narg(search) IS NULL
+    OR (
+      repos.full_name LIKE '%' || sqlc.narg(search) || '%'
+      OR repos.description LIKE '%' || sqlc.narg(search) || '%'
+    )
+  )
+ORDER BY repos.created_at DESC
+LIMIT sqlc.arg(limit) OFFSET sqlc.arg(offset);
+
+-- name: ListReposFilteredCreatedAtAsc :many
+SELECT
+  id,
+  source_id,
+  platform,
+  ref_id,
+  status,
+  name,
+  full_name,
+  owner,
+  description,
+  html_url,
+  clone_url,
+  ssh_url,
+  default_branch,
+  visibility,
+  is_private,
+  is_fork,
+  is_archived,
+  origin,
+  meta,
+  last_seen_at,
+  disabled_at,
+  created_at,
+  updated_at
+FROM repos
+WHERE (
+    sqlc.narg(source_id) IS NULL
+    OR repos.source_id = sqlc.narg(source_id)
+  )
+  AND (
+    sqlc.narg(search) IS NULL
+    OR (
+      repos.full_name LIKE '%' || sqlc.narg(search) || '%'
+      OR repos.description LIKE '%' || sqlc.narg(search) || '%'
+    )
+  )
+ORDER BY repos.created_at ASC
+LIMIT sqlc.arg(limit) OFFSET sqlc.arg(offset);
+
+-- name: ListReposFilteredNameAsc :many
+SELECT
+  id,
+  source_id,
+  platform,
+  ref_id,
+  status,
+  name,
+  full_name,
+  owner,
+  description,
+  html_url,
+  clone_url,
+  ssh_url,
+  default_branch,
+  visibility,
+  is_private,
+  is_fork,
+  is_archived,
+  origin,
+  meta,
+  last_seen_at,
+  disabled_at,
+  created_at,
+  updated_at
+FROM repos
+WHERE (
+    sqlc.narg(source_id) IS NULL
+    OR repos.source_id = sqlc.narg(source_id)
+  )
+  AND (
+    sqlc.narg(search) IS NULL
+    OR (
+      repos.full_name LIKE '%' || sqlc.narg(search) || '%'
+      OR repos.description LIKE '%' || sqlc.narg(search) || '%'
+    )
+  )
+ORDER BY repos.name ASC
+LIMIT sqlc.arg(limit) OFFSET sqlc.arg(offset);
+
+-- name: ListReposFilteredNameDesc :many
+SELECT
+  id,
+  source_id,
+  platform,
+  ref_id,
+  status,
+  name,
+  full_name,
+  owner,
+  description,
+  html_url,
+  clone_url,
+  ssh_url,
+  default_branch,
+  visibility,
+  is_private,
+  is_fork,
+  is_archived,
+  origin,
+  meta,
+  last_seen_at,
+  disabled_at,
+  created_at,
+  updated_at
+FROM repos
+WHERE (
+    sqlc.narg(source_id) IS NULL
+    OR repos.source_id = sqlc.narg(source_id)
+  )
+  AND (
+    sqlc.narg(search) IS NULL
+    OR (
+      repos.full_name LIKE '%' || sqlc.narg(search) || '%'
+      OR repos.description LIKE '%' || sqlc.narg(search) || '%'
+    )
+  )
+ORDER BY repos.name DESC
+LIMIT sqlc.arg(limit) OFFSET sqlc.arg(offset);
 
 -- name: GetRepoById :one
 SELECT
@@ -171,7 +295,7 @@ WHERE id = ?1;
 -- name: ListRepoRefs :many
 SELECT
   id, repo_id, ref_name, ref_kind, current_hash, status,
-  archive_ref_name, first_seen_at, last_seen_at, deleted_at,
+  archive_ref_name, first_seen_at, last_seen_at, last_hash_updated_at, deleted_at,
   created_at, updated_at
 FROM repo_refs_current
 WHERE repo_id = ?1

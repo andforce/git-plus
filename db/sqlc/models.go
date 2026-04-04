@@ -53,18 +53,19 @@ type RepoRefChange struct {
 }
 
 type RepoRefsCurrent struct {
-	ID             int64
-	RepoID         int64
-	RefName        string
-	RefKind        string
-	CurrentHash    string
-	Status         string
-	ArchiveRefName sql.NullString
-	FirstSeenAt    string
-	LastSeenAt     string
-	DeletedAt      sql.NullString
-	CreatedAt      string
-	UpdatedAt      string
+	ID                int64
+	RepoID            int64
+	RefName           string
+	RefKind           string
+	CurrentHash       string
+	Status            string
+	ArchiveRefName    sql.NullString
+	FirstSeenAt       string
+	LastSeenAt        string
+	LastHashUpdatedAt string
+	DeletedAt         sql.NullString
+	CreatedAt         string
+	UpdatedAt         string
 }
 
 type TaskRun struct {

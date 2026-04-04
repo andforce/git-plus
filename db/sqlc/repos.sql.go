@@ -309,7 +309,7 @@ func (q *Queries) ListRepoRefChangesFiltered(ctx context.Context, arg ListRepoRe
 const listRepoRefs = `-- name: ListRepoRefs :many
 SELECT
   id, repo_id, ref_name, ref_kind, current_hash, status,
-  archive_ref_name, first_seen_at, last_seen_at, deleted_at,
+  archive_ref_name, first_seen_at, last_seen_at, last_hash_updated_at, deleted_at,
   created_at, updated_at
 FROM repo_refs_current
 WHERE repo_id = ?1
@@ -343,6 +343,7 @@ func (q *Queries) ListRepoRefs(ctx context.Context, arg ListRepoRefsParams) ([]R
 			&i.ArchiveRefName,
 			&i.FirstSeenAt,
 			&i.LastSeenAt,
+			&i.LastHashUpdatedAt,
 			&i.DeletedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -360,7 +361,7 @@ func (q *Queries) ListRepoRefs(ctx context.Context, arg ListRepoRefsParams) ([]R
 	return items, nil
 }
 
-const listReposFiltered = `-- name: ListReposFiltered :many
+const listReposFilteredCreatedAtAsc = `-- name: ListReposFilteredCreatedAtAsc :many
 SELECT
   id,
   source_id,
@@ -386,30 +387,332 @@ SELECT
   created_at,
   updated_at
 FROM repos
-WHERE (?1 IS NULL OR source_id = ?1)
-  AND (?2 IS NULL OR (full_name LIKE '%' || ?2 || '%' OR description LIKE '%' || ?2 || '%'))
-  AND ?3 IS NOT NULL
-ORDER BY
-  CASE WHEN ?3 = 'created_at_desc' THEN created_at END DESC,
-  CASE WHEN ?3 = 'created_at_asc'  THEN created_at END ASC,
-  CASE WHEN ?3 = 'name_asc'   THEN name  END ASC,
-  CASE WHEN ?3 = 'name_desc'  THEN name  END DESC
-LIMIT ?5 OFFSET ?4
+WHERE (
+    ?1 IS NULL
+    OR repos.source_id = ?1
+  )
+  AND (
+    ?2 IS NULL
+    OR (
+      repos.full_name LIKE '%' || ?2 || '%'
+      OR repos.description LIKE '%' || ?2 || '%'
+    )
+  )
+ORDER BY repos.created_at ASC
+LIMIT ?4 OFFSET ?3
 `
 
-type ListReposFilteredParams struct {
+type ListReposFilteredCreatedAtAscParams struct {
 	SourceID interface{}
 	Search   interface{}
-	Sort     interface{}
 	Offset   int64
 	Limit    int64
 }
 
-func (q *Queries) ListReposFiltered(ctx context.Context, arg ListReposFilteredParams) ([]Repo, error) {
-	rows, err := q.db.QueryContext(ctx, listReposFiltered,
+func (q *Queries) ListReposFilteredCreatedAtAsc(ctx context.Context, arg ListReposFilteredCreatedAtAscParams) ([]Repo, error) {
+	rows, err := q.db.QueryContext(ctx, listReposFilteredCreatedAtAsc,
 		arg.SourceID,
 		arg.Search,
-		arg.Sort,
+		arg.Offset,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Repo
+	for rows.Next() {
+		var i Repo
+		if err := rows.Scan(
+			&i.ID,
+			&i.SourceID,
+			&i.Platform,
+			&i.RefID,
+			&i.Status,
+			&i.Name,
+			&i.FullName,
+			&i.Owner,
+			&i.Description,
+			&i.HtmlUrl,
+			&i.CloneUrl,
+			&i.SshUrl,
+			&i.DefaultBranch,
+			&i.Visibility,
+			&i.IsPrivate,
+			&i.IsFork,
+			&i.IsArchived,
+			&i.Origin,
+			&i.Meta,
+			&i.LastSeenAt,
+			&i.DisabledAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listReposFilteredCreatedAtDesc = `-- name: ListReposFilteredCreatedAtDesc :many
+SELECT
+  id,
+  source_id,
+  platform,
+  ref_id,
+  status,
+  name,
+  full_name,
+  owner,
+  description,
+  html_url,
+  clone_url,
+  ssh_url,
+  default_branch,
+  visibility,
+  is_private,
+  is_fork,
+  is_archived,
+  origin,
+  meta,
+  last_seen_at,
+  disabled_at,
+  created_at,
+  updated_at
+FROM repos
+WHERE (
+    ?1 IS NULL
+    OR repos.source_id = ?1
+  )
+  AND (
+    ?2 IS NULL
+    OR (
+      repos.full_name LIKE '%' || ?2 || '%'
+      OR repos.description LIKE '%' || ?2 || '%'
+    )
+  )
+ORDER BY repos.created_at DESC
+LIMIT ?4 OFFSET ?3
+`
+
+type ListReposFilteredCreatedAtDescParams struct {
+	SourceID interface{}
+	Search   interface{}
+	Offset   int64
+	Limit    int64
+}
+
+func (q *Queries) ListReposFilteredCreatedAtDesc(ctx context.Context, arg ListReposFilteredCreatedAtDescParams) ([]Repo, error) {
+	rows, err := q.db.QueryContext(ctx, listReposFilteredCreatedAtDesc,
+		arg.SourceID,
+		arg.Search,
+		arg.Offset,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Repo
+	for rows.Next() {
+		var i Repo
+		if err := rows.Scan(
+			&i.ID,
+			&i.SourceID,
+			&i.Platform,
+			&i.RefID,
+			&i.Status,
+			&i.Name,
+			&i.FullName,
+			&i.Owner,
+			&i.Description,
+			&i.HtmlUrl,
+			&i.CloneUrl,
+			&i.SshUrl,
+			&i.DefaultBranch,
+			&i.Visibility,
+			&i.IsPrivate,
+			&i.IsFork,
+			&i.IsArchived,
+			&i.Origin,
+			&i.Meta,
+			&i.LastSeenAt,
+			&i.DisabledAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listReposFilteredNameAsc = `-- name: ListReposFilteredNameAsc :many
+SELECT
+  id,
+  source_id,
+  platform,
+  ref_id,
+  status,
+  name,
+  full_name,
+  owner,
+  description,
+  html_url,
+  clone_url,
+  ssh_url,
+  default_branch,
+  visibility,
+  is_private,
+  is_fork,
+  is_archived,
+  origin,
+  meta,
+  last_seen_at,
+  disabled_at,
+  created_at,
+  updated_at
+FROM repos
+WHERE (
+    ?1 IS NULL
+    OR repos.source_id = ?1
+  )
+  AND (
+    ?2 IS NULL
+    OR (
+      repos.full_name LIKE '%' || ?2 || '%'
+      OR repos.description LIKE '%' || ?2 || '%'
+    )
+  )
+ORDER BY repos.name ASC
+LIMIT ?4 OFFSET ?3
+`
+
+type ListReposFilteredNameAscParams struct {
+	SourceID interface{}
+	Search   interface{}
+	Offset   int64
+	Limit    int64
+}
+
+func (q *Queries) ListReposFilteredNameAsc(ctx context.Context, arg ListReposFilteredNameAscParams) ([]Repo, error) {
+	rows, err := q.db.QueryContext(ctx, listReposFilteredNameAsc,
+		arg.SourceID,
+		arg.Search,
+		arg.Offset,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Repo
+	for rows.Next() {
+		var i Repo
+		if err := rows.Scan(
+			&i.ID,
+			&i.SourceID,
+			&i.Platform,
+			&i.RefID,
+			&i.Status,
+			&i.Name,
+			&i.FullName,
+			&i.Owner,
+			&i.Description,
+			&i.HtmlUrl,
+			&i.CloneUrl,
+			&i.SshUrl,
+			&i.DefaultBranch,
+			&i.Visibility,
+			&i.IsPrivate,
+			&i.IsFork,
+			&i.IsArchived,
+			&i.Origin,
+			&i.Meta,
+			&i.LastSeenAt,
+			&i.DisabledAt,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listReposFilteredNameDesc = `-- name: ListReposFilteredNameDesc :many
+SELECT
+  id,
+  source_id,
+  platform,
+  ref_id,
+  status,
+  name,
+  full_name,
+  owner,
+  description,
+  html_url,
+  clone_url,
+  ssh_url,
+  default_branch,
+  visibility,
+  is_private,
+  is_fork,
+  is_archived,
+  origin,
+  meta,
+  last_seen_at,
+  disabled_at,
+  created_at,
+  updated_at
+FROM repos
+WHERE (
+    ?1 IS NULL
+    OR repos.source_id = ?1
+  )
+  AND (
+    ?2 IS NULL
+    OR (
+      repos.full_name LIKE '%' || ?2 || '%'
+      OR repos.description LIKE '%' || ?2 || '%'
+    )
+  )
+ORDER BY repos.name DESC
+LIMIT ?4 OFFSET ?3
+`
+
+type ListReposFilteredNameDescParams struct {
+	SourceID interface{}
+	Search   interface{}
+	Offset   int64
+	Limit    int64
+}
+
+func (q *Queries) ListReposFilteredNameDesc(ctx context.Context, arg ListReposFilteredNameDescParams) ([]Repo, error) {
+	rows, err := q.db.QueryContext(ctx, listReposFilteredNameDesc,
+		arg.SourceID,
+		arg.Search,
 		arg.Offset,
 		arg.Limit,
 	)

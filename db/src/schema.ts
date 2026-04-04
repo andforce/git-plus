@@ -71,6 +71,7 @@ export const repoRefsCurrent = sqliteTable(
     archiveRefName: text('archive_ref_name'),
     firstSeenAt: text('first_seen_at').notNull(),
     lastSeenAt: text('last_seen_at').notNull(),
+    lastHashUpdatedAt: text('last_hash_updated_at').notNull(),
     deletedAt: text('deleted_at'),
     createdAt: text('created_at')
       .notNull()

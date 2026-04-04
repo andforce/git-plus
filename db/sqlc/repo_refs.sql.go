@@ -64,6 +64,7 @@ SELECT
   archive_ref_name,
   first_seen_at,
   last_seen_at,
+  last_hash_updated_at,
   deleted_at,
   created_at,
   updated_at
@@ -91,6 +92,7 @@ func (q *Queries) ListRepoRefsCurrentByRepoID(ctx context.Context, repoID int64)
 			&i.ArchiveRefName,
 			&i.FirstSeenAt,
 			&i.LastSeenAt,
+			&i.LastHashUpdatedAt,
 			&i.DeletedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -147,11 +149,12 @@ INSERT INTO repo_refs_current (
   archive_ref_name,
   first_seen_at,
   last_seen_at,
+  last_hash_updated_at,
   deleted_at,
   created_at,
   updated_at
 ) VALUES (
-  ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11
+  ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12
 )
 ON CONFLICT(repo_id, ref_name) DO UPDATE SET
   ref_kind = excluded.ref_kind,
@@ -159,22 +162,27 @@ ON CONFLICT(repo_id, ref_name) DO UPDATE SET
   status = excluded.status,
   archive_ref_name = excluded.archive_ref_name,
   last_seen_at = excluded.last_seen_at,
+  last_hash_updated_at = CASE
+    WHEN repo_refs_current.current_hash <> excluded.current_hash THEN excluded.last_hash_updated_at
+    ELSE repo_refs_current.last_hash_updated_at
+  END,
   deleted_at = excluded.deleted_at,
   updated_at = excluded.updated_at
 `
 
 type UpsertRepoRefCurrentParams struct {
-	RepoID         int64
-	RefName        string
-	RefKind        string
-	CurrentHash    string
-	Status         string
-	ArchiveRefName sql.NullString
-	FirstSeenAt    string
-	LastSeenAt     string
-	DeletedAt      sql.NullString
-	CreatedAt      string
-	UpdatedAt      string
+	RepoID            int64
+	RefName           string
+	RefKind           string
+	CurrentHash       string
+	Status            string
+	ArchiveRefName    sql.NullString
+	FirstSeenAt       string
+	LastSeenAt        string
+	LastHashUpdatedAt string
+	DeletedAt         sql.NullString
+	CreatedAt         string
+	UpdatedAt         string
 }
 
 func (q *Queries) UpsertRepoRefCurrent(ctx context.Context, arg UpsertRepoRefCurrentParams) error {
@@ -187,6 +195,7 @@ func (q *Queries) UpsertRepoRefCurrent(ctx context.Context, arg UpsertRepoRefCur
 		arg.ArchiveRefName,
 		arg.FirstSeenAt,
 		arg.LastSeenAt,
+		arg.LastHashUpdatedAt,
 		arg.DeletedAt,
 		arg.CreatedAt,
 		arg.UpdatedAt,

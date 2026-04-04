@@ -95,13 +95,7 @@ func (s *serviceServer) ListRepositories(
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("count repos: %w", err))
 	}
 
-	repos, err := queries.ListReposFiltered(ctx, dbsqlc.ListReposFilteredParams{
-		SourceID: sourceID,
-		Search:   search,
-		Sort:     sort,
-		Limit:    int64(pageSize),
-		Offset:   int64(offset),
-	})
+	repos, err := listReposBySort(ctx, queries, sort, sourceID, search, pageSize, offset)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("list repos: %w", err))
 	}
@@ -257,6 +251,34 @@ func toProtoRepoRef(r dbsqlc.RepoRefsCurrent) *repov1.RepoRef {
 		ref.DeletedAt = toProtoTimestamp(r.DeletedAt.String)
 	}
 	return ref
+}
+
+func listReposBySort(
+	ctx context.Context,
+	queries *dbsqlc.Queries,
+	sort string,
+	sourceID interface{},
+	search interface{},
+	pageSize int,
+	offset int,
+) ([]dbsqlc.Repo, error) {
+	params := dbsqlc.ListReposFilteredCreatedAtDescParams{
+		SourceID: sourceID,
+		Search:   search,
+		Limit:    int64(pageSize),
+		Offset:   int64(offset),
+	}
+
+	switch sort {
+	case "created_at_asc":
+		return queries.ListReposFilteredCreatedAtAsc(ctx, dbsqlc.ListReposFilteredCreatedAtAscParams(params))
+	case "name_asc":
+		return queries.ListReposFilteredNameAsc(ctx, dbsqlc.ListReposFilteredNameAscParams(params))
+	case "name_desc":
+		return queries.ListReposFilteredNameDesc(ctx, dbsqlc.ListReposFilteredNameDescParams(params))
+	default:
+		return queries.ListReposFilteredCreatedAtDesc(ctx, params)
+	}
 }
 
 func toProtoRepoRefChange(c dbsqlc.RepoRefChange) *repov1.RepoRefChange {

@@ -30,6 +30,7 @@ CREATE TABLE repo_refs_current (
 	archive_ref_name text,
 	first_seen_at text NOT NULL,
 	last_seen_at text NOT NULL,
+	last_hash_updated_at text NOT NULL,
 	deleted_at text,
 	created_at text DEFAULT CURRENT_TIMESTAMP NOT NULL,
 	updated_at text DEFAULT CURRENT_TIMESTAMP NOT NULL,
