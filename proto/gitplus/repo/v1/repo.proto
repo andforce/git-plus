@@ -63,6 +63,40 @@ message GetRepositoryResponse {
   Repository repository = 1;
 }
 
+enum DownloadState {
+  DOWNLOAD_STATE_UNSPECIFIED = 0;
+  DOWNLOAD_STATE_RUNNING = 1;
+  DOWNLOAD_STATE_READY = 2;
+  DOWNLOAD_STATE_FAILED = 3;
+}
+
+enum DownloadStage {
+  DOWNLOAD_STAGE_UNSPECIFIED = 0;
+  DOWNLOAD_STAGE_COPY_BARE = 1;
+  DOWNLOAD_STAGE_MATERIALIZE_REFS = 2;
+  DOWNLOAD_STAGE_PACKAGE_ZIP = 3;
+  DOWNLOAD_STAGE_READY = 4;
+}
+
+message StreamRepositoryDownloadRequest {
+  int64 repo_id = 1;
+}
+
+message StreamRepositoryDownloadResponse {
+  int64 repo_id = 1;
+  DownloadState state = 2;
+  DownloadStage stage = 3;
+  string summary = 4;
+  int32 progress_percent = 5;
+  string estimated_processing_label = 6;
+  int64 estimated_processing_bytes = 7;
+  int64 estimated_download_bytes = 8;
+  int64 archive_size_bytes = 9;
+  string download_id = 10;
+  string download_filename = 11;
+  string error_message = 12;
+}
+
 message ListRefsRequest {
   int64 repo_id = 1;
   // Filter by ref kind: "head" for branches, "tag" for tags.
@@ -134,6 +168,7 @@ message RepoRefChange {
 service RepoService {
   rpc ListRepositories(ListRepositoriesRequest) returns (ListRepositoriesResponse);
   rpc GetRepository(GetRepositoryRequest) returns (GetRepositoryResponse);
+  rpc StreamRepositoryDownload(StreamRepositoryDownloadRequest) returns (stream StreamRepositoryDownloadResponse);
   rpc ListRefs(ListRefsRequest) returns (ListRefsResponse);
   rpc ListRefChanges(ListRefChangesRequest) returns (ListRefChangesResponse);
 }

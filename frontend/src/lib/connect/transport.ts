@@ -32,3 +32,4 @@ export function createApiTransport(
 }
 
 export const apiTransport = createApiTransport();
+export const apiFetch = createAuthFetch();

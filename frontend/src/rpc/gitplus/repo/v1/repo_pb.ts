@@ -3,8 +3,8 @@
 // option features.field_presence = EXPLICIT;
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
+import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
 import { file_buf_validate_validate } from "../../../buf/validate/validate_pb";
 import type { Timestamp } from "@bufbuild/protobuf/wkt";
 import { file_google_protobuf_go_features, file_google_protobuf_struct, file_google_protobuf_timestamp, file_google_protobuf_wrappers } from "@bufbuild/protobuf/wkt";
@@ -14,7 +14,7 @@ import type { JsonObject, Message } from "@bufbuild/protobuf";
  * Describes the file gitplus/repo/v1/repo.proto.
  */
 export const file_gitplus_repo_v1_repo: GenFile = /*@__PURE__*/
-  fileDesc("ChpnaXRwbHVzL3JlcG8vdjEvcmVwby5wcm90bxIPZ2l0cGx1cy5yZXBvLnYxIqUECgpSZXBvc2l0b3J5EgoKAmlkGAEgASgDEhEKCXNvdXJjZV9pZBgCIAEoCRIQCghwbGF0Zm9ybRgDIAEoCRIMCgRuYW1lGAQgASgJEhEKCWZ1bGxfbmFtZRgFIAEoCRINCgVvd25lchgGIAEoCRITCgtkZXNjcmlwdGlvbhgHIAEoCRIQCghodG1sX3VybBgIIAEoCRIRCgljbG9uZV91cmwYCSABKAkSDwoHc3NoX3VybBgKIAEoCRIWCg5kZWZhdWx0X2JyYW5jaBgLIAEoCRISCgp2aXNpYmlsaXR5GAwgASgJEhIKCmlzX3ByaXZhdGUYDSABKAgSDwoHaXNfZm9yaxgOIAEoCBITCgtpc19hcmNoaXZlZBgPIAEoCBIOCgZzdGF0dXMYECABKAkSMAoMbGFzdF9zZWVuX2F0GBEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgpjcmVhdGVkX2F0GBIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GBMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIlCgRtZXRhGBQgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBI8ChdhcmNoaXZlX3JlcG9fc2l6ZV9ieXRlcxgVIAEoCzIbLmdvb2dsZS5wcm90b2J1Zi5JbnQ2NFZhbHVlInwKF0xpc3RSZXBvc2l0b3JpZXNSZXF1ZXN0EhwKCXBhZ2Vfc2l6ZRgBIAEoBUIJukgGGgQYZCgBEhIKCnBhZ2VfdG9rZW4YAiABKAkSDgoGc2VhcmNoGAMgASgJEhEKCXNvdXJjZV9pZBgEIAEoCRIMCgRzb3J0GAUgASgJInsKGExpc3RSZXBvc2l0b3JpZXNSZXNwb25zZRIxCgxyZXBvc2l0b3JpZXMYASADKAsyGy5naXRwbHVzLnJlcG8udjEuUmVwb3NpdG9yeRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkSEwoLdG90YWxfY291bnQYAyABKAUiIgoUR2V0UmVwb3NpdG9yeVJlcXVlc3QSCgoCaWQYASABKAMiSAoVR2V0UmVwb3NpdG9yeVJlc3BvbnNlEi8KCnJlcG9zaXRvcnkYASABKAsyGy5naXRwbHVzLnJlcG8udjEuUmVwb3NpdG9yeSJfCg9MaXN0UmVmc1JlcXVlc3QSDwoHcmVwb19pZBgBIAEoAxIiCghyZWZfa2luZBgCIAEoCUIQukgNcgtSBGhlYWRSA3RhZxIXCg9pbmNsdWRlX2RlbGV0ZWQYAyABKAgiOgoQTGlzdFJlZnNSZXNwb25zZRImCgRyZWZzGAEgAygLMhguZ2l0cGx1cy5yZXBvLnYxLlJlcG9SZWYibAoVTGlzdFJlZkNoYW5nZXNSZXF1ZXN0Eg8KB3JlcG9faWQYASABKAMSEAoIcmVmX25hbWUYAiABKAkSHAoJcGFnZV9zaXplGAMgASgFQgm6SAYaBBhkKAESEgoKcGFnZV90b2tlbhgEIAEoCSJ3ChZMaXN0UmVmQ2hhbmdlc1Jlc3BvbnNlEi8KB2NoYW5nZXMYASADKAsyHi5naXRwbHVzLnJlcG8udjEuUmVwb1JlZkNoYW5nZRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkSEwoLdG90YWxfY291bnQYAyABKAUiqwEKCkNvbW1pdEluZm8SLwoLYXV0aG9yZWRfYXQYASABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKDGNvbW1pdHRlZF9hdBgCIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASEwoLYXV0aG9yX25hbWUYAyABKAkSFAoMYXV0aG9yX2VtYWlsGAQgASgJEg8KB21lc3NhZ2UYBSABKAki/QIKB1JlcG9SZWYSCgoCaWQYASABKAMSEAoIcmVmX25hbWUYAiABKAkSEAoIcmVmX2tpbmQYAyABKAkSFAoMY3VycmVudF9oYXNoGAQgASgJEg4KBnN0YXR1cxgFIAEoCRIYChBhcmNoaXZlX3JlZl9uYW1lGAYgASgJEjEKDWZpcnN0X3NlZW5fYXQYByABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjAKDGxhc3Rfc2Vlbl9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLgoKZGVsZXRlZF9hdBgJIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASOAoUbGFzdF9oYXNoX3VwZGF0ZWRfYXQYCiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjMKDmN1cnJlbnRfY29tbWl0GAsgASgLMhsuZ2l0cGx1cy5yZXBvLnYxLkNvbW1pdEluZm8i7gEKDVJlcG9SZWZDaGFuZ2USCgoCaWQYASABKAMSEAoIcmVmX25hbWUYAiABKAkSEAoIcmVmX2tpbmQYAyABKAkSDgoGYWN0aW9uGAQgASgJEhAKCG9sZF9oYXNoGAUgASgJEhAKCG5ld19oYXNoGAYgASgJEhgKEGFyY2hpdmVfcmVmX25hbWUYByABKAkSLgoKY3JlYXRlZF9hdBgIIAEoCzIaLmdvb2dsZS5wcm90b2J1Zi5UaW1lc3RhbXASLwoKbmV3X2NvbW1pdBgJIAEoCzIbLmdpdHBsdXMucmVwby52MS5Db21taXRJbmZvMooDCgtSZXBvU2VydmljZRJnChBMaXN0UmVwb3NpdG9yaWVzEiguZ2l0cGx1cy5yZXBvLnYxLkxpc3RSZXBvc2l0b3JpZXNSZXF1ZXN0GikuZ2l0cGx1cy5yZXBvLnYxLkxpc3RSZXBvc2l0b3JpZXNSZXNwb25zZRJeCg1HZXRSZXBvc2l0b3J5EiUuZ2l0cGx1cy5yZXBvLnYxLkdldFJlcG9zaXRvcnlSZXF1ZXN0GiYuZ2l0cGx1cy5yZXBvLnYxLkdldFJlcG9zaXRvcnlSZXNwb25zZRJPCghMaXN0UmVmcxIgLmdpdHBsdXMucmVwby52MS5MaXN0UmVmc1JlcXVlc3QaIS5naXRwbHVzLnJlcG8udjEuTGlzdFJlZnNSZXNwb25zZRJhCg5MaXN0UmVmQ2hhbmdlcxImLmdpdHBsdXMucmVwby52MS5MaXN0UmVmQ2hhbmdlc1JlcXVlc3QaJy5naXRwbHVzLnJlcG8udjEuTGlzdFJlZkNoYW5nZXNSZXNwb25zZULFAQoTY29tLmdpdHBsdXMucmVwby52MUIJUmVwb1Byb3RvUAFaO2dpdGh1Yi5jb20vSW1TaW5nZWUvZ2l0LXBsdXMvcGtnL3JwYy9naXRwbHVzL3JlcG8vdjE7cmVwb3YxogIDR1JYqgIPR2l0cGx1cy5SZXBvLlYxygIPR2l0cGx1c1xSZXBvXFYx4gIbR2l0cGx1c1xSZXBvXFYxXEdQQk1ldGFkYXRh6gIRR2l0cGx1czo6UmVwbzo6VjGSAwcIAdI+AhABYghlZGl0aW9uc3DoBw", [file_buf_validate_validate, file_google_protobuf_go_features, file_google_protobuf_struct, file_google_protobuf_timestamp, file_google_protobuf_wrappers]);
+  fileDesc("ChpnaXRwbHVzL3JlcG8vdjEvcmVwby5wcm90bxIPZ2l0cGx1cy5yZXBvLnYxIqUECgpSZXBvc2l0b3J5EgoKAmlkGAEgASgDEhEKCXNvdXJjZV9pZBgCIAEoCRIQCghwbGF0Zm9ybRgDIAEoCRIMCgRuYW1lGAQgASgJEhEKCWZ1bGxfbmFtZRgFIAEoCRINCgVvd25lchgGIAEoCRITCgtkZXNjcmlwdGlvbhgHIAEoCRIQCghodG1sX3VybBgIIAEoCRIRCgljbG9uZV91cmwYCSABKAkSDwoHc3NoX3VybBgKIAEoCRIWCg5kZWZhdWx0X2JyYW5jaBgLIAEoCRISCgp2aXNpYmlsaXR5GAwgASgJEhIKCmlzX3ByaXZhdGUYDSABKAgSDwoHaXNfZm9yaxgOIAEoCBITCgtpc19hcmNoaXZlZBgPIAEoCBIOCgZzdGF0dXMYECABKAkSMAoMbGFzdF9zZWVuX2F0GBEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgpjcmVhdGVkX2F0GBIgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIuCgp1cGRhdGVkX2F0GBMgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIlCgRtZXRhGBQgASgLMhcuZ29vZ2xlLnByb3RvYnVmLlN0cnVjdBI8ChdhcmNoaXZlX3JlcG9fc2l6ZV9ieXRlcxgVIAEoCzIbLmdvb2dsZS5wcm90b2J1Zi5JbnQ2NFZhbHVlInwKF0xpc3RSZXBvc2l0b3JpZXNSZXF1ZXN0EhwKCXBhZ2Vfc2l6ZRgBIAEoBUIJukgGGgQYZCgBEhIKCnBhZ2VfdG9rZW4YAiABKAkSDgoGc2VhcmNoGAMgASgJEhEKCXNvdXJjZV9pZBgEIAEoCRIMCgRzb3J0GAUgASgJInsKGExpc3RSZXBvc2l0b3JpZXNSZXNwb25zZRIxCgxyZXBvc2l0b3JpZXMYASADKAsyGy5naXRwbHVzLnJlcG8udjEuUmVwb3NpdG9yeRIXCg9uZXh0X3BhZ2VfdG9rZW4YAiABKAkSEwoLdG90YWxfY291bnQYAyABKAUiIgoUR2V0UmVwb3NpdG9yeVJlcXVlc3QSCgoCaWQYASABKAMiSAoVR2V0UmVwb3NpdG9yeVJlc3BvbnNlEi8KCnJlcG9zaXRvcnkYASABKAsyGy5naXRwbHVzLnJlcG8udjEuUmVwb3NpdG9yeSIyCh9TdHJlYW1SZXBvc2l0b3J5RG93bmxvYWRSZXF1ZXN0Eg8KB3JlcG9faWQYASABKAMiiQMKIFN0cmVhbVJlcG9zaXRvcnlEb3dubG9hZFJlc3BvbnNlEg8KB3JlcG9faWQYASABKAMSLQoFc3RhdGUYAiABKA4yHi5naXRwbHVzLnJlcG8udjEuRG93bmxvYWRTdGF0ZRItCgVzdGFnZRgDIAEoDjIeLmdpdHBsdXMucmVwby52MS5Eb3dubG9hZFN0YWdlEg8KB3N1bW1hcnkYBCABKAkSGAoQcHJvZ3Jlc3NfcGVyY2VudBgFIAEoBRIiChplc3RpbWF0ZWRfcHJvY2Vzc2luZ19sYWJlbBgGIAEoCRIiChplc3RpbWF0ZWRfcHJvY2Vzc2luZ19ieXRlcxgHIAEoAxIgChhlc3RpbWF0ZWRfZG93bmxvYWRfYnl0ZXMYCCABKAMSGgoSYXJjaGl2ZV9zaXplX2J5dGVzGAkgASgDEhMKC2Rvd25sb2FkX2lkGAogASgJEhkKEWRvd25sb2FkX2ZpbGVuYW1lGAsgASgJEhUKDWVycm9yX21lc3NhZ2UYDCABKAkiXwoPTGlzdFJlZnNSZXF1ZXN0Eg8KB3JlcG9faWQYASABKAMSIgoIcmVmX2tpbmQYAiABKAlCELpIDXILUgRoZWFkUgN0YWcSFwoPaW5jbHVkZV9kZWxldGVkGAMgASgIIjoKEExpc3RSZWZzUmVzcG9uc2USJgoEcmVmcxgBIAMoCzIYLmdpdHBsdXMucmVwby52MS5SZXBvUmVmImwKFUxpc3RSZWZDaGFuZ2VzUmVxdWVzdBIPCgdyZXBvX2lkGAEgASgDEhAKCHJlZl9uYW1lGAIgASgJEhwKCXBhZ2Vfc2l6ZRgDIAEoBUIJukgGGgQYZCgBEhIKCnBhZ2VfdG9rZW4YBCABKAkidwoWTGlzdFJlZkNoYW5nZXNSZXNwb25zZRIvCgdjaGFuZ2VzGAEgAygLMh4uZ2l0cGx1cy5yZXBvLnYxLlJlcG9SZWZDaGFuZ2USFwoPbmV4dF9wYWdlX3Rva2VuGAIgASgJEhMKC3RvdGFsX2NvdW50GAMgASgFIqsBCgpDb21taXRJbmZvEi8KC2F1dGhvcmVkX2F0GAEgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIwCgxjb21taXR0ZWRfYXQYAiABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEhMKC2F1dGhvcl9uYW1lGAMgASgJEhQKDGF1dGhvcl9lbWFpbBgEIAEoCRIPCgdtZXNzYWdlGAUgASgJIv0CCgdSZXBvUmVmEgoKAmlkGAEgASgDEhAKCHJlZl9uYW1lGAIgASgJEhAKCHJlZl9raW5kGAMgASgJEhQKDGN1cnJlbnRfaGFzaBgEIAEoCRIOCgZzdGF0dXMYBSABKAkSGAoQYXJjaGl2ZV9yZWZfbmFtZRgGIAEoCRIxCg1maXJzdF9zZWVuX2F0GAcgASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIwCgxsYXN0X3NlZW5fYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi4KCmRlbGV0ZWRfYXQYCSABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEjgKFGxhc3RfaGFzaF91cGRhdGVkX2F0GAogASgLMhouZ29vZ2xlLnByb3RvYnVmLlRpbWVzdGFtcBIzCg5jdXJyZW50X2NvbW1pdBgLIAEoCzIbLmdpdHBsdXMucmVwby52MS5Db21taXRJbmZvIu4BCg1SZXBvUmVmQ2hhbmdlEgoKAmlkGAEgASgDEhAKCHJlZl9uYW1lGAIgASgJEhAKCHJlZl9raW5kGAMgASgJEg4KBmFjdGlvbhgEIAEoCRIQCghvbGRfaGFzaBgFIAEoCRIQCghuZXdfaGFzaBgGIAEoCRIYChBhcmNoaXZlX3JlZl9uYW1lGAcgASgJEi4KCmNyZWF0ZWRfYXQYCCABKAsyGi5nb29nbGUucHJvdG9idWYuVGltZXN0YW1wEi8KCm5ld19jb21taXQYCSABKAsyGy5naXRwbHVzLnJlcG8udjEuQ29tbWl0SW5mbyqAAQoNRG93bmxvYWRTdGF0ZRIeChpET1dOTE9BRF9TVEFURV9VTlNQRUNJRklFRBAAEhoKFkRPV05MT0FEX1NUQVRFX1JVTk5JTkcQARIYChRET1dOTE9BRF9TVEFURV9SRUFEWRACEhkKFURPV05MT0FEX1NUQVRFX0ZBSUxFRBADKqwBCg1Eb3dubG9hZFN0YWdlEh4KGkRPV05MT0FEX1NUQUdFX1VOU1BFQ0lGSUVEEAASHAoYRE9XTkxPQURfU1RBR0VfQ09QWV9CQVJFEAESIwofRE9XTkxPQURfU1RBR0VfTUFURVJJQUxJWkVfUkVGUxACEh4KGkRPV05MT0FEX1NUQUdFX1BBQ0tBR0VfWklQEAMSGAoURE9XTkxPQURfU1RBR0VfUkVBRFkQBDKOBAoLUmVwb1NlcnZpY2USZwoQTGlzdFJlcG9zaXRvcmllcxIoLmdpdHBsdXMucmVwby52MS5MaXN0UmVwb3NpdG9yaWVzUmVxdWVzdBopLmdpdHBsdXMucmVwby52MS5MaXN0UmVwb3NpdG9yaWVzUmVzcG9uc2USXgoNR2V0UmVwb3NpdG9yeRIlLmdpdHBsdXMucmVwby52MS5HZXRSZXBvc2l0b3J5UmVxdWVzdBomLmdpdHBsdXMucmVwby52MS5HZXRSZXBvc2l0b3J5UmVzcG9uc2USgQEKGFN0cmVhbVJlcG9zaXRvcnlEb3dubG9hZBIwLmdpdHBsdXMucmVwby52MS5TdHJlYW1SZXBvc2l0b3J5RG93bmxvYWRSZXF1ZXN0GjEuZ2l0cGx1cy5yZXBvLnYxLlN0cmVhbVJlcG9zaXRvcnlEb3dubG9hZFJlc3BvbnNlMAESTwoITGlzdFJlZnMSIC5naXRwbHVzLnJlcG8udjEuTGlzdFJlZnNSZXF1ZXN0GiEuZ2l0cGx1cy5yZXBvLnYxLkxpc3RSZWZzUmVzcG9uc2USYQoOTGlzdFJlZkNoYW5nZXMSJi5naXRwbHVzLnJlcG8udjEuTGlzdFJlZkNoYW5nZXNSZXF1ZXN0GicuZ2l0cGx1cy5yZXBvLnYxLkxpc3RSZWZDaGFuZ2VzUmVzcG9uc2VCxQEKE2NvbS5naXRwbHVzLnJlcG8udjFCCVJlcG9Qcm90b1ABWjtnaXRodWIuY29tL0ltU2luZ2VlL2dpdC1wbHVzL3BrZy9ycGMvZ2l0cGx1cy9yZXBvL3YxO3JlcG92MaICA0dSWKoCD0dpdHBsdXMuUmVwby5WMcoCD0dpdHBsdXNcUmVwb1xWMeICG0dpdHBsdXNcUmVwb1xWMVxHUEJNZXRhZGF0YeoCEUdpdHBsdXM6OlJlcG86OlYxkgMHCAHSPgIQAWIIZWRpdGlvbnNw6Ac", [file_buf_validate_validate, file_google_protobuf_go_features, file_google_protobuf_struct, file_google_protobuf_timestamp, file_google_protobuf_wrappers]);
 
 /**
  * @generated from message gitplus.repo.v1.Repository
@@ -236,6 +236,95 @@ export const GetRepositoryResponseSchema: GenMessage<GetRepositoryResponse> = /*
   messageDesc(file_gitplus_repo_v1_repo, 4);
 
 /**
+ * @generated from message gitplus.repo.v1.StreamRepositoryDownloadRequest
+ */
+export type StreamRepositoryDownloadRequest = Message<"gitplus.repo.v1.StreamRepositoryDownloadRequest"> & {
+  /**
+   * @generated from field: int64 repo_id = 1;
+   */
+  repoId: bigint;
+};
+
+/**
+ * Describes the message gitplus.repo.v1.StreamRepositoryDownloadRequest.
+ * Use `create(StreamRepositoryDownloadRequestSchema)` to create a new message.
+ */
+export const StreamRepositoryDownloadRequestSchema: GenMessage<StreamRepositoryDownloadRequest> = /*@__PURE__*/
+  messageDesc(file_gitplus_repo_v1_repo, 5);
+
+/**
+ * @generated from message gitplus.repo.v1.StreamRepositoryDownloadResponse
+ */
+export type StreamRepositoryDownloadResponse = Message<"gitplus.repo.v1.StreamRepositoryDownloadResponse"> & {
+  /**
+   * @generated from field: int64 repo_id = 1;
+   */
+  repoId: bigint;
+
+  /**
+   * @generated from field: gitplus.repo.v1.DownloadState state = 2;
+   */
+  state: DownloadState;
+
+  /**
+   * @generated from field: gitplus.repo.v1.DownloadStage stage = 3;
+   */
+  stage: DownloadStage;
+
+  /**
+   * @generated from field: string summary = 4;
+   */
+  summary: string;
+
+  /**
+   * @generated from field: int32 progress_percent = 5;
+   */
+  progressPercent: number;
+
+  /**
+   * @generated from field: string estimated_processing_label = 6;
+   */
+  estimatedProcessingLabel: string;
+
+  /**
+   * @generated from field: int64 estimated_processing_bytes = 7;
+   */
+  estimatedProcessingBytes: bigint;
+
+  /**
+   * @generated from field: int64 estimated_download_bytes = 8;
+   */
+  estimatedDownloadBytes: bigint;
+
+  /**
+   * @generated from field: int64 archive_size_bytes = 9;
+   */
+  archiveSizeBytes: bigint;
+
+  /**
+   * @generated from field: string download_id = 10;
+   */
+  downloadId: string;
+
+  /**
+   * @generated from field: string download_filename = 11;
+   */
+  downloadFilename: string;
+
+  /**
+   * @generated from field: string error_message = 12;
+   */
+  errorMessage: string;
+};
+
+/**
+ * Describes the message gitplus.repo.v1.StreamRepositoryDownloadResponse.
+ * Use `create(StreamRepositoryDownloadResponseSchema)` to create a new message.
+ */
+export const StreamRepositoryDownloadResponseSchema: GenMessage<StreamRepositoryDownloadResponse> = /*@__PURE__*/
+  messageDesc(file_gitplus_repo_v1_repo, 6);
+
+/**
  * @generated from message gitplus.repo.v1.ListRefsRequest
  */
 export type ListRefsRequest = Message<"gitplus.repo.v1.ListRefsRequest"> & {
@@ -264,7 +353,7 @@ export type ListRefsRequest = Message<"gitplus.repo.v1.ListRefsRequest"> & {
  * Use `create(ListRefsRequestSchema)` to create a new message.
  */
 export const ListRefsRequestSchema: GenMessage<ListRefsRequest> = /*@__PURE__*/
-  messageDesc(file_gitplus_repo_v1_repo, 5);
+  messageDesc(file_gitplus_repo_v1_repo, 7);
 
 /**
  * @generated from message gitplus.repo.v1.ListRefsResponse
@@ -281,7 +370,7 @@ export type ListRefsResponse = Message<"gitplus.repo.v1.ListRefsResponse"> & {
  * Use `create(ListRefsResponseSchema)` to create a new message.
  */
 export const ListRefsResponseSchema: GenMessage<ListRefsResponse> = /*@__PURE__*/
-  messageDesc(file_gitplus_repo_v1_repo, 6);
+  messageDesc(file_gitplus_repo_v1_repo, 8);
 
 /**
  * @generated from message gitplus.repo.v1.ListRefChangesRequest
@@ -315,7 +404,7 @@ export type ListRefChangesRequest = Message<"gitplus.repo.v1.ListRefChangesReque
  * Use `create(ListRefChangesRequestSchema)` to create a new message.
  */
 export const ListRefChangesRequestSchema: GenMessage<ListRefChangesRequest> = /*@__PURE__*/
-  messageDesc(file_gitplus_repo_v1_repo, 7);
+  messageDesc(file_gitplus_repo_v1_repo, 9);
 
 /**
  * @generated from message gitplus.repo.v1.ListRefChangesResponse
@@ -342,7 +431,7 @@ export type ListRefChangesResponse = Message<"gitplus.repo.v1.ListRefChangesResp
  * Use `create(ListRefChangesResponseSchema)` to create a new message.
  */
 export const ListRefChangesResponseSchema: GenMessage<ListRefChangesResponse> = /*@__PURE__*/
-  messageDesc(file_gitplus_repo_v1_repo, 8);
+  messageDesc(file_gitplus_repo_v1_repo, 10);
 
 /**
  * @generated from message gitplus.repo.v1.CommitInfo
@@ -379,7 +468,7 @@ export type CommitInfo = Message<"gitplus.repo.v1.CommitInfo"> & {
  * Use `create(CommitInfoSchema)` to create a new message.
  */
 export const CommitInfoSchema: GenMessage<CommitInfo> = /*@__PURE__*/
-  messageDesc(file_gitplus_repo_v1_repo, 9);
+  messageDesc(file_gitplus_repo_v1_repo, 11);
 
 /**
  * @generated from message gitplus.repo.v1.RepoRef
@@ -446,7 +535,7 @@ export type RepoRef = Message<"gitplus.repo.v1.RepoRef"> & {
  * Use `create(RepoRefSchema)` to create a new message.
  */
 export const RepoRefSchema: GenMessage<RepoRef> = /*@__PURE__*/
-  messageDesc(file_gitplus_repo_v1_repo, 10);
+  messageDesc(file_gitplus_repo_v1_repo, 12);
 
 /**
  * @generated from message gitplus.repo.v1.RepoRefChange
@@ -503,7 +592,74 @@ export type RepoRefChange = Message<"gitplus.repo.v1.RepoRefChange"> & {
  * Use `create(RepoRefChangeSchema)` to create a new message.
  */
 export const RepoRefChangeSchema: GenMessage<RepoRefChange> = /*@__PURE__*/
-  messageDesc(file_gitplus_repo_v1_repo, 11);
+  messageDesc(file_gitplus_repo_v1_repo, 13);
+
+/**
+ * @generated from enum gitplus.repo.v1.DownloadState
+ */
+export enum DownloadState {
+  /**
+   * @generated from enum value: DOWNLOAD_STATE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: DOWNLOAD_STATE_RUNNING = 1;
+   */
+  RUNNING = 1,
+
+  /**
+   * @generated from enum value: DOWNLOAD_STATE_READY = 2;
+   */
+  READY = 2,
+
+  /**
+   * @generated from enum value: DOWNLOAD_STATE_FAILED = 3;
+   */
+  FAILED = 3,
+}
+
+/**
+ * Describes the enum gitplus.repo.v1.DownloadState.
+ */
+export const DownloadStateSchema: GenEnum<DownloadState> = /*@__PURE__*/
+  enumDesc(file_gitplus_repo_v1_repo, 0);
+
+/**
+ * @generated from enum gitplus.repo.v1.DownloadStage
+ */
+export enum DownloadStage {
+  /**
+   * @generated from enum value: DOWNLOAD_STAGE_UNSPECIFIED = 0;
+   */
+  UNSPECIFIED = 0,
+
+  /**
+   * @generated from enum value: DOWNLOAD_STAGE_COPY_BARE = 1;
+   */
+  COPY_BARE = 1,
+
+  /**
+   * @generated from enum value: DOWNLOAD_STAGE_MATERIALIZE_REFS = 2;
+   */
+  MATERIALIZE_REFS = 2,
+
+  /**
+   * @generated from enum value: DOWNLOAD_STAGE_PACKAGE_ZIP = 3;
+   */
+  PACKAGE_ZIP = 3,
+
+  /**
+   * @generated from enum value: DOWNLOAD_STAGE_READY = 4;
+   */
+  READY = 4,
+}
+
+/**
+ * Describes the enum gitplus.repo.v1.DownloadStage.
+ */
+export const DownloadStageSchema: GenEnum<DownloadStage> = /*@__PURE__*/
+  enumDesc(file_gitplus_repo_v1_repo, 1);
 
 /**
  * @generated from service gitplus.repo.v1.RepoService
@@ -524,6 +680,14 @@ export const RepoService: GenService<{
     methodKind: "unary";
     input: typeof GetRepositoryRequestSchema;
     output: typeof GetRepositoryResponseSchema;
+  },
+  /**
+   * @generated from rpc gitplus.repo.v1.RepoService.StreamRepositoryDownload
+   */
+  streamRepositoryDownload: {
+    methodKind: "server_streaming";
+    input: typeof StreamRepositoryDownloadRequestSchema;
+    output: typeof StreamRepositoryDownloadResponseSchema;
   },
   /**
    * @generated from rpc gitplus.repo.v1.RepoService.ListRefs

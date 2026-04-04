@@ -1,12 +1,14 @@
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import {
   ActionIcon,
+  Alert,
   Anchor,
   Avatar,
   Badge,
   Box,
   Breadcrumbs,
+  Button,
   Center,
   Checkbox,
   Code,
@@ -14,7 +16,11 @@ import {
   Drawer,
   Group,
   Loader,
+  Paper,
+  Progress,
   SimpleGrid,
+  Stack,
+  Stepper,
   Table,
   Tabs,
   Text,
@@ -29,12 +35,33 @@ import { useIntersection } from '@mantine/hooks';
 import { timestampDate } from '@bufbuild/protobuf/wkt';
 import dayjs from 'dayjs';
 import {
+  IconAlertTriangle,
+  IconCheck,
+  IconCircleX,
+  IconDownload,
   IconExternalLink,
+  IconFileZip,
   IconGitBranch,
   IconHistory,
+  IconPackage,
   IconTag,
+  IconX,
 } from '@tabler/icons-react';
-import type { RepoRef, RepoRefChange } from '~rpc/gitplus/repo/v1/repo_pb';
+import { toast } from 'sonner';
+import type {
+  RepoRef,
+  RepoRefChange,
+  StreamRepositoryDownloadResponse,
+} from '~rpc/gitplus/repo/v1/repo_pb';
+import { DownloadStage, DownloadState } from '~rpc/gitplus/repo/v1/repo_pb';
+import { repoClient } from '~lib/connect/client';
+import { apiFetch } from '~lib/connect/transport';
+import {
+  downloadStageLabel,
+  estimateProcessingTime,
+  estimatedDownloadSize,
+  formatEstimatedBytes,
+} from '~lib/repo-download';
 import {
   repoDetailQueryOptions,
   repoRefChangesQueryOptions,
@@ -82,6 +109,31 @@ function truncateMessage(msg: string, max = 72) {
   const firstLine = msg.split('\n')[0];
   if (firstLine.length <= max) return firstLine;
   return firstLine.slice(0, max) + '...';
+}
+
+async function triggerRepositoryDownload(
+  repoId: string,
+  downloadId: string,
+  filename: string,
+) {
+  const response = await apiFetch(
+    `/api/repos/${repoId}/downloads/${downloadId}/archive`,
+  );
+  if (!response.ok) {
+    const message = await response.text();
+    throw new Error(message.trim() || 'Failed to download repository archive');
+  }
+
+  const blob = await response.blob();
+  const objectUrl = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = objectUrl;
+  anchor.download = filename;
+  anchor.style.display = 'none';
+  document.body.append(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(objectUrl);
 }
 
 function renderHashDisplay(change: RepoRefChange) {
@@ -233,6 +285,9 @@ function RepoDetailPage() {
           <Tabs.Tab value="changes" leftSection={<IconHistory size={14} />}>
             Changes
           </Tabs.Tab>
+          <Tabs.Tab value="download" leftSection={<IconDownload size={14} />}>
+            Download
+          </Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel value="branches" pt="md">
@@ -266,8 +321,300 @@ function RepoDetailPage() {
             </Suspense>
           )}
         </Tabs.Panel>
+
+        <Tabs.Panel value="download" pt="md">
+          {activeTab === 'download' && (
+            <DownloadTab
+              repoId={repoId}
+              archiveRepoSizeBytes={repo.archiveRepoSizeBytes}
+            />
+          )}
+        </Tabs.Panel>
       </Tabs>
     </Container>
+  );
+}
+
+function stageToStep(stage: DownloadStage): number {
+  switch (stage) {
+    case DownloadStage.COPY_BARE:
+      return 0;
+    case DownloadStage.MATERIALIZE_REFS:
+      return 1;
+    case DownloadStage.PACKAGE_ZIP:
+      return 2;
+    case DownloadStage.READY:
+      return 3;
+    default:
+      return 0;
+  }
+}
+
+function DownloadTab({
+  repoId,
+  archiveRepoSizeBytes,
+}: {
+  repoId: string;
+  archiveRepoSizeBytes: bigint | undefined;
+}) {
+  const [downloadEvent, setDownloadEvent] =
+    useState<StreamRepositoryDownloadResponse | null>(null);
+  const [isPreparing, setIsPreparing] = useState(false);
+  const [lastCompletedAt, setLastCompletedAt] = useState<Date | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+      abortRef.current = null;
+    };
+  }, []);
+
+  const handleCancel = () => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setIsPreparing(false);
+    setDownloadEvent(null);
+  };
+
+  const handlePrepareDownload = async () => {
+    abortRef.current?.abort();
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setIsPreparing(true);
+    setDownloadEvent(null);
+
+    try {
+      for await (const event of repoClient.streamRepositoryDownload(
+        { repoId: BigInt(repoId) },
+        { signal: controller.signal },
+      )) {
+        setDownloadEvent(event);
+
+        if (event.state === DownloadState.READY) {
+          await triggerRepositoryDownload(
+            repoId,
+            event.downloadId,
+            event.downloadFilename,
+          );
+          setLastCompletedAt(new Date());
+          toast.success('Repository download started');
+          break;
+        }
+
+        if (event.state === DownloadState.FAILED) {
+          toast.error(event.errorMessage || event.summary || 'Download failed');
+          break;
+        }
+      }
+    } catch (error) {
+      if (controller.signal.aborted) {
+        return;
+      }
+
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Failed to prepare repository download';
+      setDownloadEvent((current) => ({
+        $typeName: 'gitplus.repo.v1.StreamRepositoryDownloadResponse',
+        repoId: BigInt(repoId),
+        state: DownloadState.FAILED,
+        stage: current?.stage ?? DownloadStage.UNSPECIFIED,
+        summary: current?.summary || 'Failed to prepare download',
+        progressPercent: current?.progressPercent ?? 0,
+        estimatedProcessingLabel: current?.estimatedProcessingLabel || '',
+        estimatedProcessingBytes:
+          current?.estimatedProcessingBytes ?? archiveRepoSizeBytes ?? 0n,
+        estimatedDownloadBytes:
+          current?.estimatedDownloadBytes ??
+          estimatedDownloadSize(archiveRepoSizeBytes) ??
+          0n,
+        archiveSizeBytes:
+          current?.archiveSizeBytes ?? archiveRepoSizeBytes ?? 0n,
+        downloadId: current?.downloadId || '',
+        downloadFilename: current?.downloadFilename || '',
+        errorMessage: message,
+      }));
+      toast.error(message);
+    } finally {
+      if (abortRef.current === controller) {
+        abortRef.current = null;
+      }
+      setIsPreparing(false);
+    }
+  };
+
+  const currentState = downloadEvent?.state ?? DownloadState.UNSPECIFIED;
+  const currentStage = downloadEvent?.stage ?? DownloadStage.UNSPECIFIED;
+  const progressPercent = downloadEvent?.progressPercent ?? 0;
+  const isRunning = isPreparing || currentState === DownloadState.RUNNING;
+  const isFailed = currentState === DownloadState.FAILED;
+  const isReady = currentState === DownloadState.READY;
+  const processingSize =
+    downloadEvent?.estimatedProcessingBytes || archiveRepoSizeBytes;
+  const downloadSize =
+    downloadEvent?.estimatedDownloadBytes ??
+    estimatedDownloadSize(archiveRepoSizeBytes);
+  const processingTime =
+    downloadEvent?.estimatedProcessingLabel ||
+    estimateProcessingTime(archiveRepoSizeBytes);
+
+  return (
+    <Stack gap="lg">
+      <Text size="sm" c="dimmed">
+        Download a zipped repository snapshot with the current active branches
+        and tags materialized into a normal Git repository.
+      </Text>
+
+      <SimpleGrid cols={{ base: 1, sm: 3 }}>
+        <Paper withBorder p="md" radius="sm">
+          <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
+            Repo Size
+          </Text>
+          <Text size="sm" fw={500} mt={4}>
+            {formatEstimatedBytes(processingSize)}
+          </Text>
+        </Paper>
+        <Paper withBorder p="md" radius="sm">
+          <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
+            Download Size (est.)
+          </Text>
+          <Text size="sm" fw={500} mt={4}>
+            {formatEstimatedBytes(downloadSize)}
+          </Text>
+        </Paper>
+        <Paper withBorder p="md" radius="sm">
+          <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
+            Processing Time (est.)
+          </Text>
+          <Text size="sm" fw={500} mt={4}>
+            {processingTime}
+          </Text>
+        </Paper>
+      </SimpleGrid>
+
+      {isRunning && (
+        <Paper withBorder p="lg" radius="sm">
+          <Stepper active={stageToStep(currentStage)} size="sm" iconSize={28}>
+            <Stepper.Step
+              label="Copy"
+              description="Clone bare repo"
+              icon={<IconPackage size={14} />}
+            />
+            <Stepper.Step
+              label="Restore"
+              description="Refs & branches"
+              icon={<IconGitBranch size={14} />}
+            />
+            <Stepper.Step
+              label="Package"
+              description="Zip archive"
+              icon={<IconFileZip size={14} />}
+            />
+            <Stepper.Step
+              label="Ready"
+              description="Download file"
+              icon={<IconCheck size={14} />}
+            />
+          </Stepper>
+
+          <Progress
+            value={progressPercent}
+            radius="xl"
+            size="sm"
+            mt="lg"
+            animated
+          />
+
+          <Group justify="space-between" mt="xs">
+            <Text size="xs" c="dimmed">
+              {downloadEvent?.summary || downloadStageLabel(currentStage)}
+            </Text>
+            <Text size="xs" c="dimmed">
+              {progressPercent}%
+            </Text>
+          </Group>
+
+          <Group justify="center" mt="md">
+            <Button
+              variant="subtle"
+              color="gray"
+              size="xs"
+              leftSection={<IconX size={14} />}
+              onClick={handleCancel}
+            >
+              Cancel
+            </Button>
+          </Group>
+        </Paper>
+      )}
+
+      {isFailed && (
+        <Alert
+          variant="light"
+          color="red"
+          title="Download failed"
+          icon={<IconAlertTriangle size={18} />}
+        >
+          <Text size="sm">
+            {downloadEvent?.errorMessage || 'An unexpected error occurred.'}
+          </Text>
+          <Button
+            size="xs"
+            variant="light"
+            color="red"
+            mt="sm"
+            leftSection={<IconCircleX size={14} />}
+            onClick={handlePrepareDownload}
+          >
+            Retry
+          </Button>
+        </Alert>
+      )}
+
+      {isReady && lastCompletedAt && (
+        <Alert variant="light" color="teal" icon={<IconCheck size={18} />}>
+          <Group justify="space-between" align="center">
+            <div>
+              <Text size="sm" fw={500}>
+                Download started
+              </Text>
+              <Text size="xs" c="dimmed">
+                {downloadEvent?.downloadFilename} &middot;{' '}
+                {dayjs(lastCompletedAt).fromNow()}
+              </Text>
+            </div>
+            <Button
+              variant="light"
+              color="teal"
+              size="xs"
+              leftSection={<IconDownload size={14} />}
+              onClick={handlePrepareDownload}
+            >
+              Download again
+            </Button>
+          </Group>
+        </Alert>
+      )}
+
+      {!isRunning && (
+        <div>
+          <Button
+            leftSection={<IconDownload size={16} />}
+            onClick={handlePrepareDownload}
+          >
+            {isFailed ? 'Retry download' : 'Prepare & download'}
+          </Button>
+          {lastCompletedAt && !isReady && (
+            <Text size="xs" c="dimmed" mt="xs">
+              Last download {dayjs(lastCompletedAt).fromNow()}
+            </Text>
+          )}
+        </div>
+      )}
+    </Stack>
   );
 }
 

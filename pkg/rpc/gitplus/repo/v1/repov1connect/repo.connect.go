@@ -39,6 +39,9 @@ const (
 	// RepoServiceGetRepositoryProcedure is the fully-qualified name of the RepoService's GetRepository
 	// RPC.
 	RepoServiceGetRepositoryProcedure = "/gitplus.repo.v1.RepoService/GetRepository"
+	// RepoServiceStreamRepositoryDownloadProcedure is the fully-qualified name of the RepoService's
+	// StreamRepositoryDownload RPC.
+	RepoServiceStreamRepositoryDownloadProcedure = "/gitplus.repo.v1.RepoService/StreamRepositoryDownload"
 	// RepoServiceListRefsProcedure is the fully-qualified name of the RepoService's ListRefs RPC.
 	RepoServiceListRefsProcedure = "/gitplus.repo.v1.RepoService/ListRefs"
 	// RepoServiceListRefChangesProcedure is the fully-qualified name of the RepoService's
@@ -50,6 +53,7 @@ const (
 type RepoServiceClient interface {
 	ListRepositories(context.Context, *connect.Request[v1.ListRepositoriesRequest]) (*connect.Response[v1.ListRepositoriesResponse], error)
 	GetRepository(context.Context, *connect.Request[v1.GetRepositoryRequest]) (*connect.Response[v1.GetRepositoryResponse], error)
+	StreamRepositoryDownload(context.Context, *connect.Request[v1.StreamRepositoryDownloadRequest]) (*connect.ServerStreamForClient[v1.StreamRepositoryDownloadResponse], error)
 	ListRefs(context.Context, *connect.Request[v1.ListRefsRequest]) (*connect.Response[v1.ListRefsResponse], error)
 	ListRefChanges(context.Context, *connect.Request[v1.ListRefChangesRequest]) (*connect.Response[v1.ListRefChangesResponse], error)
 }
@@ -77,6 +81,12 @@ func NewRepoServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(repoServiceMethods.ByName("GetRepository")),
 			connect.WithClientOptions(opts...),
 		),
+		streamRepositoryDownload: connect.NewClient[v1.StreamRepositoryDownloadRequest, v1.StreamRepositoryDownloadResponse](
+			httpClient,
+			baseURL+RepoServiceStreamRepositoryDownloadProcedure,
+			connect.WithSchema(repoServiceMethods.ByName("StreamRepositoryDownload")),
+			connect.WithClientOptions(opts...),
+		),
 		listRefs: connect.NewClient[v1.ListRefsRequest, v1.ListRefsResponse](
 			httpClient,
 			baseURL+RepoServiceListRefsProcedure,
@@ -94,10 +104,11 @@ func NewRepoServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 
 // repoServiceClient implements RepoServiceClient.
 type repoServiceClient struct {
-	listRepositories *connect.Client[v1.ListRepositoriesRequest, v1.ListRepositoriesResponse]
-	getRepository    *connect.Client[v1.GetRepositoryRequest, v1.GetRepositoryResponse]
-	listRefs         *connect.Client[v1.ListRefsRequest, v1.ListRefsResponse]
-	listRefChanges   *connect.Client[v1.ListRefChangesRequest, v1.ListRefChangesResponse]
+	listRepositories         *connect.Client[v1.ListRepositoriesRequest, v1.ListRepositoriesResponse]
+	getRepository            *connect.Client[v1.GetRepositoryRequest, v1.GetRepositoryResponse]
+	streamRepositoryDownload *connect.Client[v1.StreamRepositoryDownloadRequest, v1.StreamRepositoryDownloadResponse]
+	listRefs                 *connect.Client[v1.ListRefsRequest, v1.ListRefsResponse]
+	listRefChanges           *connect.Client[v1.ListRefChangesRequest, v1.ListRefChangesResponse]
 }
 
 // ListRepositories calls gitplus.repo.v1.RepoService.ListRepositories.
@@ -108,6 +119,11 @@ func (c *repoServiceClient) ListRepositories(ctx context.Context, req *connect.R
 // GetRepository calls gitplus.repo.v1.RepoService.GetRepository.
 func (c *repoServiceClient) GetRepository(ctx context.Context, req *connect.Request[v1.GetRepositoryRequest]) (*connect.Response[v1.GetRepositoryResponse], error) {
 	return c.getRepository.CallUnary(ctx, req)
+}
+
+// StreamRepositoryDownload calls gitplus.repo.v1.RepoService.StreamRepositoryDownload.
+func (c *repoServiceClient) StreamRepositoryDownload(ctx context.Context, req *connect.Request[v1.StreamRepositoryDownloadRequest]) (*connect.ServerStreamForClient[v1.StreamRepositoryDownloadResponse], error) {
+	return c.streamRepositoryDownload.CallServerStream(ctx, req)
 }
 
 // ListRefs calls gitplus.repo.v1.RepoService.ListRefs.
@@ -124,6 +140,7 @@ func (c *repoServiceClient) ListRefChanges(ctx context.Context, req *connect.Req
 type RepoServiceHandler interface {
 	ListRepositories(context.Context, *connect.Request[v1.ListRepositoriesRequest]) (*connect.Response[v1.ListRepositoriesResponse], error)
 	GetRepository(context.Context, *connect.Request[v1.GetRepositoryRequest]) (*connect.Response[v1.GetRepositoryResponse], error)
+	StreamRepositoryDownload(context.Context, *connect.Request[v1.StreamRepositoryDownloadRequest], *connect.ServerStream[v1.StreamRepositoryDownloadResponse]) error
 	ListRefs(context.Context, *connect.Request[v1.ListRefsRequest]) (*connect.Response[v1.ListRefsResponse], error)
 	ListRefChanges(context.Context, *connect.Request[v1.ListRefChangesRequest]) (*connect.Response[v1.ListRefChangesResponse], error)
 }
@@ -147,6 +164,12 @@ func NewRepoServiceHandler(svc RepoServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(repoServiceMethods.ByName("GetRepository")),
 		connect.WithHandlerOptions(opts...),
 	)
+	repoServiceStreamRepositoryDownloadHandler := connect.NewServerStreamHandler(
+		RepoServiceStreamRepositoryDownloadProcedure,
+		svc.StreamRepositoryDownload,
+		connect.WithSchema(repoServiceMethods.ByName("StreamRepositoryDownload")),
+		connect.WithHandlerOptions(opts...),
+	)
 	repoServiceListRefsHandler := connect.NewUnaryHandler(
 		RepoServiceListRefsProcedure,
 		svc.ListRefs,
@@ -165,6 +188,8 @@ func NewRepoServiceHandler(svc RepoServiceHandler, opts ...connect.HandlerOption
 			repoServiceListRepositoriesHandler.ServeHTTP(w, r)
 		case RepoServiceGetRepositoryProcedure:
 			repoServiceGetRepositoryHandler.ServeHTTP(w, r)
+		case RepoServiceStreamRepositoryDownloadProcedure:
+			repoServiceStreamRepositoryDownloadHandler.ServeHTTP(w, r)
 		case RepoServiceListRefsProcedure:
 			repoServiceListRefsHandler.ServeHTTP(w, r)
 		case RepoServiceListRefChangesProcedure:
@@ -184,6 +209,10 @@ func (UnimplementedRepoServiceHandler) ListRepositories(context.Context, *connec
 
 func (UnimplementedRepoServiceHandler) GetRepository(context.Context, *connect.Request[v1.GetRepositoryRequest]) (*connect.Response[v1.GetRepositoryResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitplus.repo.v1.RepoService.GetRepository is not implemented"))
+}
+
+func (UnimplementedRepoServiceHandler) StreamRepositoryDownload(context.Context, *connect.Request[v1.StreamRepositoryDownloadRequest], *connect.ServerStream[v1.StreamRepositoryDownloadResponse]) error {
+	return connect.NewError(connect.CodeUnimplemented, errors.New("gitplus.repo.v1.RepoService.StreamRepositoryDownload is not implemented"))
 }
 
 func (UnimplementedRepoServiceHandler) ListRefs(context.Context, *connect.Request[v1.ListRefsRequest]) (*connect.Response[v1.ListRefsResponse], error) {

@@ -16,6 +16,7 @@ import (
 	connectvalidate "connectrpc.com/validate"
 	appdb "github.com/ImSingee/git-plus/db"
 	dbsqlc "github.com/ImSingee/git-plus/db/sqlc"
+	"github.com/ImSingee/git-plus/pkg/repodownload"
 	repov1 "github.com/ImSingee/git-plus/pkg/rpc/gitplus/repo/v1"
 	"github.com/ImSingee/git-plus/pkg/rpc/gitplus/repo/v1/repov1connect"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -26,8 +27,9 @@ import (
 const defaultPageSize = 20
 
 type serviceServer struct {
-	dataDir string
-	db      *sql.DB
+	dataDir   string
+	db        *sql.DB
+	downloads *repodownload.Manager
 }
 
 type Option func(*serviceServer)
@@ -39,11 +41,13 @@ func NewHandler(dataDir string, options ...Option) http.Handler {
 }
 
 func RegisterHandlers(mux *http.ServeMux, dataDir string, options ...Option) {
+	server := newServiceServer(dataDir, options...)
 	path, handler := repov1connect.NewRepoServiceHandler(
-		newServiceServer(dataDir, options...),
+		server,
 		connect.WithInterceptors(mustValidateInterceptor()),
 	)
 	mux.Handle(path, handler)
+	mux.HandleFunc("/repos/", server.handleRepositoryDownload)
 }
 
 func WithDatabase(db *sql.DB) Option {
@@ -54,12 +58,23 @@ func WithDatabase(db *sql.DB) Option {
 	}
 }
 
+func WithDownloadManager(manager *repodownload.Manager) Option {
+	return func(server *serviceServer) {
+		if manager != nil {
+			server.downloads = manager
+		}
+	}
+}
+
 func newServiceServer(dataDir string, options ...Option) *serviceServer {
 	server := &serviceServer{
 		dataDir: dataDir,
 	}
 	for _, option := range options {
 		option(server)
+	}
+	if server.downloads == nil {
+		server.downloads = repodownload.NewManager()
 	}
 	return server
 }
