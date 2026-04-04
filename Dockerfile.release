@@ -3,12 +3,17 @@
 ARG TARGETOS=linux
 ARG TARGETARCH
 
-FROM gcr.io/distroless/static-debian12:nonroot
+FROM alpine:3.21 AS binary
 
 ARG TARGETOS
 ARG TARGETARCH
 
-COPY dist/${TARGETOS}-${TARGETARCH}/git-plus /git-plus
+RUN --mount=type=bind,source=dist,target=/dist,readonly \
+  cp "/dist/${TARGETOS}-${TARGETARCH}/git-plus" /git-plus
+
+FROM gcr.io/distroless/static-debian12:nonroot
+
+COPY --from=binary /git-plus /git-plus
 
 ENV PORT=8080
 
