@@ -130,6 +130,12 @@ function TasksPage() {
 
   useTaskEvents();
 
+  const openTaskDetail = (taskId: string) =>
+    navigate({
+      to: '/maintenance/tasks/$taskId',
+      params: { taskId },
+    });
+
   const sources = configData.config?.sources ?? [];
 
   const openSyncSourceModal = () => {
@@ -237,7 +243,12 @@ function TasksPage() {
             Active
           </Text>
           <Stack gap="sm" mb="xl">
-            {runningTask && <RunningTaskCard task={runningTask} />}
+            {runningTask && (
+              <RunningTaskCard
+                task={runningTask}
+                onOpen={() => openTaskDetail(runningTask.taskId)}
+              />
+            )}
             {queuedTasks.map((t) => (
               <QueuedTaskCard
                 key={t.taskId}
@@ -273,12 +284,7 @@ function TasksPage() {
             {taskRuns.map((run) => (
               <Table.Tr
                 key={run.taskId}
-                onClick={() =>
-                  navigate({
-                    to: '/maintenance/tasks/$taskId',
-                    params: { taskId: run.taskId },
-                  })
-                }
+                onClick={() => openTaskDetail(run.taskId)}
                 style={{ cursor: 'pointer' }}
               >
                 <Table.Td>
@@ -406,9 +412,23 @@ function SyncSourceContent({
   );
 }
 
-function RunningTaskCard({ task }: { task: Task }) {
+function RunningTaskCard({ task, onOpen }: { task: Task; onOpen: () => void }) {
   return (
-    <Card withBorder radius="md" padding="md">
+    <Card
+      withBorder
+      radius="md"
+      padding="md"
+      onClick={onOpen}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          onOpen();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+      style={{ cursor: 'pointer' }}
+    >
       <Group justify="space-between" mb="xs">
         <Group gap="xs">
           <Loader size={14} />
