@@ -36,7 +36,7 @@ func NewRootCommand(version string, frontendHandlerFactory server.FrontendHandle
 			if err != nil {
 				return err
 			}
-			if err := validateStartupEnvironment(); err != nil {
+			if err := validateStartupEnvironment(cmd.ErrOrStderr()); err != nil {
 				return err
 			}
 
@@ -147,7 +147,11 @@ func newCronCommand() *cobra.Command {
 		SilenceUsage: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			targetServerURL := resolveServerURL(serverURL, listenAddr, cmd.Flags().Changed("listen"))
-			client := cronv1connect.NewCronServiceClient(http.DefaultClient, strings.TrimRight(targetServerURL, "/")+"/api")
+			httpClient, err := newAuthenticatedServerAPIClient()
+			if err != nil {
+				return err
+			}
+			client := cronv1connect.NewCronServiceClient(httpClient, strings.TrimRight(targetServerURL, "/")+"/api")
 			response, err := client.ReloadCron(cmd.Context(), connect.NewRequest(&cronv1.ReloadCronRequest{}))
 			if err != nil {
 				return fmt.Errorf("reload cron: %w", err)
@@ -233,10 +237,61 @@ func normalizeDataDir(value string) (string, error) {
 	return normalizedValue, nil
 }
 
-func validateStartupEnvironment() error {
+func validateStartupEnvironment(stderr io.Writer) error {
 	if os.Getenv(appconfig.TokenPassphraseEnvVar) == "" {
 		return fmt.Errorf("%s is required", appconfig.TokenPassphraseEnvVar)
 	}
+	password := strings.TrimSpace(os.Getenv(server.PasswordEnvVar))
+	if password == "" {
+		return fmt.Errorf("%s is required", server.PasswordEnvVar)
+	}
+	if password == server.InsecureNoAuthPassword && stderr != nil {
+		_, _ = fmt.Fprintf(stderr, "warning: %s=%q disables API authentication\n", server.PasswordEnvVar, server.InsecureNoAuthPassword)
+	}
 
 	return nil
+}
+
+func newAuthenticatedServerAPIClient() (*http.Client, error) {
+	password, err := resolveAPIPasswordFromEnv()
+	if err != nil {
+		return nil, err
+	}
+	if password == server.InsecureNoAuthPassword {
+		return http.DefaultClient, nil
+	}
+
+	return &http.Client{
+		Transport: authRoundTripper{
+			base:  http.DefaultTransport,
+			token: password,
+		},
+	}, nil
+}
+
+func resolveAPIPasswordFromEnv() (string, error) {
+	password := strings.TrimSpace(os.Getenv(server.PasswordEnvVar))
+	if password == "" {
+		return "", fmt.Errorf("%s is required", server.PasswordEnvVar)
+	}
+
+	return password, nil
+}
+
+type authRoundTripper struct {
+	base  http.RoundTripper
+	token string
+}
+
+func (transport authRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
+	base := transport.base
+	if base == nil {
+		base = http.DefaultTransport
+	}
+
+	clonedRequest := request.Clone(request.Context())
+	clonedRequest.Header = request.Header.Clone()
+	clonedRequest.Header.Set("Authorization", "Bearer "+transport.token)
+
+	return base.RoundTrip(clonedRequest)
 }

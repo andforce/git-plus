@@ -1323,6 +1323,42 @@ func TestServerHandlerRoutesConnectAPIAndKeepsLegacyRoutesGone(t *testing.T) {
 	}
 }
 
+func TestServerHandlerRejectsUnauthorizedAPIRequests(t *testing.T) {
+	dataDir := t.TempDir()
+	server := newTestServerWithPassword(t, dataDir, "top-secret")
+
+	_, err := newConfigServiceClient(server.URL).CheckConfig(
+		context.Background(),
+		connect.NewRequest(&configv1.CheckConfigRequest{}),
+	)
+	if err == nil {
+		t.Fatal("expected unauthenticated request to fail")
+	}
+
+	connectErr := new(connect.Error)
+	if !errors.As(err, &connectErr) {
+		t.Fatalf("expected connect error, got %v", err)
+	}
+	if connectErr.Code() != connect.CodeUnauthenticated {
+		t.Fatalf("expected unauthenticated, got %s", connectErr.Code())
+	}
+}
+
+func TestServerHandlerAcceptsAuthorizedAPIRequests(t *testing.T) {
+	dataDir := t.TempDir()
+	server := newTestServerWithPassword(t, dataDir, "top-secret")
+
+	response, err := newConfigServiceClientWithPassword(server.URL, "top-secret").CheckConfig(
+		context.Background(),
+		connect.NewRequest(&configv1.CheckConfigRequest{}),
+	)
+	if err != nil {
+		t.Fatalf("authenticated check config: %v", err)
+	}
+
+	assertHasIssueCode(t, response.Msg.GetIssues(), "config_not_found")
+}
+
 func TestServerHandlerKeepsHealthzReadyAndFrontendRoutes(t *testing.T) {
 	dataDir := t.TempDir()
 	taskManager := task.NewManager()
@@ -1377,7 +1413,12 @@ func TestServerHandlerKeepsHealthzReadyAndFrontendRoutes(t *testing.T) {
 }
 
 func newTestServer(t *testing.T, dataDir string) *httptest.Server {
+	return newTestServerWithPassword(t, dataDir, InsecureNoAuthPassword)
+}
+
+func newTestServerWithPassword(t *testing.T, dataDir string, password string) *httptest.Server {
 	t.Helper()
+	t.Setenv(PasswordEnvVar, password)
 
 	taskManager := task.NewManager()
 	t.Cleanup(taskManager.Close)
@@ -1397,8 +1438,16 @@ func newTestServer(t *testing.T, dataDir string) *httptest.Server {
 }
 
 func newConfigServiceClient(serverURL string) configv1connect.ConfigServiceClient {
+	return newConfigServiceClientWithHTTPClient(serverURL, http.DefaultClient)
+}
+
+func newConfigServiceClientWithPassword(serverURL string, password string) configv1connect.ConfigServiceClient {
+	return newConfigServiceClientWithHTTPClient(serverURL, newAuthenticatedHTTPClient(password))
+}
+
+func newConfigServiceClientWithHTTPClient(serverURL string, client *http.Client) configv1connect.ConfigServiceClient {
 	return configv1connect.NewConfigServiceClient(
-		http.DefaultClient,
+		client,
 		serverURL+"/api",
 	)
 }
@@ -1422,6 +1471,28 @@ func newEventServiceClient(serverURL string) eventv1connect.EventServiceClient {
 		http.DefaultClient,
 		serverURL+"/api",
 	)
+}
+
+func newAuthenticatedHTTPClient(password string) *http.Client {
+	return &http.Client{
+		Transport: authenticatedTransport{
+			base:     http.DefaultTransport,
+			password: password,
+		},
+	}
+}
+
+type authenticatedTransport struct {
+	base     http.RoundTripper
+	password string
+}
+
+func (transport authenticatedTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	clonedRequest := request.Clone(request.Context())
+	clonedRequest.Header = request.Header.Clone()
+	clonedRequest.Header.Set("Authorization", "Bearer "+transport.password)
+
+	return transport.base.RoundTrip(clonedRequest)
 }
 
 func writeConfigFile(t *testing.T, dataDir string, content string) {

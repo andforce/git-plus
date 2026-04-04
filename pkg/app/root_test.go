@@ -15,6 +15,7 @@ import (
 	appconfig "github.com/ImSingee/git-plus/pkg/config"
 	cronv1 "github.com/ImSingee/git-plus/pkg/rpc/gitplus/cron/v1"
 	"github.com/ImSingee/git-plus/pkg/rpc/gitplus/cron/v1/cronv1connect"
+	"github.com/ImSingee/git-plus/pkg/server"
 )
 
 func TestNewServerConfigRequiresDataDir(t *testing.T) {
@@ -124,11 +125,14 @@ func TestEncryptTokenCommandRequiresTokenOnStdin(t *testing.T) {
 }
 
 func TestCronReloadCommandUsesConfiguredServer(t *testing.T) {
+	t.Setenv(server.PasswordEnvVar, "test-password")
+
 	mux := http.NewServeMux()
-	path, handler := cronv1connect.NewCronServiceHandler(&stubCronService{})
+	cronService := &stubCronService{}
+	path, handler := cronv1connect.NewCronServiceHandler(cronService)
 	mux.Handle(path, handler)
-	server := httptest.NewServer(http.StripPrefix("/api", mux))
-	t.Cleanup(server.Close)
+	testServer := httptest.NewServer(http.StripPrefix("/api", mux))
+	t.Cleanup(testServer.Close)
 
 	cmd := NewRootCommand("test", func() (http.Handler, error) {
 		return http.NotFoundHandler(), nil
@@ -136,7 +140,7 @@ func TestCronReloadCommandUsesConfiguredServer(t *testing.T) {
 	var stdout bytes.Buffer
 	cmd.SetOut(&stdout)
 	cmd.SetErr(io.Discard)
-	cmd.SetArgs([]string{"cron", "reload", "--server", server.URL})
+	cmd.SetArgs([]string{"cron", "reload", "--server", testServer.URL})
 
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("execute cron reload: %v", err)
@@ -145,16 +149,22 @@ func TestCronReloadCommandUsesConfiguredServer(t *testing.T) {
 	if !strings.Contains(stdout.String(), "cron reloaded: enabled") {
 		t.Fatalf("unexpected output: %q", stdout.String())
 	}
+	if cronService.gotAuthorization != "Bearer test-password" {
+		t.Fatalf("unexpected authorization header: %q", cronService.gotAuthorization)
+	}
 }
 
 func TestCronReloadCommandUsesPortEnvironmentByDefault(t *testing.T) {
-	mux := http.NewServeMux()
-	path, handler := cronv1connect.NewCronServiceHandler(&stubCronService{})
-	mux.Handle(path, handler)
-	server := httptest.NewServer(http.StripPrefix("/api", mux))
-	t.Cleanup(server.Close)
+	t.Setenv(server.PasswordEnvVar, "test-password")
 
-	parsedURL, err := url.Parse(server.URL)
+	mux := http.NewServeMux()
+	cronService := &stubCronService{}
+	path, handler := cronv1connect.NewCronServiceHandler(cronService)
+	mux.Handle(path, handler)
+	testServer := httptest.NewServer(http.StripPrefix("/api", mux))
+	t.Cleanup(testServer.Close)
+
+	parsedURL, err := url.Parse(testServer.URL)
 	if err != nil {
 		t.Fatalf("parse server URL: %v", err)
 	}
@@ -179,16 +189,22 @@ func TestCronReloadCommandUsesPortEnvironmentByDefault(t *testing.T) {
 	if !strings.Contains(stdout.String(), "cron reloaded: enabled") {
 		t.Fatalf("unexpected output: %q", stdout.String())
 	}
+	if cronService.gotAuthorization != "Bearer test-password" {
+		t.Fatalf("unexpected authorization header: %q", cronService.gotAuthorization)
+	}
 }
 
 func TestCronReloadCommandUsesExplicitListenWhenServerIsNotProvided(t *testing.T) {
-	mux := http.NewServeMux()
-	path, handler := cronv1connect.NewCronServiceHandler(&stubCronService{})
-	mux.Handle(path, handler)
-	server := httptest.NewServer(http.StripPrefix("/api", mux))
-	t.Cleanup(server.Close)
+	t.Setenv(server.PasswordEnvVar, "test-password")
 
-	parsedURL, err := url.Parse(server.URL)
+	mux := http.NewServeMux()
+	cronService := &stubCronService{}
+	path, handler := cronv1connect.NewCronServiceHandler(cronService)
+	mux.Handle(path, handler)
+	testServer := httptest.NewServer(http.StripPrefix("/api", mux))
+	t.Cleanup(testServer.Close)
+
+	parsedURL, err := url.Parse(testServer.URL)
 	if err != nil {
 		t.Fatalf("parse server URL: %v", err)
 	}
@@ -211,6 +227,54 @@ func TestCronReloadCommandUsesExplicitListenWhenServerIsNotProvided(t *testing.T
 
 	if !strings.Contains(stdout.String(), "cron reloaded: enabled") {
 		t.Fatalf("unexpected output: %q", stdout.String())
+	}
+	if cronService.gotAuthorization != "Bearer test-password" {
+		t.Fatalf("unexpected authorization header: %q", cronService.gotAuthorization)
+	}
+}
+
+func TestCronReloadCommandRequiresPasswordEnv(t *testing.T) {
+	mux := http.NewServeMux()
+	path, handler := cronv1connect.NewCronServiceHandler(&stubCronService{})
+	mux.Handle(path, handler)
+	testServer := httptest.NewServer(http.StripPrefix("/api", mux))
+	t.Cleanup(testServer.Close)
+
+	cmd := NewRootCommand("test", func() (http.Handler, error) {
+		return http.NotFoundHandler(), nil
+	})
+	cmd.SetOut(io.Discard)
+	cmd.SetErr(io.Discard)
+	cmd.SetArgs([]string{"cron", "reload", "--server", testServer.URL})
+
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected missing password env to fail")
+	}
+	if !strings.Contains(err.Error(), server.PasswordEnvVar) {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestResolveAPIPasswordFromEnvRequiresPassword(t *testing.T) {
+	_, err := resolveAPIPasswordFromEnv()
+	if err == nil {
+		t.Fatal("expected missing password env to fail")
+	}
+	if !strings.Contains(err.Error(), server.PasswordEnvVar) {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestResolveAPIPasswordFromEnvReturnsConfiguredPassword(t *testing.T) {
+	t.Setenv(server.PasswordEnvVar, " top-secret ")
+
+	password, err := resolveAPIPasswordFromEnv()
+	if err != nil {
+		t.Fatalf("resolve api password: %v", err)
+	}
+	if password != "top-secret" {
+		t.Fatalf("unexpected password: %q", password)
 	}
 }
 
@@ -260,7 +324,8 @@ func TestCronCommandFlagsExposeServerAndListen(t *testing.T) {
 }
 
 func TestValidateStartupEnvironmentRequiresEncryptionEnv(t *testing.T) {
-	err := validateStartupEnvironment()
+	var stderr bytes.Buffer
+	err := validateStartupEnvironment(&stderr)
 	if err == nil {
 		t.Fatal("expected missing encryption env to fail")
 	}
@@ -269,15 +334,48 @@ func TestValidateStartupEnvironmentRequiresEncryptionEnv(t *testing.T) {
 	}
 }
 
-func TestValidateStartupEnvironmentAcceptsConfiguredEncryptionEnv(t *testing.T) {
+func TestValidateStartupEnvironmentRequiresPasswordEnv(t *testing.T) {
 	t.Setenv(appconfig.TokenPassphraseEnvVar, "correct horse battery staple")
+	var stderr bytes.Buffer
 
-	if err := validateStartupEnvironment(); err != nil {
-		t.Fatalf("unexpected startup env error: %v", err)
+	err := validateStartupEnvironment(&stderr)
+	if err == nil {
+		t.Fatal("expected missing password env to fail")
+	}
+	if !strings.Contains(err.Error(), server.PasswordEnvVar) {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
-type stubCronService struct{}
+func TestValidateStartupEnvironmentAcceptsConfiguredEnvs(t *testing.T) {
+	t.Setenv(appconfig.TokenPassphraseEnvVar, "correct horse battery staple")
+	t.Setenv(server.PasswordEnvVar, "top-secret")
+	var stderr bytes.Buffer
+
+	if err := validateStartupEnvironment(&stderr); err != nil {
+		t.Fatalf("unexpected startup env error: %v", err)
+	}
+	if stderr.Len() != 0 {
+		t.Fatalf("expected no warning, got %q", stderr.String())
+	}
+}
+
+func TestValidateStartupEnvironmentWarnsWhenAuthenticationIsDisabled(t *testing.T) {
+	t.Setenv(appconfig.TokenPassphraseEnvVar, "correct horse battery staple")
+	t.Setenv(server.PasswordEnvVar, server.InsecureNoAuthPassword)
+	var stderr bytes.Buffer
+
+	if err := validateStartupEnvironment(&stderr); err != nil {
+		t.Fatalf("unexpected startup env error: %v", err)
+	}
+	if !strings.Contains(stderr.String(), "disables API authentication") {
+		t.Fatalf("expected insecure auth warning, got %q", stderr.String())
+	}
+}
+
+type stubCronService struct {
+	gotAuthorization string
+}
 
 func (stubCronService) GetCronRuntime(
 	_ context.Context,
@@ -293,10 +391,11 @@ func (stubCronService) UpdateCron(
 	return connect.NewResponse(&cronv1.UpdateCronResponse{}), nil
 }
 
-func (stubCronService) ReloadCron(
+func (service *stubCronService) ReloadCron(
 	_ context.Context,
-	_ *connect.Request[cronv1.ReloadCronRequest],
+	req *connect.Request[cronv1.ReloadCronRequest],
 ) (*connect.Response[cronv1.ReloadCronResponse], error) {
+	service.gotAuthorization = req.Header().Get("Authorization")
 	return connect.NewResponse(&cronv1.ReloadCronResponse{
 		Runtime: &cronv1.CronRuntime{
 			Enabled: testBoolPtr(true),

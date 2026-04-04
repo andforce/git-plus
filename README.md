@@ -18,7 +18,13 @@ openssl rand -base64 32
 export ENCRYPT_PASSPHRASE='paste-the-generated-value'
 ```
 
-3. Start the server:
+3. Export an API password:
+
+```bash
+export PASSWORD='choose-a-strong-password'
+```
+
+4. Start the server:
 
 ```bash
 ./git-plus --data-dir ./data
@@ -64,6 +70,11 @@ Subcommands:
 - `ENCRYPT_PASSPHRASE`
   - Required before the server command starts.
   - Used to validate encrypted tokens in `<data-dir>/config.yaml`.
+- `PASSWORD`
+  - Required before the server command starts.
+  - Used to protect all APIs mounted under `/api`.
+  - Clients should send it with `Authorization: Bearer <PASSWORD>`.
+  - Special case: if set to `insecure-noauth`, API authentication is disabled and startup prints a warning.
 
 ### Optional
 

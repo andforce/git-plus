@@ -91,7 +91,7 @@ func NewHandler(dataDir string, taskManager *task.Manager, bus *eventbus.Bus, cr
 	cronservice.RegisterHandlers(apiMux, dataDir, cronRuntime)
 	taskservice.RegisterHandlers(apiMux, dataDir, taskManager, taskServiceOptions...)
 	eventservice.RegisterHandlers(apiMux, bus)
-	mux.Handle("/api/", http.StripPrefix("/api", apiMux))
+	mux.Handle("/api/", apiAuthMiddleware(http.StripPrefix("/api", apiMux)))
 	mux.HandleFunc("/api", notFoundAPIHandler)
 	mux.HandleFunc("/ready", healthzHandler)
 	mux.HandleFunc("/healthz", healthzHandler)
