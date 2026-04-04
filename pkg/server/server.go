@@ -60,7 +60,7 @@ func Run(ctx context.Context, cfg Config, frontendHandlerFactory FrontendHandler
 	return http.ListenAndServe(cfg.ListenAddr, NewHandler(cfg.DataDir, taskManager, bus, cronRuntime, frontendHandler))
 }
 
-func NewHandler(dataDir string, taskManager *task.Manager, bus *eventbus.Bus, cronRuntime *cronruntime.Runtime, frontendHandler http.Handler) http.Handler {
+func NewHandler(dataDir string, taskManager *task.Manager, bus *eventbus.Bus, cronRuntime *cronruntime.Runtime, frontendHandler http.Handler, taskServiceOptions ...taskservice.Option) http.Handler {
 	if bus == nil {
 		bus = eventbus.New()
 	}
@@ -89,7 +89,7 @@ func NewHandler(dataDir string, taskManager *task.Manager, bus *eventbus.Bus, cr
 	apiMux := http.NewServeMux()
 	configservice.RegisterHandlers(apiMux, dataDir)
 	cronservice.RegisterHandlers(apiMux, dataDir, cronRuntime)
-	taskservice.RegisterHandlers(apiMux, dataDir, taskManager)
+	taskservice.RegisterHandlers(apiMux, dataDir, taskManager, taskServiceOptions...)
 	eventservice.RegisterHandlers(apiMux, bus)
 	mux.Handle("/api/", http.StripPrefix("/api", apiMux))
 	mux.HandleFunc("/api", notFoundAPIHandler)
@@ -105,6 +105,7 @@ func newCronRuntime(dataDir string, taskManager *task.Manager) (*cronruntime.Run
 		appconfig.PathForDataDir(dataDir),
 		taskManager,
 		cronruntime.WithLogger(log.Default()),
+		cronruntime.WithSyncAllRun(taskservice.NewSyncAllRun(dataDir, taskManager, log.Default())),
 	)
 }
 

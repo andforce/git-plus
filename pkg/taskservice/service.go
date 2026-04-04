@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math/rand/v2"
 	"net/http"
 	"strings"
 	"time"
@@ -22,27 +23,58 @@ import (
 const defaultStubStepDelay = 75 * time.Millisecond
 
 type serviceServer struct {
-	dataDir   string
-	manager   *task.Manager
-	stepDelay time.Duration
+	dataDir            string
+	manager            *task.Manager
+	stepDelay          time.Duration
+	progressTick       time.Duration
+	sourceSyncDuration func() time.Duration
 }
 
-func NewHandler(dataDir string, manager *task.Manager) http.Handler {
+type Option func(*serviceServer)
+
+func NewHandler(dataDir string, manager *task.Manager, options ...Option) http.Handler {
 	rpcMux := http.NewServeMux()
-	RegisterHandlers(rpcMux, dataDir, manager)
+	RegisterHandlers(rpcMux, dataDir, manager, options...)
 	return http.StripPrefix("/api", rpcMux)
 }
 
-func RegisterHandlers(mux *http.ServeMux, dataDir string, manager *task.Manager) {
+func RegisterHandlers(mux *http.ServeMux, dataDir string, manager *task.Manager, options ...Option) {
 	path, handler := taskv1connect.NewTaskServiceHandler(
-		&serviceServer{
-			dataDir:   dataDir,
-			manager:   manager,
-			stepDelay: defaultStubStepDelay,
-		},
+		newServiceServer(dataDir, manager, options...),
 		connect.WithInterceptors(mustValidateInterceptor()),
 	)
 	mux.Handle(path, handler)
+}
+
+func newServiceServer(dataDir string, manager *task.Manager, options ...Option) *serviceServer {
+	server := &serviceServer{
+		dataDir:            dataDir,
+		manager:            manager,
+		stepDelay:          defaultStubStepDelay,
+		progressTick:       time.Second,
+		sourceSyncDuration: randomSourceSyncDuration,
+	}
+	for _, option := range options {
+		option(server)
+	}
+
+	return server
+}
+
+func WithSourceSyncDuration(fn func() time.Duration) Option {
+	return func(server *serviceServer) {
+		if fn != nil {
+			server.sourceSyncDuration = fn
+		}
+	}
+}
+
+func WithProgressTick(interval time.Duration) Option {
+	return func(server *serviceServer) {
+		if interval > 0 {
+			server.progressTick = interval
+		}
+	}
 }
 
 func (s *serviceServer) GetTaskRuntime(
@@ -74,7 +106,7 @@ func (s *serviceServer) EnqueueFullSync(
 		JobID:   task.JobIDSyncAll,
 		JobType: task.JobTypeSyncAll,
 		Name:    "Sync all sources",
-		Run:     s.stubRunner(task.JobTypeSyncAll, ""),
+		Run:     s.syncAllRunner(),
 	})
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("enqueue full sync: %w", err))
@@ -95,12 +127,7 @@ func (s *serviceServer) EnqueueSourceSync(
 		return nil, err
 	}
 
-	result, snapshot, err := s.manager.Enqueue(task.Spec{
-		JobID:   task.BuildSourceSyncJobID(sourceID),
-		JobType: task.JobTypeSyncSource,
-		Name:    fmt.Sprintf("Sync source %s", sourceID),
-		Run:     s.stubRunner(task.JobTypeSyncSource, sourceID),
-	})
+	result, snapshot, err := s.manager.Enqueue(s.sourceSyncSpec(sourceID))
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("enqueue source sync: %w", err))
 	}
@@ -109,6 +136,12 @@ func (s *serviceServer) EnqueueSourceSync(
 		Result: enqueueResultPtr(toProtoEnqueueResult(result)),
 		Task:   toProtoTask(snapshot),
 	}), nil
+}
+
+func NewSyncAllRun(dataDir string, manager *task.Manager, logger *log.Logger) func(*task.ExecutionContext) {
+	server := newServiceServer(dataDir, manager)
+
+	return server.syncAllRunnerWithLogger(logger)
 }
 
 func (s *serviceServer) CancelQueuedTask(
@@ -171,45 +204,119 @@ func (s *serviceServer) ensureSourceExists(sourceID string) error {
 	return connect.NewError(connect.CodeNotFound, fmt.Errorf("source %q was not found", sourceID))
 }
 
-func (s *serviceServer) stubRunner(jobType string, sourceID string) func(*task.ExecutionContext) {
+func (s *serviceServer) sourceSyncSpec(sourceID string) task.Spec {
+	return task.Spec{
+		JobID:   task.BuildSourceSyncJobID(sourceID),
+		JobType: task.JobTypeSyncSource,
+		Name:    fmt.Sprintf("Sync source %s", sourceID),
+		Run:     s.sourceSyncRunner(sourceID),
+	}
+}
+
+func (s *serviceServer) syncAllRunner() func(*task.ExecutionContext) {
+	return s.syncAllRunnerWithLogger(log.Default())
+}
+
+func (s *serviceServer) syncAllRunnerWithLogger(logger *log.Logger) func(*task.ExecutionContext) {
+	if logger == nil {
+		logger = log.Default()
+	}
+
 	return func(ctx *task.ExecutionContext) {
-		steps := []struct {
-			summary string
-			meta    map[string]any
-		}{
-			{
-				summary: "Preparing task",
-				meta: map[string]any{
-					"job_type": jobType,
-					"phase":    "prepare",
-				},
-			},
-			{
-				summary: "Running task",
-				meta: map[string]any{
-					"job_type": jobType,
-					"phase":    "sync",
-				},
-			},
-			{
-				summary: "Finishing task",
-				meta: map[string]any{
-					"job_type": jobType,
-					"phase":    "finalize",
-				},
-			},
+		ctx.SetProgress("Loading sources", map[string]any{
+			"job_type": task.JobTypeSyncAll,
+			"phase":    "load_sources",
+		})
+
+		loaded, _, err := appconfig.LoadOrDefault(appconfig.PathForDataDir(s.dataDir))
+		if err != nil {
+			ctx.SetProgress("Failed to load sources", map[string]any{
+				"job_type": task.JobTypeSyncAll,
+				"phase":    "load_sources",
+				"error":    err.Error(),
+			})
+			logger.Printf("sync-all load config failed: %v", err)
+			return
 		}
-		if sourceID != "" {
-			for _, step := range steps {
-				step.meta["source_id"] = sourceID
+
+		total := len(loaded.Data.Sources)
+		if total == 0 {
+			ctx.SetProgress("No source configured", map[string]any{
+				"job_type": task.JobTypeSyncAll,
+				"phase":    "enqueue_sources",
+				"total":    0,
+			})
+			return
+		}
+
+		startedCount := 0
+		queuedCount := 0
+		dedupedCount := 0
+		failedCount := 0
+
+		for index, source := range loaded.Data.Sources {
+			ctx.SetProgress(fmt.Sprintf("Queueing source %s (%d/%d)", source.ID, index+1, total), map[string]any{
+				"job_type":  task.JobTypeSyncAll,
+				"phase":     "enqueue_sources",
+				"source_id": source.ID,
+				"index":     index + 1,
+				"total":     total,
+			})
+
+			result, _, enqueueErr := s.manager.Enqueue(s.sourceSyncSpec(source.ID))
+			if enqueueErr != nil {
+				failedCount++
+				logger.Printf("sync-all enqueue source %q failed: %v", source.ID, enqueueErr)
+				continue
+			}
+
+			switch result {
+			case task.EnqueueResultStarted:
+				startedCount++
+			case task.EnqueueResultQueued:
+				queuedCount++
+			case task.EnqueueResultDeduped:
+				dedupedCount++
 			}
 		}
 
-		for _, step := range steps {
-			ctx.SetProgress(step.summary, step.meta)
-			time.Sleep(s.stepDelay)
+		ctx.SetProgress("Queued source sync tasks", map[string]any{
+			"job_type": task.JobTypeSyncAll,
+			"phase":    "done",
+			"total":    total,
+			"started":  startedCount,
+			"queued":   queuedCount,
+			"deduped":  dedupedCount,
+			"failed":   failedCount,
+		})
+	}
+}
+
+func (s *serviceServer) sourceSyncRunner(sourceID string) func(*task.ExecutionContext) {
+	return func(ctx *task.ExecutionContext) {
+		duration := s.sourceSyncDuration()
+		totalSeconds := int(duration / time.Second)
+		if totalSeconds < 1 {
+			totalSeconds = 1
+		}
+
+		for i := 1; i <= totalSeconds; i++ {
+			ctx.SetProgress(
+				fmt.Sprintf("Processing (%d/%ds)", i, totalSeconds),
+				map[string]any{
+					"job_type":  task.JobTypeSyncSource,
+					"source_id": sourceID,
+					"step":      i,
+					"total":     totalSeconds,
+				},
+			)
+			time.Sleep(s.progressTick)
 		}
 	}
+}
+
+func randomSourceSyncDuration() time.Duration {
+	return time.Duration(rand.IntN(9)+2) * time.Second
 }
 
 func testRunner(variant int, duration time.Duration) func(*task.ExecutionContext) {

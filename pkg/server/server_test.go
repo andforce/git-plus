@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -24,6 +25,7 @@ import (
 	taskv1 "github.com/ImSingee/git-plus/pkg/rpc/gitplus/task/v1"
 	"github.com/ImSingee/git-plus/pkg/rpc/gitplus/task/v1/taskv1connect"
 	"github.com/ImSingee/git-plus/pkg/task"
+	"github.com/ImSingee/git-plus/pkg/taskservice"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -923,64 +925,55 @@ func TestConfigServiceCreateSourceUsesBufValidateInterceptor(t *testing.T) {
 	}
 }
 
-func TestTaskServiceEnqueueFullSyncStartsThenQueuesAndDedupes(t *testing.T) {
+func TestTaskServiceEnqueueFullSyncQueuesSourceSyncTasksFromConfig(t *testing.T) {
+	t.Setenv(appconfig.TokenPassphraseEnvVar, serverTestPassphrase)
+	encryptedToken := mustEncryptServerToken(t, "secret")
 	dataDir := t.TempDir()
+	writeConfigFile(t, dataDir, `
+sources:
+  - id: source-a
+    platform: github
+    username: octocat
+    token: `+encryptedToken+`
+  - id: source-b
+    platform: github
+    username: hubot
+    token: `+encryptedToken+`
+`)
 	server := newTestServer(t, dataDir)
 	client := newTaskServiceClient(server.URL)
 
-	firstResponse, err := client.EnqueueFullSync(
+	response, err := client.EnqueueFullSync(
 		context.Background(),
 		connect.NewRequest(&taskv1.EnqueueFullSyncRequest{}),
 	)
 	if err != nil {
-		t.Fatalf("enqueue first full sync: %v", err)
+		t.Fatalf("enqueue full sync: %v", err)
 	}
-	if firstResponse.Msg.GetResult() != taskv1.TaskEnqueueResult_TASK_ENQUEUE_RESULT_STARTED {
-		t.Fatalf("unexpected first enqueue result: %s", firstResponse.Msg.GetResult())
+	if response.Msg.GetResult() != taskv1.TaskEnqueueResult_TASK_ENQUEUE_RESULT_STARTED {
+		t.Fatalf("unexpected enqueue result: %s", response.Msg.GetResult())
 	}
-	assertTaskIdentity(t, firstResponse.Msg.GetTask(), task.JobTypeSyncAll, task.JobIDSyncAll)
+	assertTaskIdentity(t, response.Msg.GetTask(), task.JobTypeSyncAll, task.JobIDSyncAll)
 
-	secondResponse, err := client.EnqueueFullSync(
-		context.Background(),
-		connect.NewRequest(&taskv1.EnqueueFullSyncRequest{}),
-	)
-	if err != nil {
-		t.Fatalf("enqueue second full sync: %v", err)
-	}
-	if secondResponse.Msg.GetResult() != taskv1.TaskEnqueueResult_TASK_ENQUEUE_RESULT_QUEUED {
-		t.Fatalf("unexpected second enqueue result: %s", secondResponse.Msg.GetResult())
-	}
+	waitUntil(t, func() bool {
+		runtimeResponse, runtimeErr := client.GetTaskRuntime(
+			context.Background(),
+			connect.NewRequest(&taskv1.GetTaskRuntimeRequest{}),
+		)
+		if runtimeErr != nil {
+			t.Fatalf("get task runtime: %v", runtimeErr)
+		}
 
-	thirdResponse, err := client.EnqueueFullSync(
-		context.Background(),
-		connect.NewRequest(&taskv1.EnqueueFullSyncRequest{}),
-	)
-	if err != nil {
-		t.Fatalf("enqueue third full sync: %v", err)
-	}
-	if thirdResponse.Msg.GetResult() != taskv1.TaskEnqueueResult_TASK_ENQUEUE_RESULT_DEDUPED {
-		t.Fatalf("unexpected third enqueue result: %s", thirdResponse.Msg.GetResult())
-	}
-	if thirdResponse.Msg.GetTask().GetTaskId() != secondResponse.Msg.GetTask().GetTaskId() {
-		t.Fatalf("expected deduped task id %q, got %q", secondResponse.Msg.GetTask().GetTaskId(), thirdResponse.Msg.GetTask().GetTaskId())
-	}
-
-	runtimeResponse, err := client.GetTaskRuntime(
-		context.Background(),
-		connect.NewRequest(&taskv1.GetTaskRuntimeRequest{}),
-	)
-	if err != nil {
-		t.Fatalf("get task runtime: %v", err)
-	}
-
-	if runtimeResponse.Msg.GetRunningTask() == nil {
-		t.Fatal("expected running task")
-	}
-	assertTaskIdentity(t, runtimeResponse.Msg.GetRunningTask(), task.JobTypeSyncAll, task.JobIDSyncAll)
-	if len(runtimeResponse.Msg.GetQueuedTasks()) != 1 {
-		t.Fatalf("expected one queued task, got %d", len(runtimeResponse.Msg.GetQueuedTasks()))
-	}
-	assertTaskIdentity(t, runtimeResponse.Msg.GetQueuedTasks()[0], task.JobTypeSyncAll, task.JobIDSyncAll)
+		runningTask := runtimeResponse.Msg.GetRunningTask()
+		if runningTask == nil {
+			return false
+		}
+		if runningTask.GetJobId() != task.BuildSourceSyncJobID("source-a") {
+			return false
+		}
+		queuedTasks := runtimeResponse.Msg.GetQueuedTasks()
+		return len(queuedTasks) == 1 && queuedTasks[0].GetJobId() == task.BuildSourceSyncJobID("source-b")
+	}, "sync-all to enqueue source sync tasks in config order")
 }
 
 func TestTaskServiceEnqueueSourceSyncValidatesSourceID(t *testing.T) {
@@ -1028,6 +1021,50 @@ sources:
 	assertTaskIdentity(t, response.Msg.GetTask(), task.JobTypeSyncSource, "sync-source::github-main")
 }
 
+func TestTaskServiceSourceSyncReportsTickingProgress(t *testing.T) {
+	t.Setenv(appconfig.TokenPassphraseEnvVar, serverTestPassphrase)
+	encryptedToken := mustEncryptServerToken(t, "secret")
+	dataDir := t.TempDir()
+	writeConfigFile(t, dataDir, `
+sources:
+  - id: github-main
+    platform: github
+    username: octocat
+    token: `+encryptedToken+`
+`)
+	server := newTestServer(t, dataDir)
+	client := newTaskServiceClient(server.URL)
+
+	response, err := client.EnqueueSourceSync(
+		context.Background(),
+		connect.NewRequest(&taskv1.EnqueueSourceSyncRequest{SourceId: testStringPtr("github-main")}),
+	)
+	if err != nil {
+		t.Fatalf("enqueue source sync: %v", err)
+	}
+
+	waitUntil(t, func() bool {
+		runtimeResponse, runtimeErr := client.GetTaskRuntime(
+			context.Background(),
+			connect.NewRequest(&taskv1.GetTaskRuntimeRequest{}),
+		)
+		if runtimeErr != nil {
+			t.Fatalf("get task runtime: %v", runtimeErr)
+		}
+
+		runningTask := runtimeResponse.Msg.GetRunningTask()
+		if runningTask == nil || runningTask.GetTaskId() != response.Msg.GetTask().GetTaskId() {
+			return false
+		}
+
+		progress := runningTask.GetProgress()
+		if progress == nil {
+			return false
+		}
+		return strings.HasPrefix(progress.GetSummary(), "Processing (")
+	}, "source sync progress to tick")
+}
+
 func TestTaskServiceCancelQueuedTaskRemovesQueuedEntry(t *testing.T) {
 	t.Setenv(appconfig.TokenPassphraseEnvVar, serverTestPassphrase)
 	encryptedToken := mustEncryptServerToken(t, "secret")
@@ -1042,9 +1079,26 @@ sources:
 	server := newTestServer(t, dataDir)
 	client := newTaskServiceClient(server.URL)
 
-	if _, err := client.EnqueueFullSync(context.Background(), connect.NewRequest(&taskv1.EnqueueFullSyncRequest{})); err != nil {
-		t.Fatalf("enqueue full sync: %v", err)
+	if _, err := client.EnqueueSourceSync(
+		context.Background(),
+		connect.NewRequest(&taskv1.EnqueueSourceSyncRequest{SourceId: testStringPtr("github-main")}),
+	); err != nil {
+		t.Fatalf("enqueue first source sync: %v", err)
 	}
+
+	waitUntil(t, func() bool {
+		runtimeResponse, runtimeErr := client.GetTaskRuntime(
+			context.Background(),
+			connect.NewRequest(&taskv1.GetTaskRuntimeRequest{}),
+		)
+		if runtimeErr != nil {
+			t.Fatalf("get task runtime: %v", runtimeErr)
+		}
+
+		runningTask := runtimeResponse.Msg.GetRunningTask()
+		return runningTask != nil && runningTask.GetJobId() == task.BuildSourceSyncJobID("github-main")
+	}, "first source sync to start running")
+
 	queuedResponse, err := client.EnqueueSourceSync(
 		context.Background(),
 		connect.NewRequest(&taskv1.EnqueueSourceSyncRequest{SourceId: testStringPtr("github-main")}),
@@ -1077,17 +1131,39 @@ sources:
 }
 
 func TestTaskServiceCancelQueuedTaskRejectsRunningTask(t *testing.T) {
+	t.Setenv(appconfig.TokenPassphraseEnvVar, serverTestPassphrase)
+	encryptedToken := mustEncryptServerToken(t, "secret")
 	dataDir := t.TempDir()
+	writeConfigFile(t, dataDir, `
+sources:
+  - id: github-main
+    platform: github
+    username: octocat
+    token: `+encryptedToken+`
+`)
 	server := newTestServer(t, dataDir)
 	client := newTaskServiceClient(server.URL)
 
-	enqueueResponse, err := client.EnqueueFullSync(
+	enqueueResponse, err := client.EnqueueSourceSync(
 		context.Background(),
-		connect.NewRequest(&taskv1.EnqueueFullSyncRequest{}),
+		connect.NewRequest(&taskv1.EnqueueSourceSyncRequest{SourceId: testStringPtr("github-main")}),
 	)
 	if err != nil {
-		t.Fatalf("enqueue full sync: %v", err)
+		t.Fatalf("enqueue source sync: %v", err)
 	}
+
+	waitUntil(t, func() bool {
+		runtimeResponse, runtimeErr := client.GetTaskRuntime(
+			context.Background(),
+			connect.NewRequest(&taskv1.GetTaskRuntimeRequest{}),
+		)
+		if runtimeErr != nil {
+			t.Fatalf("get task runtime: %v", runtimeErr)
+		}
+
+		runningTask := runtimeResponse.Msg.GetRunningTask()
+		return runningTask != nil && runningTask.GetTaskId() == enqueueResponse.Msg.GetTask().GetTaskId()
+	}, "source sync task to start running")
 
 	_, err = client.CancelQueuedTask(
 		context.Background(),
@@ -1128,27 +1204,32 @@ func TestEventServiceSubscribeStreamsTaskEvents(t *testing.T) {
 		streamResult <- stream
 	}()
 
-	if _, err := taskClient.EnqueueFullSync(
-		context.Background(),
-		connect.NewRequest(&taskv1.EnqueueFullSyncRequest{}),
-	); err != nil {
-		t.Fatalf("enqueue full sync: %v", err)
-	}
-
 	var stream *connect.ServerStreamForClient[eventv1.SubscribeResponse]
-	select {
-	case err := <-streamError:
-		t.Fatalf("subscribe to task events: %v", err)
-	case stream = <-streamResult:
-	case <-time.After(2 * time.Second):
-		t.Fatal("timed out waiting for event stream")
+	deadline := time.After(2 * time.Second)
+	ticker := time.NewTicker(25 * time.Millisecond)
+	defer ticker.Stop()
+	for stream == nil {
+		select {
+		case err := <-streamError:
+			t.Fatalf("subscribe to task events: %v", err)
+		case stream = <-streamResult:
+		case <-ticker.C:
+			if _, err := taskClient.EnqueueTestTask(
+				context.Background(),
+				connect.NewRequest(&taskv1.EnqueueTestTaskRequest{Variant: testInt32Ptr(2)}),
+			); err != nil {
+				t.Fatalf("enqueue test task: %v", err)
+			}
+		case <-deadline:
+			t.Fatal("timed out waiting for event stream")
+		}
 	}
 
 	firstEvent := receiveStreamEvent(t, stream)
 	if got := firstEvent.Fields["channel"].GetStringValue(); got != "task" {
 		t.Fatalf("unexpected event channel: %q", got)
 	}
-	if got := firstEvent.Fields["job_type"].GetStringValue(); got != task.JobTypeSyncAll {
+	if got := firstEvent.Fields["job_type"].GetStringValue(); got != "test" {
 		t.Fatalf("unexpected event job_type: %q", got)
 	}
 	if got := firstEvent.Fields["task_id"].GetStringValue(); got == "" {
@@ -1241,7 +1322,10 @@ func TestServerHandlerKeepsHealthzReadyAndFrontendRoutes(t *testing.T) {
 	server := httptest.NewServer(NewHandler(dataDir, taskManager, bus, cron, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("frontend-ok"))
-	})))
+	}),
+		taskservice.WithSourceSyncDuration(func() time.Duration { return 2 * time.Second }),
+		taskservice.WithProgressTick(10*time.Millisecond),
+	))
 	t.Cleanup(server.Close)
 
 	client := server.Client()
@@ -1292,7 +1376,10 @@ func newTestServer(t *testing.T, dataDir string) *httptest.Server {
 
 	server := httptest.NewServer(NewHandler(dataDir, taskManager, bus, cron, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
-	})))
+	}),
+		taskservice.WithSourceSyncDuration(func() time.Duration { return 2 * time.Second }),
+		taskservice.WithProgressTick(10*time.Millisecond),
+	))
 	t.Cleanup(server.Close)
 
 	return server

@@ -10,7 +10,12 @@ import {
   Text,
   Title,
 } from '@mantine/core';
-import { IconClock, IconTestPipe, IconX } from '@tabler/icons-react';
+import {
+  IconClock,
+  IconRefresh,
+  IconTestPipe,
+  IconX,
+} from '@tabler/icons-react';
 import {
   useMutation,
   useQueryClient,
@@ -65,6 +70,15 @@ function TasksPage() {
 
   useTaskEvents();
 
+  const syncAllMutation = useMutation({
+    mutationFn: () => taskClient.enqueueFullSync({}),
+    onSuccess: (response) => {
+      queryClient.invalidateQueries({ queryKey: ['task', 'runtime'] });
+      toast.success(`Sync all ${enqueueResultLabel(response.result)}`);
+    },
+    onError: (error) => toast.error(getErrorMessage(error)),
+  });
+
   const testMutation = useMutation({
     mutationFn: () => taskClient.enqueueTestTask({ variant: randomVariant() }),
     onSuccess: (response) => {
@@ -96,14 +110,23 @@ function TasksPage() {
             Monitor running and queued background tasks
           </Text>
         </div>
-        <Button
-          variant="default"
-          leftSection={<IconTestPipe size={16} />}
-          onClick={() => testMutation.mutate()}
-          loading={testMutation.isPending}
-        >
-          Enqueue Test Task
-        </Button>
+        <Group gap="sm">
+          <Button
+            leftSection={<IconRefresh size={16} />}
+            onClick={() => syncAllMutation.mutate()}
+            loading={syncAllMutation.isPending}
+          >
+            Sync All
+          </Button>
+          <Button
+            variant="default"
+            leftSection={<IconTestPipe size={16} />}
+            onClick={() => testMutation.mutate()}
+            loading={testMutation.isPending}
+          >
+            Enqueue Test Task
+          </Button>
+        </Group>
       </Group>
 
       {isEmpty ? (
