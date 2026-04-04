@@ -1,15 +1,15 @@
 # syntax=docker/dockerfile:1.7
 
-ARG TARGETOS=linux
-ARG TARGETARCH
-
 FROM alpine:3.21 AS binary
 
-ARG TARGETOS
-ARG TARGETARCH
-
 RUN --mount=type=bind,source=dist,target=/dist,readonly \
-  cp "/dist/${TARGETOS}-${TARGETARCH}/git-plus" /git-plus
+  arch="$(uname -m)" && \
+  case "${arch}" in \
+    x86_64) binary_arch="amd64" ;; \
+    aarch64) binary_arch="arm64" ;; \
+    *) echo "Unsupported architecture: ${arch}" >&2; exit 1 ;; \
+  esac && \
+  cp "/dist/linux-${binary_arch}/git-plus" /git-plus
 
 FROM gcr.io/distroless/static-debian12:nonroot
 
