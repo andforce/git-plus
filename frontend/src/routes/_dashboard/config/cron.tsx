@@ -69,46 +69,307 @@ function previewNextDates(expr: string, count: number): Array<Date> | string {
   }
 }
 
-const CRON_UNITS = [
-  { value: 'minute', label: 'Minute(s)', min: 1, max: 59 },
-  { value: 'hour', label: 'Hour(s)', min: 1, max: 23 },
-  { value: 'day', label: 'Day of the month', min: 1, max: 31 },
-  { value: 'month', label: 'Month(s)', min: 1, max: 12 },
-  { value: 'weekday', label: 'Day of the week', min: 0, max: 6 },
+type ScheduleType =
+  | 'daily'
+  | 'hourly'
+  | 'minutes'
+  | 'weekdays'
+  | 'weekly'
+  | 'monthly';
+
+const SCHEDULE_TYPES: Array<{ value: ScheduleType; label: string }> = [
+  { value: 'daily', label: 'Every day' },
+  { value: 'hourly', label: 'Hourly' },
+  { value: 'minutes', label: 'Every N minutes' },
+  { value: 'weekdays', label: 'Weekdays (Mon–Fri)' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' },
 ];
 
-function stepOrWild(value: number): string {
-  return value === 1 ? '*' : `*/${value}`;
+const HOUR_OPTIONS = Array.from({ length: 24 }, (_, i) => ({
+  value: String(i),
+  label: String(i).padStart(2, '0'),
+}));
+
+const MINUTE_OPTIONS = Array.from({ length: 12 }, (_, i) => ({
+  value: String(i * 5),
+  label: String(i * 5).padStart(2, '0'),
+}));
+
+const HOUR_INTERVAL_OPTIONS = [1, 2, 3, 4, 6, 8, 12].map((n) => ({
+  value: String(n),
+  label: n === 1 ? 'Every hour' : `Every ${n} hours`,
+}));
+
+const MINUTE_INTERVAL_OPTIONS = [1, 2, 5, 10, 15, 20, 30, 45].map((n) => ({
+  value: String(n),
+  label: n === 1 ? 'Every minute' : `Every ${n} minutes`,
+}));
+
+const WEEKDAY_OPTIONS = [
+  { value: '1', label: 'Monday' },
+  { value: '2', label: 'Tuesday' },
+  { value: '3', label: 'Wednesday' },
+  { value: '4', label: 'Thursday' },
+  { value: '5', label: 'Friday' },
+  { value: '6', label: 'Saturday' },
+  { value: '0', label: 'Sunday' },
+];
+
+function buildExpression(
+  type: ScheduleType,
+  hour: number,
+  minute: number,
+  hourInterval: number,
+  minuteInterval: number,
+  weekday: string,
+  monthDay: number,
+): string {
+  switch (type) {
+    case 'daily':
+      return `${minute} ${hour} * * *`;
+    case 'hourly':
+      return hourInterval === 1
+        ? `${minute} * * * *`
+        : `${minute} */${hourInterval} * * *`;
+    case 'minutes':
+      return minuteInterval === 1 ? '* * * * *' : `*/${minuteInterval} * * * *`;
+    case 'weekdays':
+      return `${minute} ${hour} * * 1-5`;
+    case 'weekly':
+      return `${minute} ${hour} * * ${weekday}`;
+    case 'monthly':
+      return `${minute} ${hour} ${monthDay} * *`;
+  }
 }
 
-function buildCronExpression(unit: string, value: number): string {
-  switch (unit) {
-    case 'minute':
-      return `${stepOrWild(value)} * * * *`;
-    case 'hour':
-      return `0 ${stepOrWild(value)} * * *`;
-    case 'day':
-      return `0 0 ${stepOrWild(value)} * *`;
-    case 'month':
-      return `0 0 1 ${stepOrWild(value)} *`;
-    case 'weekday':
-      return `0 0 * * ${value}`;
-    default:
-      return '* * * * *';
+function describeSchedule(
+  type: ScheduleType,
+  hour: number,
+  minute: number,
+  hourInterval: number,
+  minuteInterval: number,
+  weekday: string,
+  monthDay: number,
+): string {
+  const time = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+  switch (type) {
+    case 'daily':
+      return `Runs every day at ${time}`;
+    case 'hourly':
+      return hourInterval === 1
+        ? `Runs every hour at :${String(minute).padStart(2, '0')}`
+        : `Runs every ${hourInterval} hours at :${String(minute).padStart(2, '0')}`;
+    case 'minutes':
+      return minuteInterval === 1
+        ? 'Runs every minute'
+        : `Runs every ${minuteInterval} minutes`;
+    case 'weekdays':
+      return `Runs Monday through Friday at ${time}`;
+    case 'weekly': {
+      const dayName =
+        WEEKDAY_OPTIONS.find((d) => d.value === weekday)?.label ?? '';
+      return `Runs every ${dayName} at ${time}`;
+    }
+    case 'monthly':
+      return `Runs on day ${monthDay} of every month at ${time}`;
   }
+}
+
+function TimePicker({
+  hour,
+  minute,
+  onHourChange,
+  onMinuteChange,
+}: {
+  hour: number;
+  minute: number;
+  onHourChange: (h: number) => void;
+  onMinuteChange: (m: number) => void;
+}) {
+  return (
+    <Group gap={4} align="center" wrap="nowrap">
+      <Text size="sm" c="dimmed">
+        at
+      </Text>
+      <Select
+        data={HOUR_OPTIONS}
+        value={String(hour)}
+        onChange={(v) => v && onHourChange(Number(v))}
+        allowDeselect={false}
+        w={72}
+        size="sm"
+        comboboxProps={{ width: 80 }}
+      />
+      <Text fw={600} size="lg">
+        :
+      </Text>
+      <Select
+        data={MINUTE_OPTIONS}
+        value={String(minute)}
+        onChange={(v) => v && onMinuteChange(Number(v))}
+        allowDeselect={false}
+        w={72}
+        size="sm"
+        comboboxProps={{ width: 80 }}
+      />
+    </Group>
+  );
 }
 
 function CronBuilder({ onApply }: { onApply: (expr: string) => void }) {
   const [opened, { toggle, close }] = useDisclosure(false);
-  const [unit, setUnit] = useState<string>('day');
-  const [value, setValue] = useState<number>(1);
+  const [scheduleType, setScheduleType] = useState<ScheduleType>('daily');
+  const [hour, setHour] = useState(9);
+  const [minute, setMinute] = useState(0);
+  const [hourInterval, setHourInterval] = useState(1);
+  const [minuteInterval, setMinuteInterval] = useState(30);
+  const [weekday, setWeekday] = useState('1');
+  const [monthDay, setMonthDay] = useState(1);
 
-  const currentUnit = CRON_UNITS.find((u) => u.value === unit) ?? CRON_UNITS[0];
-  const clampedValue = Math.min(
-    Math.max(value, currentUnit.min),
-    currentUnit.max,
+  const generatedExpr = useMemo(
+    () =>
+      buildExpression(
+        scheduleType,
+        hour,
+        minute,
+        hourInterval,
+        minuteInterval,
+        weekday,
+        monthDay,
+      ),
+    [
+      scheduleType,
+      hour,
+      minute,
+      hourInterval,
+      minuteInterval,
+      weekday,
+      monthDay,
+    ],
   );
-  const generatedExpr = buildCronExpression(unit, clampedValue);
+
+  const description = useMemo(
+    () =>
+      describeSchedule(
+        scheduleType,
+        hour,
+        minute,
+        hourInterval,
+        minuteInterval,
+        weekday,
+        monthDay,
+      ),
+    [
+      scheduleType,
+      hour,
+      minute,
+      hourInterval,
+      minuteInterval,
+      weekday,
+      monthDay,
+    ],
+  );
+
+  const renderInputs = () => {
+    switch (scheduleType) {
+      case 'daily':
+      case 'weekdays':
+        return (
+          <TimePicker
+            hour={hour}
+            minute={minute}
+            onHourChange={setHour}
+            onMinuteChange={setMinute}
+          />
+        );
+      case 'hourly':
+        return (
+          <Group gap="sm" align="center" wrap="nowrap">
+            <Select
+              data={HOUR_INTERVAL_OPTIONS}
+              value={String(hourInterval)}
+              onChange={(v) => v && setHourInterval(Number(v))}
+              allowDeselect={false}
+              style={{ flex: 1 }}
+              size="sm"
+            />
+            <Text size="sm" c="dimmed">
+              at minute
+            </Text>
+            <Select
+              data={MINUTE_OPTIONS}
+              value={String(minute)}
+              onChange={(v) => v && setMinute(Number(v))}
+              allowDeselect={false}
+              w={72}
+              size="sm"
+              comboboxProps={{ width: 80 }}
+            />
+          </Group>
+        );
+      case 'minutes':
+        return (
+          <Select
+            data={MINUTE_INTERVAL_OPTIONS}
+            value={String(minuteInterval)}
+            onChange={(v) => v && setMinuteInterval(Number(v))}
+            allowDeselect={false}
+            size="sm"
+          />
+        );
+      case 'weekly':
+        return (
+          <Stack gap="sm">
+            <Group gap="sm" align="center" wrap="nowrap">
+              <Text size="sm" c="dimmed">
+                on
+              </Text>
+              <Select
+                data={WEEKDAY_OPTIONS}
+                value={weekday}
+                onChange={(v) => v && setWeekday(v)}
+                allowDeselect={false}
+                style={{ flex: 1 }}
+                size="sm"
+              />
+            </Group>
+            <TimePicker
+              hour={hour}
+              minute={minute}
+              onHourChange={setHour}
+              onMinuteChange={setMinute}
+            />
+          </Stack>
+        );
+      case 'monthly':
+        return (
+          <Stack gap="sm">
+            <Group gap="sm" align="center" wrap="nowrap">
+              <Text size="sm" c="dimmed">
+                on day
+              </Text>
+              <NumberInput
+                value={monthDay}
+                onChange={(v) => setMonthDay(typeof v === 'number' ? v : 1)}
+                min={1}
+                max={31}
+                w={72}
+                size="sm"
+              />
+            </Group>
+            <TimePicker
+              hour={hour}
+              minute={minute}
+              onHourChange={setHour}
+              onMinuteChange={setMinute}
+            />
+          </Stack>
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <Popover
@@ -116,7 +377,7 @@ function CronBuilder({ onApply }: { onApply: (expr: string) => void }) {
       onClose={close}
       position="bottom-start"
       shadow="md"
-      width={320}
+      width={340}
     >
       <Popover.Target>
         <Button
@@ -130,39 +391,24 @@ function CronBuilder({ onApply }: { onApply: (expr: string) => void }) {
       </Popover.Target>
       <Popover.Dropdown>
         <Stack gap="sm">
-          <Text size="sm" fw={500}>
-            Execute schedule every
-          </Text>
-          <Group gap="sm" wrap="nowrap">
-            <NumberInput
-              value={value}
-              onChange={(v) => setValue(typeof v === 'number' ? v : value)}
-              min={currentUnit.min}
-              max={currentUnit.max}
-              style={{ width: 80 }}
-            />
-            <Select
-              data={CRON_UNITS.map((u) => ({
-                value: u.value,
-                label: u.label,
-              }))}
-              value={unit}
-              onChange={(v) => {
-                if (!v) return;
-                setUnit(v);
-                const newUnit = CRON_UNITS.find((u) => u.value === v);
-                if (newUnit) setValue(newUnit.min);
-              }}
-              allowDeselect={false}
-              style={{ flex: 1 }}
-            />
-          </Group>
-          <Text size="xs" c="dimmed">
-            Valid range: {currentUnit.min}–{currentUnit.max}
-          </Text>
-          <Group gap="xs" align="center">
+          <Select
+            label="Schedule type"
+            data={SCHEDULE_TYPES}
+            value={scheduleType}
+            onChange={(v) => v && setScheduleType(v)}
+            allowDeselect={false}
+            size="sm"
+          />
+
+          {renderInputs()}
+
+          <Box>
             <Code>{generatedExpr}</Code>
-          </Group>
+            <Text size="xs" c="dimmed" mt={4}>
+              {description}
+            </Text>
+          </Box>
+
           <Button
             fullWidth
             onClick={() => {
@@ -229,7 +475,6 @@ function CronPage() {
       </Text>
 
       <Stack gap="lg">
-        {/* Current schedule */}
         <Box>
           <Text size="xs" fw={500} c="dimmed" tt="uppercase" mb="sm">
             Current schedule
@@ -268,7 +513,6 @@ function CronPage() {
           </Stack>
         </Box>
 
-        {/* Next scheduled runs from API */}
         {runtime?.enabled && runtime.nextRuns.length > 0 && (
           <>
             <Divider />
@@ -298,7 +542,6 @@ function CronPage() {
 
         <Divider />
 
-        {/* Edit section */}
         <Box>
           <Text size="xs" fw={500} c="dimmed" tt="uppercase" mb="sm">
             Update schedule
@@ -323,7 +566,6 @@ function CronPage() {
               )}
             </div>
 
-            {/* Client-side preview */}
             {previewDates && (
               <Box>
                 <Text size="xs" fw={500} c="dimmed" mb="xs">
