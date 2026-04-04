@@ -1019,30 +1019,52 @@ sources:
 	}
 
 	waitUntil(t, func() bool {
-		parentRun, parentErr := queries.GetTaskRun(context.Background(), response.Msg.GetTask().GetTaskId())
-		if parentErr != nil {
-			return false
-		}
-		if parentRun.Status != string(task.StateFinished) {
+		runtimeResponse, runtimeErr := client.GetTaskRuntime(
+			context.Background(),
+			connect.NewRequest(&taskv1.GetTaskRuntimeRequest{}),
+		)
+		if runtimeErr != nil {
 			return false
 		}
 
-		childA, childAErr := queries.GetTaskRun(context.Background(), "task-2")
-		childB, childBErr := queries.GetTaskRun(context.Background(), "task-3")
-		if childAErr != nil || childBErr != nil {
-			return false
-		}
-		return childA.ParentTaskID.Valid &&
-			childA.ParentTaskID.String == response.Msg.GetTask().GetTaskId() &&
-			childB.ParentTaskID.Valid &&
-			childB.ParentTaskID.String == response.Msg.GetTask().GetTaskId() &&
-			childA.ArgsJson.Valid &&
-			childA.ArgsJson.String == `{"source_id":"source-a"}` &&
-			childB.ArgsJson.Valid &&
-			childB.ArgsJson.String == `{"source_id":"source-b"}` &&
-			childA.Status == string(task.StateFinished) &&
-			childB.Status == string(task.StateFinished)
-	}, "task runs to persist to sqlite")
+		return runtimeResponse.Msg.GetRunningTask() == nil && len(runtimeResponse.Msg.GetQueuedTasks()) == 0
+	}, "all persisted tasks to finish")
+
+	parentRun, err := queries.GetTaskRun(context.Background(), response.Msg.GetTask().GetTaskId())
+	if err != nil {
+		t.Fatalf("get parent task run: %v", err)
+	}
+	if parentRun.Status != string(task.StateFinished) {
+		t.Fatalf("expected parent task to be finished, got %q", parentRun.Status)
+	}
+
+	childA, err := queries.GetTaskRun(context.Background(), "task-2")
+	if err != nil {
+		t.Fatalf("get child task run task-2: %v", err)
+	}
+	childB, err := queries.GetTaskRun(context.Background(), "task-3")
+	if err != nil {
+		t.Fatalf("get child task run task-3: %v", err)
+	}
+
+	if !childA.ParentTaskID.Valid || childA.ParentTaskID.String != response.Msg.GetTask().GetTaskId() {
+		t.Fatalf("expected task-2 parent_task_id=%q, got %#v", response.Msg.GetTask().GetTaskId(), childA.ParentTaskID)
+	}
+	if !childB.ParentTaskID.Valid || childB.ParentTaskID.String != response.Msg.GetTask().GetTaskId() {
+		t.Fatalf("expected task-3 parent_task_id=%q, got %#v", response.Msg.GetTask().GetTaskId(), childB.ParentTaskID)
+	}
+	if !childA.ArgsJson.Valid || childA.ArgsJson.String != `{"source_id":"source-a"}` {
+		t.Fatalf("unexpected task-2 args_json: %#v", childA.ArgsJson)
+	}
+	if !childB.ArgsJson.Valid || childB.ArgsJson.String != `{"source_id":"source-b"}` {
+		t.Fatalf("unexpected task-3 args_json: %#v", childB.ArgsJson)
+	}
+	if childA.Status != string(task.StateFinished) {
+		t.Fatalf("expected task-2 status finished, got %q", childA.Status)
+	}
+	if childB.Status != string(task.StateFinished) {
+		t.Fatalf("expected task-3 status finished, got %q", childB.Status)
+	}
 
 	logs, err := queries.ListTaskRunLogs(context.Background(), response.Msg.GetTask().GetTaskId())
 	if err != nil {
@@ -1442,8 +1464,7 @@ func TestServerHandlerKeepsHealthzReadyAndFrontendRoutes(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("frontend-ok"))
 	}),
-		taskservice.WithSourceSyncDuration(func() time.Duration { return 2 * time.Second }),
-		taskservice.WithProgressTick(10*time.Millisecond),
+		taskservice.WithSourceSyncExecutor(newTestSourceSyncExecutor(2*time.Second, 10*time.Millisecond)),
 	))
 	t.Cleanup(server.Close)
 
@@ -1501,8 +1522,7 @@ func newTestServerWithPassword(t *testing.T, dataDir string, password string) *h
 	server := httptest.NewServer(NewHandler(dataDir, taskManager, bus, cron, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 	}),
-		taskservice.WithSourceSyncDuration(func() time.Duration { return 2 * time.Second }),
-		taskservice.WithProgressTick(10*time.Millisecond),
+		taskservice.WithSourceSyncExecutor(newTestSourceSyncExecutor(2*time.Second, 10*time.Millisecond)),
 	))
 	t.Cleanup(server.Close)
 
@@ -1542,12 +1562,55 @@ func newPersistentTestServer(t *testing.T, dataDir string) (*httptest.Server, *d
 	server := httptest.NewServer(NewHandler(dataDir, taskManager, bus, cron, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 	}),
-		taskservice.WithSourceSyncDuration(func() time.Duration { return 2 * time.Second }),
-		taskservice.WithProgressTick(10*time.Millisecond),
+		taskservice.WithSourceSyncExecutor(newInstantSourceSyncExecutor()),
 	))
 	t.Cleanup(server.Close)
 
 	return server, dbsqlc.New(sqliteDB)
+}
+
+type testSourceSyncExecutor struct {
+	duration     time.Duration
+	progressTick time.Duration
+}
+
+func newTestSourceSyncExecutor(duration time.Duration, progressTick time.Duration) *testSourceSyncExecutor {
+	return &testSourceSyncExecutor{
+		duration:     duration,
+		progressTick: progressTick,
+	}
+}
+
+type instantSourceSyncExecutor struct{}
+
+func newInstantSourceSyncExecutor() *instantSourceSyncExecutor {
+	return &instantSourceSyncExecutor{}
+}
+
+func (executor *testSourceSyncExecutor) Sync(_ context.Context, _ appconfig.SourceConfig, reporter taskservice.SourceSyncReporter) error {
+	totalSeconds := int(executor.duration / time.Second)
+	if totalSeconds < 1 {
+		totalSeconds = 1
+	}
+
+	for i := 1; i <= totalSeconds; i++ {
+		if err := reporter.SetProgress(
+			fmt.Sprintf("Processing (%d/%ds)", i, totalSeconds),
+			map[string]any{
+				"step":  i,
+				"total": totalSeconds,
+			},
+		); err != nil {
+			return err
+		}
+		time.Sleep(executor.progressTick)
+	}
+
+	return nil
+}
+
+func (executor *instantSourceSyncExecutor) Sync(_ context.Context, _ appconfig.SourceConfig, _ taskservice.SourceSyncReporter) error {
+	return nil
 }
 
 func newConfigServiceClient(serverURL string) configv1connect.ConfigServiceClient {
@@ -1716,7 +1779,7 @@ func assertTaskIdentity(t *testing.T, got *taskv1.Task, jobType string, jobID st
 func waitUntil(t *testing.T, condition func() bool, description string) {
 	t.Helper()
 
-	deadline := time.Now().Add(2 * time.Second)
+	deadline := time.Now().Add(5 * time.Second)
 	for time.Now().Before(deadline) {
 		if condition() {
 			return

@@ -7,6 +7,7 @@ import (
 	"log"
 	"math/rand/v2"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	appconfig "github.com/ImSingee/git-plus/pkg/config"
 	taskv1 "github.com/ImSingee/git-plus/pkg/rpc/gitplus/task/v1"
 	"github.com/ImSingee/git-plus/pkg/rpc/gitplus/task/v1/taskv1connect"
+	"github.com/ImSingee/git-plus/pkg/syncsource"
 	"github.com/ImSingee/git-plus/pkg/task"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -28,9 +30,16 @@ type serviceServer struct {
 	stepDelay          time.Duration
 	progressTick       time.Duration
 	sourceSyncDuration func() time.Duration
+	sourceSyncExecutor SourceSyncExecutor
 }
 
 type Option func(*serviceServer)
+
+type SourceSyncReporter = syncsource.ProgressReporter
+
+type SourceSyncExecutor interface {
+	Sync(ctx context.Context, source appconfig.SourceConfig, reporter SourceSyncReporter) error
+}
 
 func NewHandler(dataDir string, manager *task.Manager, options ...Option) http.Handler {
 	rpcMux := http.NewServeMux()
@@ -53,6 +62,7 @@ func newServiceServer(dataDir string, manager *task.Manager, options ...Option) 
 		stepDelay:          defaultStubStepDelay,
 		progressTick:       time.Second,
 		sourceSyncDuration: randomSourceSyncDuration,
+		sourceSyncExecutor: syncsource.NewExecutor(dataDir),
 	}
 	for _, option := range options {
 		option(server)
@@ -73,6 +83,14 @@ func WithProgressTick(interval time.Duration) Option {
 	return func(server *serviceServer) {
 		if interval > 0 {
 			server.progressTick = interval
+		}
+	}
+}
+
+func WithSourceSyncExecutor(executor SourceSyncExecutor) Option {
+	return func(server *serviceServer) {
+		if executor != nil {
+			server.sourceSyncExecutor = executor
 		}
 	}
 }
@@ -232,8 +250,7 @@ func (s *serviceServer) syncAllRunnerWithLogger(logger *log.Logger) func(*task.E
 
 	return func(ctx *task.ExecutionContext) error {
 		if err := ctx.SetProgress("Loading sources", map[string]any{
-			"job_type": task.JobTypeSyncAll,
-			"phase":    "load_sources",
+			"phase": "load_sources",
 		}); err != nil {
 			return err
 		}
@@ -241,9 +258,8 @@ func (s *serviceServer) syncAllRunnerWithLogger(logger *log.Logger) func(*task.E
 		loaded, _, err := appconfig.LoadOrDefault(appconfig.PathForDataDir(s.dataDir))
 		if err != nil {
 			if progressErr := ctx.SetProgress("Failed to load sources", map[string]any{
-				"job_type": task.JobTypeSyncAll,
-				"phase":    "load_sources",
-				"error":    err.Error(),
+				"phase": "load_sources",
+				"error": err.Error(),
 			}); progressErr != nil {
 				return progressErr
 			}
@@ -254,9 +270,8 @@ func (s *serviceServer) syncAllRunnerWithLogger(logger *log.Logger) func(*task.E
 		total := len(loaded.Data.Sources)
 		if total == 0 {
 			if err := ctx.SetProgress("No source configured", map[string]any{
-				"job_type": task.JobTypeSyncAll,
-				"phase":    "enqueue_sources",
-				"total":    0,
+				"phase": "enqueue_sources",
+				"total": 0,
 			}); err != nil {
 				return err
 			}
@@ -270,11 +285,9 @@ func (s *serviceServer) syncAllRunnerWithLogger(logger *log.Logger) func(*task.E
 
 		for index, source := range loaded.Data.Sources {
 			if err := ctx.SetProgress(fmt.Sprintf("Queueing source %s (%d/%d)", source.ID, index+1, total), map[string]any{
-				"job_type":  task.JobTypeSyncAll,
-				"phase":     "enqueue_sources",
-				"source_id": source.ID,
-				"index":     index + 1,
-				"total":     total,
+				"phase": "enqueue_sources",
+				"index": index + 1,
+				"total": total,
 			}); err != nil {
 				return err
 			}
@@ -297,13 +310,12 @@ func (s *serviceServer) syncAllRunnerWithLogger(logger *log.Logger) func(*task.E
 		}
 
 		if err := ctx.SetProgress("Queued source sync tasks", map[string]any{
-			"job_type": task.JobTypeSyncAll,
-			"phase":    "done",
-			"total":    total,
-			"started":  startedCount,
-			"queued":   queuedCount,
-			"deduped":  dedupedCount,
-			"failed":   failedCount,
+			"phase":   "done",
+			"total":   total,
+			"started": startedCount,
+			"queued":  queuedCount,
+			"deduped": dedupedCount,
+			"failed":  failedCount,
 		}); err != nil {
 			return err
 		}
@@ -314,29 +326,41 @@ func (s *serviceServer) syncAllRunnerWithLogger(logger *log.Logger) func(*task.E
 
 func (s *serviceServer) sourceSyncRunner(sourceID string) func(*task.ExecutionContext) error {
 	return func(ctx *task.ExecutionContext) error {
-		duration := s.sourceSyncDuration()
-		totalSeconds := int(duration / time.Second)
-		if totalSeconds < 1 {
-			totalSeconds = 1
+		source, err := s.loadResolvedSource(sourceID)
+		if err != nil {
+			return err
 		}
 
-		for i := 1; i <= totalSeconds; i++ {
-			if err := ctx.SetProgress(
-				fmt.Sprintf("Processing (%d/%ds)", i, totalSeconds),
-				map[string]any{
-					"job_type":  task.JobTypeSyncSource,
-					"source_id": sourceID,
-					"step":      i,
-					"total":     totalSeconds,
-				},
-			); err != nil {
-				return err
-			}
-			time.Sleep(s.progressTick)
+		if s.sourceSyncExecutor == nil {
+			return fmt.Errorf("source sync executor is required")
 		}
 
-		return nil
+		return s.sourceSyncExecutor.Sync(context.Background(), source, ctx)
 	}
+}
+
+func (s *serviceServer) loadResolvedSource(sourceID string) (appconfig.SourceConfig, error) {
+	loaded, err := appconfig.Load(appconfig.PathForDataDir(s.dataDir))
+	if err != nil {
+		return appconfig.SourceConfig{}, fmt.Errorf("load config: %w", err)
+	}
+
+	for _, source := range loaded.Data.Sources {
+		if source.ID != sourceID {
+			continue
+		}
+
+		plaintextToken, err := appconfig.DecryptToken(source.Token, os.Getenv(appconfig.TokenPassphraseEnvVar))
+		if err != nil {
+			return appconfig.SourceConfig{}, fmt.Errorf("decrypt source %q token: %w", sourceID, err)
+		}
+
+		resolvedSource := source
+		resolvedSource.Token = plaintextToken
+		return resolvedSource, nil
+	}
+
+	return appconfig.SourceConfig{}, fmt.Errorf("source %q was not found", sourceID)
 }
 
 func randomSourceSyncDuration() time.Duration {

@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "generate": "drizzle-kit generate --config=drizzle.config.ts"
+    "generate": "drizzle-kit generate --config=drizzle.config.ts",
+    "generate:schema-sql": "node ./scripts/generate-schema-sql.mjs"
   },
   "dependencies": {
     "drizzle-orm": "1.0.0-beta.9-e89174b"

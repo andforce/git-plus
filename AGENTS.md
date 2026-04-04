@@ -47,12 +47,27 @@ Use pnpm for workspace tasks and Go tooling for backend compilation/tests.
 - `pnpm buf:generate` regenerates Go and TypeScript RPC code from `proto/` into `pkg/rpc/` and `frontend/src/rpc/`.
 - `pnpm buf:lint` validates `.proto` files with Buf lint rules.
 - `pnpm build` first builds the frontend into `frontend/dist/`, then builds `dist/git-plus` with `go build -tags embed`, embedding the frontend assets into the binary.
+- `pnpm db:generate:drizzle` regenerates Drizzle SQL migrations from `db/src/schema.ts`.
+- `pnpm db:generate:schema-sql` regenerates `db/schema.sql` from `db/src/schema.ts`.
+- `pnpm db:generate:sqlc` regenerates Go `sqlc` query code from `db/schema.sql` and `db/queries/*.sql`.
+- `pnpm db:generate` runs all database codegen steps in sequence.
 - `pnpm test` runs `go test ./...` and then frontend Vitest.
 - `pnpm check:types` runs `frontend` type-checking via `tsc --noEmit`.
 - `pnpm lint` applies the TanStack + React ESLint rules.
 - `pnpm format` runs Prettier, then ESLint autofix, then ESLint verification.
 
 If you need frontend-only commands during local debugging, use the package-level scripts in `frontend/package.json` directly.
+
+Database schema workflow:
+
+- `db/src/schema.ts` is the source-of-truth for the entire SQLite schema.
+- Do not handwrite or manually edit `db/migrations/*/migration.sql`.
+- Do not handwrite or manually edit Drizzle snapshot files such as `db/migrations/*/snapshot.json`.
+- Do not handwrite or manually edit `db/schema.sql`.
+- When the database schema changes, update `db/src/schema.ts` first, then regenerate `db/migrations` with Drizzle, regenerate `db/schema.sql` via `pnpm db:generate:schema-sql`, and regenerate `sqlc` output.
+- `db/schema.sql` is a generated downstream schema artifact for SQL tooling; do not treat it as the primary schema definition.
+- Raw SQL execution is allowed only in the migration runner. All non-migration database reads and writes in application code must go through `sqlc`-generated queries defined in `db/queries/*.sql`.
+- After changing database queries or any schema used by application code, regenerate database artifacts with `pnpm db:generate` unless you intentionally need only one sub-step.
 
 Dependency upgrade policy:
 

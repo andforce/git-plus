@@ -13,6 +13,32 @@ type AppMetum struct {
 	Value string
 }
 
+type Repo struct {
+	ID            int64
+	SourceID      string
+	Platform      string
+	RefID         string
+	Status        string
+	Name          string
+	FullName      string
+	Owner         string
+	Description   sql.NullString
+	HtmlUrl       sql.NullString
+	CloneUrl      sql.NullString
+	SshUrl        sql.NullString
+	DefaultBranch sql.NullString
+	Visibility    sql.NullString
+	IsPrivate     int64
+	IsFork        int64
+	IsArchived    int64
+	Origin        string
+	Meta          string
+	LastSeenAt    string
+	DisabledAt    sql.NullString
+	CreatedAt     string
+	UpdatedAt     string
+}
+
 type TaskRun struct {
 	TaskID               string
 	ParentTaskID         sql.NullString
