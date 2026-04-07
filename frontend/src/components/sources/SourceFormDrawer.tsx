@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import {
   ActionIcon,
+  Anchor,
   Box,
   Button,
   Collapse,
@@ -272,8 +273,19 @@ export function SourceFormDrawer({
                 />
                 {mode === 'create' ? (
                   <PasswordInput
-                    label="Access Token"
-                    description="Personal access token for API authentication"
+                    label="Personal Access Token (classic)"
+                    description={
+                      <>
+                        Create one at{' '}
+                        <Anchor
+                          href="https://github.com/settings/tokens"
+                          target="_blank"
+                        >
+                          https://github.com/settings/tokens
+                        </Anchor>
+                        .
+                      </>
+                    }
                     placeholder="ghp_xxxxxxxxxxxx"
                     required
                     {...form.getInputProps('tokenPlaintext')}
