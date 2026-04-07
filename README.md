@@ -30,6 +30,27 @@ export PASSWORD='choose-a-strong-password'
 ./git-plus --data-dir ./data
 ```
 
+## Quick Setup
+
+If you want to get started with Docker, run:
+
+```bash
+docker run -d \
+  --name git-plus \
+  -p 8080:8080 \
+  -v "$(pwd)/data:/data" \
+  -e ENCRYPTION_PASSPHRASE='choose-a-random-secret' \
+  -e PASSWORD='choose-a-strong-password' \
+  ghcr.io/imsingee/git-plus:latest \
+  --data-dir /data
+```
+
+Then open `http://localhost:8080` and:
+
+1. Go to `/config/sources` and add a source.
+2. Optional: go to `/config/cron` and add a scheduled sync task if you want automatic pulling.
+3. Optional: go to `/maintenance/tasks` and click `Sync All` to run the first sync immediately.
+
 ## CLI usage
 
 Show help:
