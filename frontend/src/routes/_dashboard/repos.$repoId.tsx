@@ -72,10 +72,7 @@ import { sourcePrimaryLabel, sourceSecondaryLabel } from '~lib/source-display';
 
 export const Route = createFileRoute('/_dashboard/repos/$repoId')({
   loader: ({ context: { queryClient }, params: { repoId } }) =>
-    Promise.all([
-      queryClient.ensureQueryData(repoDetailQueryOptions(repoId)),
-      queryClient.ensureQueryData(configQueryOptions),
-    ]),
+    queryClient.ensureQueryData(repoDetailQueryOptions(repoId)),
   component: RepoDetailPage,
 });
 
@@ -177,7 +174,7 @@ function TabFallback() {
 function RepoDetailPage() {
   const { repoId } = Route.useParams();
   const { data } = useSuspenseQuery(repoDetailQueryOptions(repoId));
-  const { data: configData } = useSuspenseQuery(configQueryOptions);
+  const { data: configData } = useQuery(configQueryOptions);
 
   const [activeTab, setActiveTab] = useState<string | null>('branches');
 
@@ -191,7 +188,7 @@ function RepoDetailPage() {
   });
 
   const repo = data.repository!;
-  const source = (configData.config?.sources ?? []).find(
+  const source = (configData?.config?.sources ?? []).find(
     (item) => item.id === repo.sourceId,
   );
   const sourceValue = source ? sourcePrimaryLabel(source) : repo.sourceId;
