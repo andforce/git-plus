@@ -13,12 +13,7 @@ import {
   Text,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import {
-  IconBrandGithub,
-  IconDatabase,
-  IconSettings2,
-  IconTool,
-} from '@tabler/icons-react';
+import { IconDatabase, IconSettings2, IconTool } from '@tabler/icons-react';
 
 export const Route = createFileRoute('/_dashboard')({
   component: DashboardLayout,
@@ -27,6 +22,18 @@ export const Route = createFileRoute('/_dashboard')({
 const childNavStyles = {
   root: { borderRadius: 'var(--mantine-radius-sm)' },
 };
+
+function BrandIcon({ size }: { size: number }) {
+  return (
+    <img
+      src="/nav-icon.png"
+      alt=""
+      width={size}
+      height={size}
+      style={{ display: 'block', flexShrink: 0 }}
+    />
+  );
+}
 
 function DashboardLayout() {
   const [opened, { toggle, close }] = useDisclosure();
@@ -52,7 +59,7 @@ function DashboardLayout() {
         <Group h="100%" px="md">
           <Burger opened={opened} onClick={toggle} size="sm" />
           <Group gap={8}>
-            <IconBrandGithub size={18} />
+            <BrandIcon size={20} />
             <Text fw={600} size="sm">
               Git Plus
             </Text>
@@ -63,7 +70,7 @@ function DashboardLayout() {
       <AppShell.Navbar>
         <AppShell.Section p="md" pb="sm">
           <Group gap={8}>
-            <IconBrandGithub size={22} />
+            <BrandIcon size={24} />
             <Text fw={700} size="md">
               Git Plus
             </Text>
