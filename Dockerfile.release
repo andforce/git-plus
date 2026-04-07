@@ -11,9 +11,15 @@ RUN --mount=type=bind,source=dist,target=/dist,readonly \
   esac && \
   cp "/dist/linux-${binary_arch}/git-plus" /git-plus
 
-FROM gcr.io/distroless/static-debian12:nonroot
+FROM debian:12-slim
+
+RUN apt-get update && \
+  apt-get install -y --no-install-recommends git ca-certificates && \
+  rm -rf /var/lib/apt/lists/*
 
 COPY --from=binary /git-plus /git-plus
+
+USER 65532:65532
 
 ENV PORT=8080
 
