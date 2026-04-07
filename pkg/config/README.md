@@ -12,7 +12,8 @@ The server checks this file at startup if it exists. Validation problems are log
 
 ```yaml
 sources:
-  - id: github
+  - id: src_7f4a2c91b0d4e8f123456789
+    name: Work GitHub
     platform: github
     username: octocat
     token: $encrypted$1$REPLACE_WITH_ENCRYPTED_VALUE
@@ -39,7 +40,8 @@ Each source supports the following fields:
 
 | Field                | Type     | Required | Notes                              |
 | -------------------- | -------- | -------- | ---------------------------------- |
-| `id`                 | string   | yes      | Must be unique across all sources  |
+| `id`                 | string   | yes      | System-generated stable identifier |
+| `name`               | string   | no       | Optional display name / remark     |
 | `platform`           | string   | yes      | v1 only supports `github`          |
 | `username`           | string   | yes      | Git provider username              |
 | `token`              | string   | yes      | Must use `$encrypted$1$...` format |
@@ -85,6 +87,8 @@ Validation issues have three severity levels:
 - `error`: the config is invalid
 - `warning`: the config is suspicious but still accepted
 - `info`: reserved for future use
+
+If `name` is omitted in `config.yaml`, API responses fall back to the source `id` for display purposes.
 
 ### Current `error` rules
 

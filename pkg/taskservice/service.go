@@ -278,11 +278,12 @@ func (s *serviceServer) EnqueueSourceSync(
 	req *connect.Request[taskv1.EnqueueSourceSyncRequest],
 ) (*connect.Response[taskv1.EnqueueSourceSyncResponse], error) {
 	sourceID := strings.TrimSpace(req.Msg.GetSourceId())
-	if err := s.ensureSourceExists(sourceID); err != nil {
+	source, err := s.loadSourceByID(sourceID)
+	if err != nil {
 		return nil, err
 	}
 
-	result, snapshot, err := s.manager.Enqueue(s.sourceSyncSpec(sourceID, ""))
+	result, snapshot, err := s.manager.Enqueue(s.sourceSyncSpec(source, ""))
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("enqueue source sync: %w", err))
 	}
@@ -320,31 +321,31 @@ func (s *serviceServer) CancelQueuedTask(
 	}
 }
 
-func (s *serviceServer) ensureSourceExists(sourceID string) error {
+func (s *serviceServer) loadSourceByID(sourceID string) (appconfig.SourceConfig, error) {
 	loaded, _, err := appconfig.LoadOrDefault(appconfig.PathForDataDir(s.dataDir))
 	if err != nil {
-		return connect.NewError(connect.CodeInternal, fmt.Errorf("load config: %w", err))
+		return appconfig.SourceConfig{}, connect.NewError(connect.CodeInternal, fmt.Errorf("load config: %w", err))
 	}
 
 	for _, source := range loaded.Data.Sources {
 		if source.ID == sourceID {
-			return nil
+			return source, nil
 		}
 	}
 
-	return connect.NewError(connect.CodeNotFound, fmt.Errorf("source %q was not found", sourceID))
+	return appconfig.SourceConfig{}, connect.NewError(connect.CodeNotFound, fmt.Errorf("source %q was not found", sourceID))
 }
 
-func (s *serviceServer) sourceSyncSpec(sourceID string, parentTaskID string) task.Spec {
+func (s *serviceServer) sourceSyncSpec(source appconfig.SourceConfig, parentTaskID string) task.Spec {
 	return task.Spec{
 		ParentTaskID: parentTaskID,
-		JobID:        task.BuildSourceSyncJobID(sourceID),
+		JobID:        task.BuildSourceSyncJobID(source.ID),
 		JobType:      task.JobTypeSyncSource,
-		Name:         fmt.Sprintf("Sync source %s", sourceID),
+		Name:         fmt.Sprintf("Sync source %s", appconfig.EffectiveSourceName(source)),
 		Args: map[string]any{
-			"source_id": sourceID,
+			"source_id": source.ID,
 		},
-		Run: s.sourceSyncRunner(sourceID),
+		Run: s.sourceSyncRunner(source.ID),
 	}
 }
 
@@ -393,7 +394,7 @@ func (s *serviceServer) syncAllRunnerWithLogger(logger *log.Logger) func(*task.E
 		failedCount := 0
 
 		for index, source := range loaded.Data.Sources {
-			if err := ctx.SetProgress(fmt.Sprintf("Queueing source %s (%d/%d)", source.ID, index+1, total), map[string]any{
+			if err := ctx.SetProgress(fmt.Sprintf("Queueing source %s (%d/%d)", appconfig.EffectiveSourceName(source), index+1, total), map[string]any{
 				"phase": "enqueue_sources",
 				"index": index + 1,
 				"total": total,
@@ -401,7 +402,7 @@ func (s *serviceServer) syncAllRunnerWithLogger(logger *log.Logger) func(*task.E
 				return err
 			}
 
-			result, _, enqueueErr := s.manager.Enqueue(s.sourceSyncSpec(source.ID, ctx.TaskID()))
+			result, _, enqueueErr := s.manager.Enqueue(s.sourceSyncSpec(source, ctx.TaskID()))
 			if enqueueErr != nil {
 				failedCount++
 				logger.Printf("sync-all enqueue source %q failed: %v", source.ID, enqueueErr)

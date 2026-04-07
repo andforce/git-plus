@@ -137,6 +137,7 @@ var topLevelFields = []string{
 
 var sourceFields = []string{
 	"id",
+	"name",
 	"platform",
 	"username",
 	"token",

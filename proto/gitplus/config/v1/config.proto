@@ -65,6 +65,7 @@ message Source {
   bool include_defaults = 7;
   bool include_starred = 8;
   bool include_watching = 9;
+  string name = 10;
 }
 
 message ConfigSnapshot {
@@ -86,7 +87,7 @@ message StringListValue {
 }
 
 message CreateSourceInput {
-  string id = 1 [(buf.validate.field).string.min_len = 1];
+  reserved 1;
   Platform platform = 2 [(buf.validate.field).enum = {
     defined_only: true
     not_in: [0]
@@ -112,6 +113,7 @@ message CreateSourceInput {
   bool include_defaults = 7;
   bool include_starred = 8;
   bool include_watching = 9;
+  string name = 10;
 }
 
 message UpdateSourcePatch {
@@ -126,6 +128,7 @@ message UpdateSourcePatch {
   bool include_defaults = 6;
   bool include_starred = 7;
   bool include_watching = 8;
+  string name = 9;
 }
 
 message CheckConfigRequest {}

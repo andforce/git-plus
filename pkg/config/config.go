@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -25,6 +26,7 @@ type Config struct {
 
 type SourceConfig struct {
 	ID               string   `yaml:"id"`
+	Name             string   `yaml:"name,omitempty"`
 	Platform         string   `yaml:"platform"`
 	Username         string   `yaml:"username"`
 	Token            string   `yaml:"token"`
@@ -116,4 +118,13 @@ func applySourceDefaults(source SourceConfig, node *yaml.Node) SourceConfig {
 	}
 
 	return source
+}
+
+func EffectiveSourceName(source SourceConfig) string {
+	trimmedName := strings.TrimSpace(source.Name)
+	if trimmedName != "" {
+		return trimmedName
+	}
+
+	return source.ID
 }

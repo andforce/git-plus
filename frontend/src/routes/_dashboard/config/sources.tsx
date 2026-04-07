@@ -21,6 +21,7 @@ import { IconPlus } from '@tabler/icons-react';
 import type { Source } from '~rpc/gitplus/config/v1/config_pb';
 import { configClient } from '~lib/connect/client';
 import { configQueryOptions } from '~lib/config-queries';
+import { sourcePrimaryLabel, sourceSecondaryLabel } from '~lib/source-display';
 import { SourceCard } from '~components/sources/SourceCard';
 import { SourceFormDrawer } from '~components/sources/SourceFormDrawer';
 import { ReplaceTokenModal } from '~components/sources/ReplaceTokenModal';
@@ -54,7 +55,7 @@ function SourcesPage() {
   const createMutation = useMutation({
     mutationFn: (input: {
       source: {
-        id: string;
+        name: string;
         platform: number;
         username: string;
         tokenPlaintext: string;
@@ -77,6 +78,7 @@ function SourcesPage() {
     mutationFn: (input: {
       sourceId: string;
       patch: {
+        name: string;
         platform: number;
         username: string;
         onlyIncludeRepos: { values: Array<string> };
@@ -116,15 +118,18 @@ function SourcesPage() {
   });
 
   const handleDelete = (source: Source) => {
+    const secondaryLabel = sourceSecondaryLabel(source);
+
     modals.openConfirmModal({
       title: 'Delete Source',
       children: (
         <Text size="sm">
           Are you sure you want to delete{' '}
           <Text component="span" fw={600}>
-            {source.id}
+            {sourcePrimaryLabel(source)}
           </Text>
-          ? This action cannot be undone.
+          {secondaryLabel ? ` (${secondaryLabel})` : ''}? This action cannot be
+          undone.
         </Text>
       ),
       labels: { confirm: 'Delete', cancel: 'Cancel' },
@@ -166,7 +171,6 @@ function SourcesPage() {
 
       <SourceFormDrawer
         mode="create"
-        existingSources={sources}
         opened={createOpened}
         onClose={() => setCreateOpened(false)}
         onSubmit={(formData) =>

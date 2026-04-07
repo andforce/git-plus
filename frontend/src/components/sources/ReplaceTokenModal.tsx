@@ -11,6 +11,7 @@ import { useForm } from '@mantine/form';
 import { IconAlertCircle } from '@tabler/icons-react';
 import { useEffect } from 'react';
 import type { Source } from '~rpc/gitplus/config/v1/config_pb';
+import { sourcePrimaryLabel, sourceSecondaryLabel } from '~lib/source-display';
 
 interface ReplaceTokenData {
   sourceId: string;
@@ -68,8 +69,11 @@ export function ReplaceTokenModal({
             <Text size="sm">
               You are replacing the token for source{' '}
               <Text component="span" fw={600}>
-                {source?.id}
+                {source ? sourcePrimaryLabel(source) : ''}
               </Text>
+              {source && sourceSecondaryLabel(source)
+                ? ` (${sourceSecondaryLabel(source)})`
+                : ''}
               . The new token will be encrypted before storage.
             </Text>
           </Alert>

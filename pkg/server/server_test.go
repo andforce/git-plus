@@ -561,7 +561,7 @@ func TestConfigServiceCreateSourceEncryptsAndPersistsToken(t *testing.T) {
 		context.Background(),
 		connect.NewRequest(&configv1.CreateSourceRequest{
 			Source: &configv1.CreateSourceInput{
-				Id:               testStringPtr("github-main"),
+				Name:             testStringPtr("Primary GitHub"),
 				Platform:         testPlatformPtr(configv1.Platform_PLATFORM_GITHUB),
 				Username:         testStringPtr("octocat"),
 				TokenPlaintext:   testStringPtr("super-secret-token"),
@@ -578,6 +578,12 @@ func TestConfigServiceCreateSourceEncryptsAndPersistsToken(t *testing.T) {
 	}
 
 	source := response.Msg.GetConfig().GetSources()[0]
+	if !strings.HasPrefix(source.GetId(), "src_") {
+		t.Fatalf("expected generated source id, got %q", source.GetId())
+	}
+	if source.GetName() != "Primary GitHub" {
+		t.Fatalf("unexpected source name: %q", source.GetName())
+	}
 	if source.GetToken() == "" {
 		t.Fatal("expected encrypted token to be returned")
 	}
@@ -604,6 +610,12 @@ func TestConfigServiceCreateSourceEncryptsAndPersistsToken(t *testing.T) {
 	}
 	if len(loaded.Data.Sources) != 1 {
 		t.Fatalf("expected one persisted source, got %d", len(loaded.Data.Sources))
+	}
+	if loaded.Data.Sources[0].ID != source.GetId() {
+		t.Fatalf("expected persisted source id to match API response, got %q", loaded.Data.Sources[0].ID)
+	}
+	if loaded.Data.Sources[0].Name != "Primary GitHub" {
+		t.Fatalf("expected persisted source name, got %q", loaded.Data.Sources[0].Name)
 	}
 	if loaded.Data.Sources[0].Token != source.GetToken() {
 		t.Fatalf("expected persisted encrypted token to match API response, got %q", loaded.Data.Sources[0].Token)
@@ -660,6 +672,9 @@ concurrency: 5
 	if sources[0].GetToken() != "" {
 		t.Fatalf("expected plaintext token to be withheld, got %q", sources[0].GetToken())
 	}
+	if sources[0].GetName() != "github" {
+		t.Fatalf("expected missing name to fall back to id, got %q", sources[0].GetName())
+	}
 	if sources[0].GetIncludeDefaults() {
 		t.Fatal("expected include_defaults=false from config")
 	}
@@ -692,6 +707,7 @@ concurrency: 5
 		connect.NewRequest(&configv1.UpdateSourceRequest{
 			SourceId: testStringPtr("github"),
 			Patch: &configv1.UpdateSourcePatch{
+				Name:     testStringPtr("Team GitHub"),
 				Username: testStringPtr("hubot"),
 				OnlyIncludeRepos: &configv1.StringListValue{
 					Values: []string{"renamed/repo"},
@@ -718,6 +734,9 @@ concurrency: 5
 	if sources[0].GetUsername() != "hubot" {
 		t.Fatalf("unexpected username: %q", sources[0].GetUsername())
 	}
+	if sources[0].GetName() != "Team GitHub" {
+		t.Fatalf("unexpected source name: %q", sources[0].GetName())
+	}
 	if sources[0].GetToken() != encryptedToken {
 		t.Fatalf("expected token to remain unchanged, got %q", sources[0].GetToken())
 	}
@@ -734,6 +753,9 @@ concurrency: 5
 	}
 	if loaded.Data.Sources[0].ID != "github" {
 		t.Fatalf("unexpected persisted id: %q", loaded.Data.Sources[0].ID)
+	}
+	if loaded.Data.Sources[0].Name != "Team GitHub" {
+		t.Fatalf("unexpected persisted name: %q", loaded.Data.Sources[0].Name)
 	}
 	if loaded.Data.Sources[0].Token != encryptedToken {
 		t.Fatalf("unexpected persisted token: %q", loaded.Data.Sources[0].Token)
@@ -912,7 +934,6 @@ func TestConfigServiceCreateSourceUsesBufValidateInterceptor(t *testing.T) {
 		context.Background(),
 		connect.NewRequest(&configv1.CreateSourceRequest{
 			Source: &configv1.CreateSourceInput{
-				Id:             testStringPtr("github"),
 				Username:       testStringPtr("octocat"),
 				TokenPlaintext: testStringPtr("secret"),
 			},
@@ -928,6 +949,81 @@ func TestConfigServiceCreateSourceUsesBufValidateInterceptor(t *testing.T) {
 	}
 	if connectErr.Code() != connect.CodeInvalidArgument {
 		t.Fatalf("expected invalid argument error, got %s", connectErr.Code())
+	}
+}
+
+func TestConfigServiceCreateSourceFallsBackNameToGeneratedID(t *testing.T) {
+	t.Setenv(appconfig.TokenPassphraseEnvVar, serverTestPassphrase)
+	dataDir := t.TempDir()
+	server := newTestServer(t, dataDir)
+
+	response, err := newConfigServiceClient(server.URL).CreateSource(
+		context.Background(),
+		connect.NewRequest(&configv1.CreateSourceRequest{
+			Source: &configv1.CreateSourceInput{
+				Platform:       testPlatformPtr(configv1.Platform_PLATFORM_GITHUB),
+				Username:       testStringPtr("octocat"),
+				TokenPlaintext: testStringPtr("secret"),
+			},
+		}),
+	)
+	if err != nil {
+		t.Fatalf("create source: %v", err)
+	}
+
+	source := response.Msg.GetConfig().GetSources()[0]
+	if source.GetName() != source.GetId() {
+		t.Fatalf("expected source name to fall back to id, got name=%q id=%q", source.GetName(), source.GetId())
+	}
+
+	loaded, err := appconfig.Load(filepath.Join(dataDir, appconfig.ConfigFilename))
+	if err != nil {
+		t.Fatalf("load persisted config: %v", err)
+	}
+	if loaded.Data.Sources[0].Name != "" {
+		t.Fatalf("expected empty persisted source name when omitted, got %q", loaded.Data.Sources[0].Name)
+	}
+}
+
+func TestConfigServiceUpdateSourceClearsNameFallbackToID(t *testing.T) {
+	t.Setenv(appconfig.TokenPassphraseEnvVar, serverTestPassphrase)
+	encryptedToken := mustEncryptServerToken(t, "secret")
+	dataDir := t.TempDir()
+	writeConfigFile(t, dataDir, `
+sources:
+  - id: github
+    name: Team GitHub
+    platform: github
+    username: octocat
+    token: `+encryptedToken+`
+concurrency: 5
+`)
+	server := newTestServer(t, dataDir)
+
+	response, err := newConfigServiceClient(server.URL).UpdateSource(
+		context.Background(),
+		connect.NewRequest(&configv1.UpdateSourceRequest{
+			SourceId: testStringPtr("github"),
+			Patch: &configv1.UpdateSourcePatch{
+				Name: testStringPtr(""),
+			},
+		}),
+	)
+	if err != nil {
+		t.Fatalf("update source: %v", err)
+	}
+
+	source := response.Msg.GetConfig().GetSources()[0]
+	if source.GetName() != "github" {
+		t.Fatalf("expected cleared name to fall back to id, got %q", source.GetName())
+	}
+
+	loaded, err := appconfig.Load(filepath.Join(dataDir, appconfig.ConfigFilename))
+	if err != nil {
+		t.Fatalf("load persisted config: %v", err)
+	}
+	if loaded.Data.Sources[0].Name != "" {
+		t.Fatalf("expected cleared persisted name to be empty, got %q", loaded.Data.Sources[0].Name)
 	}
 }
 
@@ -1328,6 +1424,7 @@ func TestTaskServiceEnqueueSourceSyncUsesExpectedJobIdentity(t *testing.T) {
 	writeConfigFile(t, dataDir, `
 sources:
   - id: github-main
+    name: Main GitHub
     platform: github
     username: octocat
     token: `+encryptedToken+`
@@ -1343,6 +1440,9 @@ sources:
 	}
 
 	assertTaskIdentity(t, response.Msg.GetTask(), task.JobTypeSyncSource, "sync-source::github-main")
+	if response.Msg.GetTask().GetName() != "Sync source Main GitHub" {
+		t.Fatalf("unexpected task name: %q", response.Msg.GetTask().GetName())
+	}
 	if response.Msg.GetTask().GetParentTaskId() != "" {
 		t.Fatalf("expected direct source sync to have no parent task id, got %q", response.Msg.GetTask().GetParentTaskId())
 	}

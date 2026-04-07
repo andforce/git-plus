@@ -56,6 +56,7 @@ import type {
 import { DownloadStage, DownloadState } from '~rpc/gitplus/repo/v1/repo_pb';
 import { repoClient } from '~lib/connect/client';
 import { apiFetch } from '~lib/connect/transport';
+import { configQueryOptions } from '~lib/config-queries';
 import {
   downloadStageLabel,
   estimateProcessingTime,
@@ -67,10 +68,14 @@ import {
   repoRefChangesQueryOptions,
   repoRefsQueryOptions,
 } from '~lib/repo-queries';
+import { sourcePrimaryLabel, sourceSecondaryLabel } from '~lib/source-display';
 
 export const Route = createFileRoute('/_dashboard/repos/$repoId')({
   loader: ({ context: { queryClient }, params: { repoId } }) =>
-    queryClient.ensureQueryData(repoDetailQueryOptions(repoId)),
+    Promise.all([
+      queryClient.ensureQueryData(repoDetailQueryOptions(repoId)),
+      queryClient.ensureQueryData(configQueryOptions),
+    ]),
   component: RepoDetailPage,
 });
 
@@ -172,6 +177,7 @@ function TabFallback() {
 function RepoDetailPage() {
   const { repoId } = Route.useParams();
   const { data } = useSuspenseQuery(repoDetailQueryOptions(repoId));
+  const { data: configData } = useSuspenseQuery(configQueryOptions);
 
   const [activeTab, setActiveTab] = useState<string | null>('branches');
 
@@ -185,6 +191,11 @@ function RepoDetailPage() {
   });
 
   const repo = data.repository!;
+  const source = (configData.config?.sources ?? []).find(
+    (item) => item.id === repo.sourceId,
+  );
+  const sourceValue = source ? sourcePrimaryLabel(source) : repo.sourceId;
+  const sourceDescription = source ? sourceSecondaryLabel(source) : null;
 
   const meta = repo.meta as Record<string, unknown> | undefined;
   const ownerMeta = meta?.['owner'] as Record<string, unknown> | undefined;
@@ -266,7 +277,11 @@ function RepoDetailPage() {
       </Group>
 
       <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} mb="xl">
-        <InfoCard label="Source" value={repo.sourceId} />
+        <InfoCard
+          label="Source"
+          value={sourceValue}
+          description={sourceDescription ?? undefined}
+        />
         <InfoCard label="Default Branch" value={repo.defaultBranch || '—'} />
         <InfoCard label="First Seen" value={formatTimeAgo(repo.createdAt)} />
         <InfoCard label="Last Seen" value={formatTimeAgo(repo.lastSeenAt)} />
@@ -834,7 +849,15 @@ function ChangesTab({ repoId }: { repoId: string }) {
   );
 }
 
-function InfoCard({ label, value }: { label: string; value: string }) {
+function InfoCard({
+  label,
+  value,
+  description,
+}: {
+  label: string;
+  value: string;
+  description?: string;
+}) {
   return (
     <Box>
       <Text size="xs" c="dimmed" tt="uppercase" fw={600}>
@@ -843,6 +866,11 @@ function InfoCard({ label, value }: { label: string; value: string }) {
       <Text size="sm" fw={500} mt={2}>
         {value}
       </Text>
+      {description && (
+        <Text size="xs" c="dimmed" mt={2}>
+          {description}
+        </Text>
+      )}
     </Box>
   );
 }

@@ -43,6 +43,7 @@ import {
   taskRuntimeQueryOptions,
 } from '~lib/task-queries';
 import { useTaskEvents } from '~lib/use-task-events';
+import { sourceListLabel } from '~lib/source-display';
 
 const PAGE_SIZE = 20;
 
@@ -315,7 +316,7 @@ function TasksPage() {
 function SyncSourceContent({
   sources,
 }: {
-  sources: Array<{ id: string; username: string }>;
+  sources: Array<{ id: string; name: string; username: string }>;
 }) {
   const [selected, setSelected] = useState<Array<string>>([]);
   const queryClient = useQueryClient();
@@ -368,7 +369,7 @@ function SyncSourceContent({
         {sources.map((source) => (
           <Checkbox
             key={source.id}
-            label={`${source.id} — @${source.username}`}
+            label={sourceListLabel(source)}
             checked={selected.includes(source.id)}
             onChange={() => toggle(source.id)}
           />

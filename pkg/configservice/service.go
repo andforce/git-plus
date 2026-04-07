@@ -2,6 +2,8 @@ package configservice
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
@@ -130,6 +132,10 @@ func (s *serviceServer) CreateSource(
 	source, err := createSourceFromProto(req.Msg.GetSource())
 	if err != nil {
 		return nil, err
+	}
+	source.ID, err = generateUniqueSourceID(loaded.Data.Sources)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, fmt.Errorf("generate source id: %w", err))
 	}
 	if findSourceIndex(loaded.Data.Sources, source.ID) >= 0 {
 		return nil, connect.NewError(connect.CodeAlreadyExists, fmt.Errorf("source %q already exists", source.ID))
@@ -268,6 +274,10 @@ func (s *serviceServer) loadConfigForMutation() (appconfig.LoadedConfig, error) 
 
 func (s *serviceServer) sortSources(cfg *appconfig.Config) {
 	slices.SortFunc(cfg.Sources, func(a appconfig.SourceConfig, b appconfig.SourceConfig) int {
+		if nameCompare := strings.Compare(appconfig.EffectiveSourceName(a), appconfig.EffectiveSourceName(b)); nameCompare != 0 {
+			return nameCompare
+		}
+
 		return strings.Compare(a.ID, b.ID)
 	})
 }
@@ -337,6 +347,7 @@ func toProtoSource(source appconfig.SourceConfig) *configv1.Source {
 		IncludeDefaults:  boolPtr(source.IncludeDefaults),
 		IncludeStarred:   boolPtr(source.IncludeStarred),
 		IncludeWatching:  boolPtr(source.IncludeWatching),
+		Name:             stringPtr(appconfig.EffectiveSourceName(source)),
 	}
 }
 
@@ -372,7 +383,7 @@ func createSourceFromProto(input *configv1.CreateSourceInput) (appconfig.SourceC
 		return appconfig.SourceConfig{}, err
 	}
 
-	id, err := normalizeRequiredString("source.id", input.GetId())
+	name, err := normalizeOptionalString(input.GetName())
 	if err != nil {
 		return appconfig.SourceConfig{}, err
 	}
@@ -390,7 +401,7 @@ func createSourceFromProto(input *configv1.CreateSourceInput) (appconfig.SourceC
 	}
 
 	return appconfig.SourceConfig{
-		ID:               id,
+		Name:             name,
 		Platform:         platform,
 		Username:         username,
 		Token:            encryptedToken,
@@ -456,6 +467,14 @@ func applySourcePatch(input *configv1.UpdateSourcePatch, existingSource appconfi
 		updatedSource.IncludeWatching = input.GetIncludeWatching()
 	}
 
+	if input.Name != nil {
+		name, err := normalizeOptionalString(input.GetName())
+		if err != nil {
+			return appconfig.SourceConfig{}, err
+		}
+		updatedSource.Name = name
+	}
+
 	return updatedSource, nil
 }
 
@@ -511,6 +530,10 @@ func normalizeRequiredString(field string, value string) (string, error) {
 	return trimmedValue, nil
 }
 
+func normalizeOptionalString(value string) (string, error) {
+	return strings.TrimSpace(value), nil
+}
+
 func normalizeStringList(field string, values []string) ([]string, error) {
 	if len(values) == 0 {
 		return []string{}, nil
@@ -552,7 +575,8 @@ func isEmptySourcePatch(input *configv1.UpdateSourcePatch) bool {
 		input.ExcludeRepos == nil &&
 		input.IncludeDefaults == nil &&
 		input.IncludeStarred == nil &&
-		input.IncludeWatching == nil
+		input.IncludeWatching == nil &&
+		input.Name == nil
 }
 
 func isEmptyConfigPatch(input *configv1.UpdateConfigRequest) bool {
@@ -601,4 +625,27 @@ func boolValueOrDefault(value *bool, defaultValue bool) bool {
 	}
 
 	return *value
+}
+
+func generateUniqueSourceID(sources []appconfig.SourceConfig) (string, error) {
+	for attempt := 0; attempt < 32; attempt++ {
+		id, err := generateSourceID()
+		if err != nil {
+			return "", err
+		}
+		if findSourceIndex(sources, id) < 0 {
+			return id, nil
+		}
+	}
+
+	return "", errors.New("could not generate a unique source id")
+}
+
+func generateSourceID() (string, error) {
+	randomBytes := make([]byte, 12)
+	if _, err := rand.Read(randomBytes); err != nil {
+		return "", err
+	}
+
+	return "src_" + hex.EncodeToString(randomBytes), nil
 }

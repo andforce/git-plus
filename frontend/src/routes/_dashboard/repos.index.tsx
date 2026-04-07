@@ -37,6 +37,7 @@ import {
 import type { Repository } from '~rpc/gitplus/repo/v1/repo_pb';
 import { configQueryOptions } from '~lib/config-queries';
 import { repoCountQueryOptions, repoListQueryOptions } from '~lib/repo-queries';
+import { sourceListLabel } from '~lib/source-display';
 
 const SORT_OPTIONS: Array<{
   key: string;
@@ -128,7 +129,7 @@ function ReposPage() {
   const sources = configData.config?.sources ?? [];
   const sourceOptions = sources.map((s) => ({
     value: s.id,
-    label: `${s.id} — @${s.username}`,
+    label: sourceListLabel(s),
   }));
 
   const handleSearchChange = (value: string) => {

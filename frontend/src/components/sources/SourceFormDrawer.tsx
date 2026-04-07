@@ -25,10 +25,11 @@ import {
 } from '@tabler/icons-react';
 import type { Source } from '~rpc/gitplus/config/v1/config_pb';
 import { Platform } from '~rpc/gitplus/config/v1/config_pb';
+import { sourceSecondaryLabel } from '~lib/source-display';
 
 interface CreateData {
   source: {
-    id: string;
+    name: string;
     platform: Platform;
     username: string;
     tokenPlaintext: string;
@@ -43,6 +44,7 @@ interface CreateData {
 interface UpdateData {
   sourceId: string;
   patch: {
+    name: string;
     platform: Platform;
     username: string;
     onlyIncludeRepos: { values: Array<string> };
@@ -56,7 +58,6 @@ interface UpdateData {
 interface SourceFormDrawerProps {
   mode: 'create' | 'edit';
   source?: Source | null;
-  existingSources?: Array<Source>;
   opened: boolean;
   onClose: () => void;
   onSubmit: (data: CreateData | UpdateData) => void;
@@ -64,7 +65,7 @@ interface SourceFormDrawerProps {
 }
 
 interface FormValues {
-  id: string;
+  name: string;
   username: string;
   tokenPlaintext: string;
   onlyIncludeRepos: Array<string>;
@@ -74,34 +75,9 @@ interface FormValues {
   includeWatching: boolean;
 }
 
-function platformName(p: Platform): string {
-  switch (p) {
-    case Platform.GITHUB:
-      return 'github';
-    default:
-      return 'source';
-  }
-}
-
-function randomSuffix(): string {
-  const chars = 'abcdefghijklmnopqrstuvwxyz';
-  let result = '';
-  for (let i = 0; i < 6; i++) {
-    result += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return result;
-}
-
-function generateSourceId(p: Platform, existingSources: Array<Source>): string {
-  const name = platformName(p);
-  const hasSamePlatform = existingSources.some((s) => s.platform === p);
-  return hasSamePlatform ? `${name}-${randomSuffix()}` : name;
-}
-
 export function SourceFormDrawer({
   mode,
   source,
-  existingSources = [],
   opened,
   onClose,
   onSubmit,
@@ -112,7 +88,7 @@ export function SourceFormDrawer({
 
   const form = useForm<FormValues>({
     initialValues: {
-      id: '',
+      name: '',
       username: '',
       tokenPlaintext: '',
       onlyIncludeRepos: [],
@@ -122,7 +98,6 @@ export function SourceFormDrawer({
       includeWatching: false,
     },
     validate: {
-      id: (value) => (value.trim() ? null : 'Source ID is required'),
       username: (value) => (value.trim() ? null : 'Username is required'),
       tokenPlaintext: (value) =>
         mode === 'create' && !value.trim() ? 'Token is required' : null,
@@ -134,7 +109,7 @@ export function SourceFormDrawer({
     if (mode === 'edit' && source) {
       setPlatform(source.platform);
       form.setValues({
-        id: source.id,
+        name: sourceSecondaryLabel(source) == null ? '' : source.name,
         username: source.username,
         tokenPlaintext: '',
         onlyIncludeRepos: [...source.onlyIncludeRepos],
@@ -155,7 +130,7 @@ export function SourceFormDrawer({
       setPlatform(null);
       setAdvancedOpen(false);
       form.setInitialValues({
-        id: '',
+        name: '',
         username: '',
         tokenPlaintext: '',
         onlyIncludeRepos: [],
@@ -170,9 +145,6 @@ export function SourceFormDrawer({
 
   const handlePlatformSelect = (p: Platform) => {
     setPlatform(p);
-    if (mode === 'create') {
-      form.setFieldValue('id', generateSourceId(p, existingSources));
-    }
   };
 
   const handleSubmit = (values: FormValues) => {
@@ -180,7 +152,7 @@ export function SourceFormDrawer({
     if (mode === 'create') {
       onSubmit({
         source: {
-          id: values.id.trim(),
+          name: values.name.trim(),
           platform,
           username: values.username.trim(),
           tokenPlaintext: values.tokenPlaintext.trim(),
@@ -195,6 +167,7 @@ export function SourceFormDrawer({
       onSubmit({
         sourceId: source!.id,
         patch: {
+          name: values.name.trim(),
           platform,
           username: values.username.trim(),
           onlyIncludeRepos: { values: values.onlyIncludeRepos },
@@ -257,12 +230,10 @@ export function SourceFormDrawer({
               </Text>
               <Stack gap="sm">
                 <TextInput
-                  label="Source ID"
-                  description="A unique identifier for this source"
-                  placeholder="my-github"
-                  required
-                  disabled={mode === 'edit'}
-                  {...form.getInputProps('id')}
+                  label="Name"
+                  description="Optional display name or remark for this source"
+                  placeholder="Work GitHub"
+                  {...form.getInputProps('name')}
                 />
                 <TextInput
                   label="Username"

@@ -15,6 +15,7 @@ import {
   IconTrash,
 } from '@tabler/icons-react';
 import type { Source } from '~rpc/gitplus/config/v1/config_pb';
+import { sourcePrimaryLabel, sourceSecondaryLabel } from '~lib/source-display';
 
 interface SourceCardProps {
   source: Source;
@@ -31,15 +32,23 @@ export function SourceCard({
 }: SourceCardProps) {
   const scopeBadges = getScopeBadges(source);
   const repoSummary = getRepoSummary(source);
+  const secondaryLabel = sourceSecondaryLabel(source);
 
   return (
     <Card withBorder radius="md" padding="md">
       <Group justify="space-between" wrap="nowrap" mb="sm">
         <Group gap="xs" wrap="nowrap" style={{ minWidth: 0 }}>
           <IconBrandGithub size={18} style={{ flexShrink: 0 }} />
-          <Text fw={600} size="sm" truncate="end">
-            {source.id}
-          </Text>
+          <Stack gap={0} style={{ minWidth: 0 }}>
+            <Text fw={600} size="sm" truncate="end">
+              {sourcePrimaryLabel(source)}
+            </Text>
+            {secondaryLabel && (
+              <Text size="xs" c="dimmed" truncate="end">
+                {secondaryLabel}
+              </Text>
+            )}
+          </Stack>
         </Group>
 
         <Menu position="bottom-end" withArrow shadow="md">

@@ -73,6 +73,18 @@ sources:
 	}
 }
 
+func TestEffectiveSourceNameFallsBackToID(t *testing.T) {
+	source := SourceConfig{ID: "source-id"}
+	if EffectiveSourceName(source) != "source-id" {
+		t.Fatalf("expected source id fallback, got %q", EffectiveSourceName(source))
+	}
+
+	source.Name = "Display Name"
+	if EffectiveSourceName(source) != "Display Name" {
+		t.Fatalf("expected source name, got %q", EffectiveSourceName(source))
+	}
+}
+
 func TestValidateConfigReportsExpectedIssues(t *testing.T) {
 	encryptedToken := mustEncryptToken(t, "secret", testPassphrase)
 	configPath := writeConfigFile(t, `
