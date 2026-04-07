@@ -225,14 +225,11 @@ export function SourceFormDrawer({
           {/* Tier 2: Required fields */}
           {platformSelected && (
             <Box>
-              <Text size="xs" fw={500} c="dimmed" tt="uppercase" mb="xs">
-                Required
-              </Text>
               <Stack gap="sm">
                 <TextInput
                   label="Name"
-                  description="Optional display name or remark for this source"
-                  placeholder="Work GitHub"
+                  description="(Optional) display name or remark for this source"
+                  placeholder="My GitHub"
                   {...form.getInputProps('name')}
                 />
                 <TextInput
@@ -251,6 +248,7 @@ export function SourceFormDrawer({
                         <Anchor
                           href="https://github.com/settings/tokens"
                           target="_blank"
+                          style={{ fontSize: 'inherit', lineHeight: 'inherit' }}
                         >
                           https://github.com/settings/tokens
                         </Anchor>
