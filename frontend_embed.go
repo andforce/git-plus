@@ -10,7 +10,7 @@ import (
 	"github.com/ImSingee/git-plus/pkg/frontend"
 )
 
-//go:embed frontend/dist
+//go:embed all:frontend/dist
 var embeddedFrontendFiles embed.FS
 
 func newFrontendHandler() (http.Handler, error) {
