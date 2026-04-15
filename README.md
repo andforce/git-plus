@@ -6,33 +6,28 @@
 
 ## Quick start
 
-1. Generate a random encryption passphrase:
+1. Set a secret used to encrypt tokens:
 
 ```bash
 openssl rand -base64 32
-```
-
-2. Export the passphrase:
-
-```bash
 export ENCRYPTION_PASSPHRASE='paste-the-generated-value'
 ```
 
-3. Export an API password:
+2. Set a dashboard password:
 
 ```bash
 export PASSWORD='choose-a-strong-password'
 ```
 
-4. Start the server:
+3. Start the server:
+
+[Binary](https://github.com/ImSingee/git-plus/releases):
 
 ```bash
 ./git-plus --data-dir ./data
 ```
 
-## Quick Setup
-
-If you want to get started with Docker, run:
+[Docker](https://github.com/ImSingee/git-plus/pkgs/container/git-plus):
 
 ```bash
 docker run -d \
@@ -45,11 +40,10 @@ docker run -d \
   --data-dir /data
 ```
 
-Then open `http://localhost:8080` and:
-
-1. Go to `/config/sources` and add a source.
-2. Optional: go to `/config/cron` and add a scheduled sync task if you want automatic pulling.
-3. Optional: go to `/maintenance/tasks` and click `Sync All` to run the first sync immediately.
+4. Configure the dashboard at `http://localhost:8080`:
+   1. Go to `/config/sources` and add a source.
+   2. (Optional) Go to `/config/cron` and add a scheduled sync task if you want automatic pulling.
+   3. (Optional) Go to `/maintenance/tasks` and click `Sync All` to run the first sync immediately.
 
 ## CLI usage
 
@@ -93,7 +87,7 @@ Subcommands:
   - Used to validate encrypted tokens in `<data-dir>/config.yaml`.
 - `PASSWORD`
   - Required before the server command starts.
-  - Used to protect all APIs mounted under `/api`.
+  - Dashboard password used to protect all APIs mounted under `/api`.
   - Clients should send it with `Authorization: Bearer <PASSWORD>`.
   - Special case: if set to `insecure-noauth`, API authentication is disabled and startup prints a warning.
 
