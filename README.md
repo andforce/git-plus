@@ -4,6 +4,20 @@
 
 > Spoiler: the project will soon support more git-repository-based features, which is why it is called `git-plus` instead of `git-backup`.
 
+## Highlights
+
+1. Crafted dashboard experience for browsing repositories, sync state, and history in one place.
+
+![Crafted dashboard](images/highlight-1.jpg)
+
+2. Backs up your own repositories, starred repositories, and watched repositories. This covers both sides of the problem: preserving code you wrote in case your account is suspended or lost, and preserving repositories you follow in case they are deleted, rewritten, or otherwise changed unexpectedly.
+
+![Backup sources](images/highlight-2.jpg)
+
+3. Records the full history of branch-head commit changes, not just the latest snapshot. This makes it possible to trace accidental force-pushes, overwritten branches, and upstream incidents without relying on manual `git reflog` recovery or guessing commits by time.
+
+![Commit history tracking](images/highlight-3.jpg)
+
 ## Quick start
 
 1. Set a secret used to encrypt tokens:
