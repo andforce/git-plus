@@ -163,6 +163,33 @@ function renderHashDisplay(change: RepoRefChange) {
   }
 }
 
+function ChangeCommitCell({
+  change,
+  maxWidth,
+}: {
+  change: RepoRefChange;
+  maxWidth?: number;
+}) {
+  const commit = change.newCommit;
+
+  return (
+    <Table.Td style={maxWidth ? { maxWidth } : undefined}>
+      <Box>
+        <Box fz="xs">{renderHashDisplay(change)}</Box>
+        {commit?.message ? (
+          <Text size="xs" c="dimmed" lineClamp={1}>
+            {truncateMessage(commit.message)}
+          </Text>
+        ) : (
+          <Text size="xs" c="dimmed">
+            —
+          </Text>
+        )}
+      </Box>
+    </Table.Td>
+  );
+}
+
 function TabFallback() {
   return (
     <Center py="xl">
@@ -743,7 +770,6 @@ function RefHistoryDrawerContent({
           <Table.Tr>
             <Table.Th>Time</Table.Th>
             <Table.Th>Action</Table.Th>
-            <Table.Th>Hash</Table.Th>
             <Table.Th>Commit</Table.Th>
           </Table.Tr>
         </Table.Thead>
@@ -764,8 +790,6 @@ function RefHistoryDrawerContent({
 }
 
 function RefChangeRow({ change }: { change: RepoRefChange }) {
-  const commit = change.newCommit;
-
   return (
     <Table.Tr>
       <Table.Td>
@@ -780,18 +804,7 @@ function RefChangeRow({ change }: { change: RepoRefChange }) {
           {change.action}
         </Badge>
       </Table.Td>
-      <Table.Td>{renderHashDisplay(change)}</Table.Td>
-      <Table.Td>
-        {commit?.message ? (
-          <Text size="xs" lineClamp={1}>
-            {truncateMessage(commit.message)}
-          </Text>
-        ) : (
-          <Text size="xs" c="dimmed">
-            —
-          </Text>
-        )}
-      </Table.Td>
+      <ChangeCommitCell change={change} />
     </Table.Tr>
   );
 }
@@ -826,7 +839,6 @@ function ChangesTab({ repoId }: { repoId: string }) {
             <Table.Th>Time</Table.Th>
             <Table.Th>Ref</Table.Th>
             <Table.Th>Action</Table.Th>
-            <Table.Th>Hash</Table.Th>
             <Table.Th>Commit</Table.Th>
           </Table.Tr>
         </Table.Thead>
@@ -940,8 +952,6 @@ function RefRow({
 }
 
 function ChangeRow({ change }: { change: RepoRefChange }) {
-  const commit = change.newCommit;
-
   return (
     <Table.Tr>
       <Table.Td>
@@ -966,30 +976,7 @@ function ChangeRow({ change }: { change: RepoRefChange }) {
           {change.action}
         </Badge>
       </Table.Td>
-      <Table.Td>{renderHashDisplay(change)}</Table.Td>
-      <Table.Td style={{ maxWidth: 320 }}>
-        {commit?.message ? (
-          <>
-            <Text size="xs" lineClamp={1}>
-              {truncateMessage(commit.message)}
-            </Text>
-            {(commit.authorName || commit.committedAt) && (
-              <Text size="xs" c="dimmed">
-                {[
-                  commit.authorName,
-                  commit.committedAt && formatTimeAgo(commit.committedAt),
-                ]
-                  .filter(Boolean)
-                  .join(', ')}
-              </Text>
-            )}
-          </>
-        ) : (
-          <Text size="xs" c="dimmed">
-            —
-          </Text>
-        )}
-      </Table.Td>
+      <ChangeCommitCell change={change} maxWidth={320} />
     </Table.Tr>
   );
 }
