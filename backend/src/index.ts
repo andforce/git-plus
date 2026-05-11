@@ -1,7 +1,6 @@
 import { existsSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
-import { Readable } from 'node:stream';
 import process from 'node:process';
 import { fastify } from 'fastify';
 import fastifyStatic from '@fastify/static';
@@ -331,23 +330,71 @@ async function proxyToFrontendDevServer(
   }
   const target = new URL(request.raw.url ?? '/', upstream);
   const method = request.method;
-  const response = await fetch(target, {
+  const init: RequestInit & { duplex?: 'half' } = {
     method,
-    headers: request.headers as HeadersInit,
-    body: method === 'GET' || method === 'HEAD' ? undefined : request.raw,
-    duplex: 'half',
-  } as RequestInit & { duplex: 'half' });
+    headers: proxyRequestHeaders(request.headers),
+  };
+
+  if (method !== 'GET' && method !== 'HEAD') {
+    init.body = request.raw as unknown as BodyInit;
+    init.duplex = 'half';
+  }
+
+  const response = await fetch(target, init);
   reply.code(response.status);
-  response.headers.forEach((value, key) => reply.header(key, value));
-  if (!response.body) {
+  response.headers.forEach((value, key) => {
+    if (shouldSkipProxyResponseHeader(key)) return;
+    reply.header(key, value);
+  });
+  if (method === 'HEAD' || isBodylessResponseStatus(response.status)) {
     reply.send();
     return;
   }
-  reply.send(
-    Readable.fromWeb(
-      response.body as unknown as Parameters<typeof Readable.fromWeb>[0],
-    ),
+  const body = Buffer.from(await response.arrayBuffer());
+  reply.header('content-length', body.byteLength);
+  reply.send(body);
+}
+
+function proxyRequestHeaders(headers: FastifyRequest['headers']): HeadersInit {
+  const nextHeaders = new Headers();
+  for (const [key, value] of Object.entries(headers)) {
+    if (value === undefined || shouldSkipProxyRequestHeader(key)) continue;
+    if (Array.isArray(value)) {
+      for (const item of value) nextHeaders.append(key, item);
+    } else {
+      nextHeaders.set(key, String(value));
+    }
+  }
+  return nextHeaders;
+}
+
+function shouldSkipProxyRequestHeader(header: string): boolean {
+  const normalized = header.toLowerCase();
+  return normalized === 'host' || hopByHopHeaders.has(normalized);
+}
+
+function shouldSkipProxyResponseHeader(header: string): boolean {
+  const normalized = header.toLowerCase();
+  return (
+    normalized === 'content-length' ||
+    normalized === 'content-encoding' ||
+    hopByHopHeaders.has(normalized)
   );
 }
+
+function isBodylessResponseStatus(status: number): boolean {
+  return status === 204 || status === 304;
+}
+
+const hopByHopHeaders = new Set([
+  'connection',
+  'keep-alive',
+  'proxy-authenticate',
+  'proxy-authorization',
+  'te',
+  'trailer',
+  'transfer-encoding',
+  'upgrade',
+]);
 
 void main();

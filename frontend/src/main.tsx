@@ -5,6 +5,10 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { Toaster } from 'sonner';
 import { App, queryClient } from './App';
+import '@mantine/core/styles.css';
+import '@mantine/nprogress/styles.css';
+import 'sonner/dist/styles.css';
+import '~ui/theme/style.css';
 import '~styles.css';
 
 dayjs.extend(relativeTime);
