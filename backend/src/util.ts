@@ -2,6 +2,8 @@ import { timestampFromDate } from '@bufbuild/protobuf/wkt';
 import type { Timestamp } from '@bufbuild/protobuf/wkt';
 import type { JsonRecord } from './types';
 
+const REDACTED_TOKEN = '[redacted-token]';
+
 export function nowIso(): string {
   return new Date().toISOString();
 }
@@ -62,4 +64,23 @@ export function sleep(ms: number): Promise<void> {
 
 export function asError(value: unknown): Error {
   return value instanceof Error ? value : new Error(String(value));
+}
+
+export function redactTokenText(
+  input: string,
+  secrets: Array<string | undefined> = [],
+): string {
+  let result = input.replace(
+    /Authorization:\s*(?:Bearer|Basic)\s+[A-Za-z0-9+/._~=-]+/gi,
+    ['Authorization:', REDACTED_TOKEN].join(' '),
+  );
+  for (const secret of secrets) {
+    const trimmed = secret?.trim();
+    if (trimmed) {
+      result = result.split(trimmed).join(REDACTED_TOKEN);
+    }
+  }
+  return result
+    .replace(/\bgithub_pat_[A-Za-z0-9_]+\b/g, REDACTED_TOKEN)
+    .replace(/\bgh[pousr]_[A-Za-z0-9_]+\b/g, REDACTED_TOKEN);
 }

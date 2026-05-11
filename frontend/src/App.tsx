@@ -1074,23 +1074,26 @@ function SourceForm({
             }
           />
         </Field>
-        <div className="grid gap-2 sm:grid-cols-3">
-          <Checkbox
-            label="Default"
-            checked={includeDefaults}
-            onChange={setIncludeDefaults}
-          />
-          <Checkbox
-            label="Starred"
-            checked={includeStarred}
-            onChange={setIncludeStarred}
-          />
-          <Checkbox
-            label="Watching"
-            checked={includeWatching}
-            onChange={setIncludeWatching}
-          />
-        </div>
+        <fieldset className="space-y-2">
+          <legend className="text-sm font-medium">Repository selection</legend>
+          <div className="grid gap-2 sm:grid-cols-3">
+            <Checkbox
+              label="Default"
+              checked={includeDefaults}
+              onChange={setIncludeDefaults}
+            />
+            <Checkbox
+              label="Starred"
+              checked={includeStarred}
+              onChange={setIncludeStarred}
+            />
+            <Checkbox
+              label="Watching"
+              checked={includeWatching}
+              onChange={setIncludeWatching}
+            />
+          </div>
+        </fieldset>
         <Field label="Only include repos">
           <Textarea
             value={onlyIncludeRepos}

@@ -6,7 +6,7 @@ import { promisify } from 'node:util';
 import { minimatch } from 'minimatch';
 import { decryptToken } from './crypto';
 import { TOKEN_PASSPHRASE_ENV, loadConfigOrDefault } from './config-store';
-import { asError, nowIso, sleep } from './util';
+import { asError, nowIso, redactTokenText, sleep } from './util';
 import type {
   AppDatabase,
   JsonRecord,
@@ -91,6 +91,13 @@ type RepoSyncOutcome = {
   deletedRefs: number;
   error?: Error;
 };
+
+class GitAuthenticationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'GitAuthenticationError';
+  }
+}
 
 export async function syncAllSources(
   dataDir: string,
@@ -512,6 +519,9 @@ async function syncRepoWithRetry(
       return await syncRepoOnce(dataDir, db, source, runId, repo);
     } catch (error) {
       lastError = asError(error);
+      if (lastError instanceof GitAuthenticationError) {
+        break;
+      }
       if (attempt < maxRetryTimes) {
         await sleep(Math.min(120_000, 10_000 * 2 ** attempt));
       }
@@ -880,7 +890,7 @@ function recordRepoSyncFailure(
     runId,
     `Failed to sync ${repo.full_name}`,
     JSON.stringify({ repo_id: repo.id, full_name: repo.full_name }),
-    error?.message ?? 'unknown error',
+    redactTokenText(error?.message ?? 'unknown error'),
     nowIso(),
   );
 }
@@ -890,14 +900,73 @@ async function runGit(
   args: Array<string>,
   token?: string,
 ): Promise<{ stdout: string; stderr: string }> {
-  const authArgs = token
-    ? ['-c', `http.extraHeader=Authorization: Bearer ${token}`]
-    : [];
-  const result = await execFileAsync('git', [...authArgs, ...args], {
-    cwd,
-    maxBuffer: 20 * 1024 * 1024,
-  });
-  return { stdout: result.stdout, stderr: result.stderr };
+  try {
+    const result = await execFileAsync('git', args, {
+      cwd,
+      env: gitProcessEnv(token),
+      maxBuffer: 20 * 1024 * 1024,
+    });
+    return { stdout: result.stdout, stderr: result.stderr };
+  } catch (error) {
+    throw toGitError(error, token);
+  }
+}
+
+export function githubGitAuthHeader(token: string): string {
+  return `Authorization: Basic ${Buffer.from(
+    `x-access-token:${token}`,
+    'utf8',
+  ).toString('base64')}`;
+}
+
+function gitProcessEnv(token?: string): NodeJS.ProcessEnv {
+  const trimmed = token?.trim();
+  if (!trimmed) return process.env;
+
+  const existingCount = Number.parseInt(
+    process.env.GIT_CONFIG_COUNT ?? '0',
+    10,
+  );
+  const configIndex =
+    Number.isFinite(existingCount) && existingCount >= 0 ? existingCount : 0;
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    GIT_TERMINAL_PROMPT: '0',
+    GIT_CONFIG_COUNT: String(configIndex + 1),
+  };
+  env[`GIT_CONFIG_KEY_${configIndex}`] = 'http.extraHeader';
+  env[`GIT_CONFIG_VALUE_${configIndex}`] = githubGitAuthHeader(trimmed);
+  return env;
+}
+
+function toGitError(error: unknown, token?: string): Error {
+  const candidate = error as {
+    message?: unknown;
+    stderr?: unknown;
+    stdout?: unknown;
+  };
+  const message = [
+    typeof candidate.stderr === 'string' ? candidate.stderr : '',
+    typeof candidate.stdout === 'string' ? candidate.stdout : '',
+    typeof candidate.message === 'string' ? candidate.message : String(error),
+  ]
+    .map((part) => redactTokenText(part, [token]))
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .join('\n');
+
+  if (isGitAuthenticationFailure(message)) {
+    return new GitAuthenticationError(
+      'GitHub authentication failed while reading repository refs; verify the token has repository Contents read access.',
+    );
+  }
+  return new Error(message || 'git command failed');
+}
+
+function isGitAuthenticationFailure(message: string): boolean {
+  return /invalid credentials|authentication failed|could not read username|could not read password/i.test(
+    message,
+  );
 }
 
 function runGitSync(cwd: string, args: Array<string>): string {

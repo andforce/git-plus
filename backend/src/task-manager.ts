@@ -4,7 +4,7 @@ import {
   TaskEnqueueResult,
   TaskState,
 } from '../../frontend/src/rpc/gitplus/task/v1/task_pb';
-import { nowIso, parseJsonObject, toTimestamp } from './util';
+import { nowIso, parseJsonObject, redactTokenText, toTimestamp } from './util';
 import type { EventBus } from './event-bus';
 import type {
   Task,
@@ -222,8 +222,9 @@ export class TaskManager {
     } catch (error) {
       entry.state = 'failed';
       entry.finishedAt = nowIso();
-      entry.errorMessage =
-        error instanceof Error ? error.message : String(error);
+      entry.errorMessage = redactTokenText(
+        error instanceof Error ? error.message : String(error),
+      );
       this.recordFailed(entry);
       this.publish('task.failed', entry);
     } finally {
