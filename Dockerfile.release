@@ -1,28 +1,45 @@
 # syntax=docker/dockerfile:1.7
 
-FROM alpine:3.21 AS binary
+FROM node:24-bookworm-slim AS build
 
-RUN --mount=type=bind,source=dist,target=/dist,readonly \
-  arch="$(uname -m)" && \
-  case "${arch}" in \
-    x86_64) binary_arch="amd64" ;; \
-    aarch64) binary_arch="arm64" ;; \
-    *) echo "Unsupported architecture: ${arch}" >&2; exit 1 ;; \
-  esac && \
-  cp "/dist/linux-${binary_arch}/git-plus" /git-plus
+WORKDIR /app
+RUN corepack enable
 
-FROM debian:12-slim
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY backend/package.json backend/package.json
+COPY frontend/package.json frontend/package.json
+COPY db/package.json db/package.json
+
+RUN apt-get update && \
+  apt-get install -y --no-install-recommends python3 make g++ git ca-certificates && \
+  rm -rf /var/lib/apt/lists/*
+
+RUN pnpm install --frozen-lockfile
+
+COPY . .
+RUN pnpm build
+RUN pnpm prune --prod
+
+FROM node:24-bookworm-slim
+
+WORKDIR /app
 
 RUN apt-get update && \
   apt-get install -y --no-install-recommends git ca-certificates && \
   rm -rf /var/lib/apt/lists/*
 
-COPY --from=binary /git-plus /git-plus
+COPY --from=build /app/package.json /app/pnpm-lock.yaml /app/pnpm-workspace.yaml ./
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/backend/node_modules ./backend/node_modules
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/frontend/dist ./frontend/dist
+COPY --from=build /app/db/schema.sql ./db/schema.sql
+COPY --from=build /app/pm2.config.cjs ./pm2.config.cjs
 
-USER 65532:65532
-
+ENV NODE_ENV=production
 ENV PORT=8080
 
 EXPOSE 8080
+VOLUME ["/data"]
 
-ENTRYPOINT ["/git-plus"]
+CMD ["node", "dist/server/index.cjs", "--data-dir", "/data"]

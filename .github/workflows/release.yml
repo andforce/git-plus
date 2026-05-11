@@ -25,42 +25,34 @@ jobs:
           node-version: 24.x
           cache: 'pnpm'
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build frontend
-        run: pnpm build:frontend
+      - name: Build application
+        run: pnpm build
 
-      - name: Build release binaries
+      - name: Package release bundle
         env:
           VERSION: ${{ github.ref_name }}
         run: |
-          mkdir -p dist/linux-amd64 dist/linux-arm64
-
-          for arch in amd64 arm64; do
-            GOOS=linux GOARCH="${arch}" CGO_ENABLED=0 \
-              go build \
-              -trimpath \
-              -tags embed \
-              -ldflags "-s -w -X main.version=${VERSION}" \
-              -o "dist/linux-${arch}/git-plus" \
-              .
-
-            tar -C "dist/linux-${arch}" -czf "dist/git-plus_${VERSION}_linux_${arch}.tar.gz" git-plus
-          done
-
-          (cd dist && sha256sum git-plus_*.tar.gz > checksums.txt)
+          tar -czf "dist/git-plus_${VERSION}_node.tar.gz" \
+            dist/server \
+            frontend/dist \
+            db/schema.sql \
+            package.json \
+            backend/package.json \
+            frontend/package.json \
+            db/package.json \
+            pnpm-lock.yaml \
+            pnpm-workspace.yaml \
+            pm2.config.cjs
+          (cd dist && sha256sum git-plus_*_node.tar.gz > checksums.txt)
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/git-plus_*.tar.gz
+            dist/git-plus_*_node.tar.gz
             dist/checksums.txt
 
       - name: Set image tags

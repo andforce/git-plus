@@ -38,6 +38,7 @@ export default [
       'frontend/.ai',
       'frontend/.tanstack',
       'frontend/dist',
+      'backend/dist',
       'frontend/node_modules',
       'frontend/test-results',
       'frontend/playwright-report',

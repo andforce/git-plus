@@ -1,14 +1,45 @@
-@import '@mantine/core/styles.css';
-@import '@mantine/dates/styles.css';
-@import '@mantine/charts/styles.css';
-@import '@mantine/code-highlight/styles.css';
-@import '@mantine/spotlight/styles.css';
-@import '@mantine/carousel/styles.css';
-@import '@mantine/dropzone/styles.css';
-@import '@mantine/nprogress/styles.css';
+@import 'tailwindcss';
 
-@import './ui/theme/style.css';
+@font-face {
+  font-family: 'Geist';
+  src: url('/fonts/Geist.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Geist Mono';
+  src: url('/fonts/GeistMono.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
 
 html {
   scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: #f6f8fa;
+  color: #1f2328;
+  font-family:
+    'Geist',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+code,
+.font-mono {
+  font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
 }

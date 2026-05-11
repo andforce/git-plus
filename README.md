@@ -23,15 +23,15 @@
 
 ![Commit history tracking](images/highlight-3.jpg)
 
-## 运行要求
+## Runtime Requirements
 
-本地开发需要：
+Local development requires:
 
-- Go
 - Node.js `>=22`
 - pnpm `10.12.2`
+- Git
 
-生产运行可以使用项目构建出的二进制文件，也可以使用 Docker 镜像。
+Production can run the built Node server directly, under PM2, or as the Docker image.
 
 ## 必要环境变量
 
@@ -61,33 +61,33 @@ export PASSWORD='insecure-noauth'
 
 不要在真实备份或可被他人访问的环境中使用 `insecure-noauth`。
 
-## 本地开发运行
+## Local Development
 
-1. 安装依赖：
+1. Install dependencies:
 
 ```bash
 pnpm install
 ```
 
-2. 配置环境变量：
+2. Configure environment variables:
 
 ```bash
 export PASSWORD='abc123'
 export ENCRYPTION_PASSPHRASE="$(openssl rand -base64 32)"
 ```
 
-3. 启动开发服务：
+3. Start the development servers:
 
 ```bash
 pnpm dev
 ```
 
-`pnpm dev` 会同时启动：
+`pnpm dev` starts both processes:
 
-- 前端 Vite 开发服务器：`http://127.0.0.1:43210`
-- Go 后端服务：`http://localhost:8080`
+- Vite frontend dev server: `http://127.0.0.1:43210`
+- Node backend server: `http://localhost:8080`
 
-开发模式下，Go 后端会把非 `/api` 请求代理到 Vite 前端。运行数据默认写入：
+In development, the Node backend proxies non-`/api` requests to Vite. Runtime data is written to:
 
 ```text
 ./tmpdata
@@ -99,7 +99,7 @@ pnpm dev
 http://localhost:8080
 ```
 
-登录密码就是你设置的 `PASSWORD`，例如上面的 `abc123`。
+The login password is the value of `PASSWORD`, for example `abc123` above.
 
 如果你使用 `direnv`，可以把环境变量写入 `.env`：
 
@@ -109,42 +109,49 @@ direnv allow
 pnpm dev
 ```
 
-## 生产构建运行
+## Production Build
 
-1. 构建前端和后端：
+1. Build the frontend and backend:
 
 ```bash
 pnpm build
 ```
 
-构建产物会生成在：
+The build outputs are:
 
 ```text
-dist/git-plus
+frontend/dist/
+dist/server/index.cjs
 ```
 
-2. 设置稳定的环境变量：
+2. Configure stable environment variables:
 
 ```bash
 export PASSWORD='choose-a-strong-dashboard-password'
 export ENCRYPTION_PASSPHRASE='paste-your-stable-secret-here'
 ```
 
-3. 启动服务：
+3. Start the server directly:
 
 ```bash
-./dist/git-plus --data-dir ./data
+node dist/server/index.cjs --data-dir ./data
 ```
 
-生产运行数据会写入 `--data-dir` 指定的目录。配置文件位置是：
+Or run it with PM2:
+
+```bash
+pnpm pm2:start
+```
+
+Production runtime data is written to `--data-dir`. The config file is:
 
 ```text
 <data-dir>/config.yaml
 ```
 
-SQLite 数据库和仓库归档数据也会保存在这个数据目录下。
+The SQLite database and archived repositories are stored in the same data directory.
 
-## 使用 Docker 运行
+## Docker
 
 ```bash
 docker run -d \
@@ -153,8 +160,7 @@ docker run -d \
   -v "$(pwd)/data:/data" \
   -e PASSWORD='choose-a-strong-dashboard-password' \
   -e ENCRYPTION_PASSPHRASE='paste-your-stable-secret-here' \
-  ghcr.io/imsingee/git-plus:latest \
-  --data-dir /data
+  ghcr.io/imsingee/git-plus:latest
 ```
 
 然后访问：
@@ -294,41 +300,34 @@ cron: '0 * * * *'
 如果必须手动写入 token，不要保存明文 token。可以使用 CLI 生成加密 token：
 
 ```bash
-printf '%s' 'ghp_xxx' | ENCRYPTION_PASSPHRASE='your passphrase' ./dist/git-plus config encrypt-token
+printf '%s' 'ghp_xxx' | ENCRYPTION_PASSPHRASE='your passphrase' node dist/server/index.cjs config encrypt-token
 ```
 
 输出的 `$encrypted$1$...` 可以粘贴到 `config.yaml` 的 `token` 字段。
 
-## CLI 用法
+## Operations Commands
 
-查看帮助：
-
-```bash
-./dist/git-plus --help
-```
-
-启动主服务：
+Start the main server:
 
 ```bash
-./dist/git-plus --data-dir ./data
+node dist/server/index.cjs --data-dir ./data
 ```
 
 常用参数：
 
 - `--data-dir string`：必填，运行数据目录。
-- `--listen, -l string`：监听地址，默认 `:8080`。
-- `--auto-migrate`：启动时自动执行数据库迁移，默认 `true`。
+- `--port string` / `PORT`：监听端口，默认 `8080`。
 
-手动执行数据库迁移：
+Start with PM2:
 
 ```bash
-./dist/git-plus db migrate --data-dir ./data
+pnpm pm2:start
 ```
 
-重新加载 cron 配置：
+Encrypt a token for manual config editing:
 
 ```bash
-./dist/git-plus cron reload --server http://localhost:8080
+printf '%s' 'ghp_xxx' | ENCRYPTION_PASSPHRASE='your passphrase' node dist/server/index.cjs config encrypt-token
 ```
 
 ## 开发常用命令
@@ -343,19 +342,19 @@ pnpm dev
 pnpm build
 ```
 
-构建前端并生成嵌入式 Go 二进制。
+Build the Vite frontend and Node backend bundle.
 
 ```bash
 pnpm test
 ```
 
-运行 Go 测试和前端 Vitest。
+Run backend and frontend Vitest suites.
 
 ```bash
 pnpm check:types
 ```
 
-运行前端 TypeScript 类型检查。
+Run backend and frontend TypeScript type checks.
 
 ```bash
 pnpm lint
@@ -425,7 +424,7 @@ http://localhost:8080
 如果本机已有其他服务占用了 `8080`，可以换端口启动：
 
 ```bash
-./dist/git-plus --data-dir ./data --listen :8090
+PORT=8090 node dist/server/index.cjs --data-dir ./data
 ```
 
 或者开发时临时设置：
