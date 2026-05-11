@@ -11,20 +11,23 @@ import {
   IconCircleDot,
   IconDatabase,
   IconExternalLink,
+  IconFolder,
   IconGitBranch,
+  IconHelpCircle,
   IconLock,
   IconMenu2,
   IconPlus,
   IconRefresh,
   IconSearch,
   IconSettings,
+  IconShieldCheck,
   IconStar,
   IconTag,
   IconTool,
   IconX,
 } from '@tabler/icons-react';
 import dayjs from 'dayjs';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import type {
   RepoRef,
@@ -33,6 +36,7 @@ import type {
 } from '~rpc/gitplus/repo/v1/repo_pb';
 import type { Source } from '~rpc/gitplus/config/v1/config_pb';
 import type { Task } from '~rpc/gitplus/task/v1/task_pb';
+import type { SetupState } from '~lib/setup';
 import { clearToken, getToken, setToken } from '~lib/auth';
 import {
   configClient,
@@ -40,6 +44,7 @@ import {
   repoClient,
   taskClient,
 } from '~lib/connect/client';
+import { completeSetup, getSetupState, selectSetupDataDir } from '~lib/setup';
 import { Platform } from '~rpc/gitplus/config/v1/config_pb';
 import { TaskEnqueueResult, TaskState } from '~rpc/gitplus/task/v1/task_pb';
 
@@ -51,6 +56,8 @@ export const queryClient = new QueryClient({
     },
   },
 });
+
+const GITHUB_TOKEN_URL = 'https://github.com/settings/tokens/new';
 
 type Route =
   | { name: 'repos'; search?: string }
@@ -86,9 +93,16 @@ export function App() {
   const route = useRoute();
   const [mobileNav, setMobileNav] = useState(false);
   const [globalSearch, setGlobalSearch] = useState('');
+  const setupQuery = useQuery({
+    queryKey: ['setup'],
+    queryFn: getSetupState,
+    retry: false,
+  });
+  const setupReady = setupQuery.data?.requiresSetup === false;
   const authQuery = useQuery({
     queryKey: ['auth', getToken()],
     queryFn: () => configClient.ping({}),
+    enabled: setupReady,
     retry: false,
   });
   const activeRepoSearch = route.name === 'repos' ? (route.search ?? '') : '';
@@ -98,6 +112,23 @@ export function App() {
       setGlobalSearch(activeRepoSearch);
     }
   }, [route.name, activeRepoSearch]);
+
+  if (setupQuery.isPending) {
+    return <LoadingScreen />;
+  }
+
+  if (setupQuery.isError) {
+    return <StartupErrorScreen error={setupQuery.error} />;
+  }
+
+  if (setupQuery.data.requiresSetup) {
+    return (
+      <SetupScreen
+        setup={setupQuery.data}
+        onSuccess={() => setupQuery.refetch()}
+      />
+    );
+  }
 
   if (authQuery.isError) {
     clearToken();
@@ -116,6 +147,7 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-[#f6f8fa] text-[#1f2328]">
+      <FirstRunSourcePrompt />
       <header className="sticky top-0 z-30 border-b border-[#d0d7de] bg-[#24292f] text-white">
         <div className="flex h-14 items-center gap-3 px-3 sm:px-4">
           <button
@@ -212,6 +244,171 @@ function RouteView({ route }: { route: Route }) {
     case 'not-found':
       return <NotFoundPage />;
   }
+}
+
+function SetupScreen({
+  setup,
+  onSuccess,
+}: {
+  setup: SetupState;
+  onSuccess: () => void;
+}) {
+  const [currentSetup, setCurrentSetup] = useState(setup);
+  const [password, setPasswordValue] = useState('');
+  const [error, setError] = useState('');
+  const passwordRequired = !currentSetup.authConfigured;
+
+  useEffect(() => {
+    setCurrentSetup(setup);
+  }, [setup]);
+
+  const mutation = useMutation({
+    mutationFn: () =>
+      completeSetup({
+        password: password.trim() || undefined,
+      }),
+    onSuccess: () => {
+      if (password.trim()) setToken(password.trim());
+      queryClient.invalidateQueries();
+      toast.success('Setup complete');
+      onSuccess();
+    },
+    onError: (mutationError) => setError(errorMessage(mutationError)),
+  });
+  const selectDataDirMutation = useMutation({
+    mutationFn: selectSetupDataDir,
+    onSuccess: (nextSetup) => {
+      if (!nextSetup) return;
+      setCurrentSetup(nextSetup);
+      queryClient.setQueryData(['setup'], nextSetup);
+      toast.success('Data location updated');
+      if (!nextSetup.requiresSetup) onSuccess();
+    },
+    onError: (mutationError) => setError(errorMessage(mutationError)),
+  });
+
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#f6f8fa] p-4">
+      <form
+        className="w-full max-w-xl rounded-lg border border-[#d0d7de] bg-white shadow-sm"
+        onSubmit={(event) => {
+          event.preventDefault();
+          setError('');
+          mutation.mutate();
+        }}
+      >
+        <div className="border-b border-[#d0d7de] px-6 py-5">
+          <div className="flex items-start gap-3">
+            <div className="rounded-full border border-[#d0d7de] bg-[#f6f8fa] p-3 text-[#57606a]">
+              <IconShieldCheck size={24} />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-xl font-semibold">Set up Git Plus</h1>
+              <p className="mt-1 text-sm text-[#57606a]">
+                Create the local dashboard lock and storage keys.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-5 px-6 py-5">
+          <div className="rounded-md border border-[#d0d7de] bg-[#f6f8fa] p-3">
+            <div className="flex items-start gap-2">
+              <IconFolder
+                size={18}
+                className="mt-0.5 shrink-0 text-[#57606a]"
+              />
+              <div className="min-w-0">
+                <p className="text-sm font-medium">Data location</p>
+                <p className="mt-1 break-all font-mono text-xs text-[#57606a]">
+                  {currentSetup.dataDir}
+                </p>
+              </div>
+            </div>
+            <div className="mt-3 flex justify-end">
+              <Button
+                variant="secondary"
+                loading={selectDataDirMutation.isPending}
+                onClick={() => {
+                  setError('');
+                  selectDataDirMutation.mutate();
+                }}
+              >
+                <IconFolder size={16} />
+                Choose folder
+              </Button>
+            </div>
+          </div>
+
+          <Field label="Dashboard password">
+            <Input
+              type="password"
+              value={password}
+              onChange={setPasswordValue}
+              autoFocus={passwordRequired}
+              required={passwordRequired}
+              placeholder={
+                passwordRequired
+                  ? 'At least 8 characters'
+                  : 'Leave blank to keep current password'
+              }
+            />
+          </Field>
+
+          {!currentSetup.encryptionConfigured && (
+            <StatusNote
+              tone="neutral"
+              title="A local token encryption key will be generated"
+            />
+          )}
+
+          {error && <p className="text-sm text-[#cf222e]">{error}</p>}
+
+          <Button
+            type="submit"
+            className="w-full justify-center"
+            loading={mutation.isPending}
+          >
+            <IconCheck size={16} />
+            Continue
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function FirstRunSourcePrompt() {
+  const [form, setForm] = useState<SourceFormState | null>(null);
+  const [dismissed, setDismissed] = useState(
+    () => sessionStorage.getItem('git-plus-first-source-dismissed') === 'true',
+  );
+  const configQuery = useQuery({
+    queryKey: ['config'],
+    queryFn: () => configClient.getConfig({}),
+  });
+  const sourceCount = configQuery.data?.config?.sources.length ?? 0;
+  const needsSource =
+    configQuery.data != null && (!configQuery.data.exists || sourceCount === 0);
+
+  useEffect(() => {
+    if (needsSource && !dismissed && !form) {
+      setForm({ mode: 'create' });
+    }
+  }, [dismissed, form, needsSource]);
+
+  if (!form) return null;
+
+  return (
+    <SourceForm
+      form={form}
+      onClose={() => {
+        sessionStorage.setItem('git-plus-first-source-dismissed', 'true');
+        setDismissed(true);
+        setForm(null);
+      }}
+    />
+  );
 }
 
 function ReposPage({ initialSearch = '' }: { initialSearch?: string }) {
@@ -769,7 +966,6 @@ function SourceForm({
   onClose: () => void;
 }) {
   const source = form.source;
-  const [name, setName] = useState(source?.name ?? '');
   const [username, setUsername] = useState(source?.username ?? '');
   const [token, setTokenValue] = useState('');
   const [includeDefaults, setIncludeDefaults] = useState(
@@ -792,7 +988,7 @@ function SourceForm({
       configClient.createSource({
         source: {
           platform: Platform.GITHUB,
-          name,
+          name: '',
           username,
           tokenPlaintext: token,
           includeDefaults,
@@ -816,7 +1012,7 @@ function SourceForm({
         sourceId: source.id,
         patch: {
           platform: Platform.GITHUB,
-          name,
+          name: '',
           username,
           includeDefaults,
           includeStarred,
@@ -854,14 +1050,7 @@ function SourceForm({
           else updateMutation.mutate();
         }}
       >
-        <Field label="Name">
-          <Input
-            value={name}
-            onChange={setName}
-            placeholder="Personal GitHub"
-          />
-        </Field>
-        <Field label="Username">
+        <Field label="GitHub Account">
           <Input
             value={username}
             onChange={setUsername}
@@ -869,7 +1058,10 @@ function SourceForm({
             required
           />
         </Field>
-        <Field label={form.mode === 'create' ? 'Token' : 'Replace token'}>
+        <Field
+          label={form.mode === 'create' ? 'Token' : 'Replace token'}
+          help={<TokenHelpButton />}
+        >
           <Input
             value={token}
             onChange={setTokenValue}
@@ -1101,6 +1293,24 @@ function LoginScreen({ onSuccess }: { onSuccess: () => void }) {
   );
 }
 
+function StartupErrorScreen({ error }: { error: unknown }) {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-[#f6f8fa] p-4">
+      <Panel className="w-full max-w-lg" padded>
+        <StatusNote
+          tone="danger"
+          title="Git Plus could not start"
+          detail={errorMessage(error)}
+        />
+        <Button className="mt-4" onClick={() => location.reload()}>
+          <IconRefresh size={16} />
+          Retry
+        </Button>
+      </Panel>
+    </div>
+  );
+}
+
 function PageFrame({
   title,
   description,
@@ -1225,16 +1435,83 @@ function NavButton({
 
 function Field({
   label,
+  help,
   children,
 }: {
   label: string;
+  help?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <label className="block">
-      <span className="mb-1 block text-sm font-medium">{label}</span>
+    <div className="block">
+      <div className="mb-1 flex items-center gap-1 text-sm font-medium">
+        <span>{label}</span>
+        {help}
+      </div>
       {children}
-    </label>
+    </div>
+  );
+}
+
+function TokenHelpButton() {
+  const rootRef = useRef<HTMLSpanElement>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (rootRef.current?.contains(event.target as Node)) return;
+      setOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <span ref={rootRef} className="relative inline-flex">
+      <button
+        type="button"
+        aria-controls="github-token-help"
+        aria-expanded={open}
+        aria-label="GitHub token help"
+        className="inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#d0d7de] bg-white text-[#57606a] hover:border-[#0969da] hover:text-[#0969da] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0969da]"
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          setOpen((value) => !value);
+        }}
+      >
+        <IconHelpCircle size={14} />
+      </button>
+      {open ? (
+        <span
+          id="github-token-help"
+          role="tooltip"
+          className="absolute left-0 top-7 z-[60] w-72 max-w-[calc(100vw-3rem)] rounded-md border border-[#d0d7de] bg-white p-3 text-sm font-normal leading-5 text-[#1f2328] shadow-lg"
+        >
+          Create a GitHub token at{' '}
+          <a
+            href={GITHUB_TOKEN_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="text-[#0969da] underline underline-offset-2"
+          >
+            https://github.com/settings/tokens/new
+          </a>
+          .
+        </span>
+      ) : null}
+    </span>
   );
 }
 
@@ -1629,7 +1906,7 @@ function isActiveNav(route: Route, path: string): boolean {
 }
 
 function sourceLabel(source: Source): string {
-  return source.name || source.username || source.id;
+  return source.username || source.id;
 }
 
 function parseLines(value: string): Array<string> {

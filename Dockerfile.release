@@ -37,9 +37,10 @@ COPY --from=build /app/db/schema.sql ./db/schema.sql
 COPY --from=build /app/pm2.config.cjs ./pm2.config.cjs
 
 ENV NODE_ENV=production
-ENV PORT=8080
+ENV PORT=8000
+ENV GIT_PLUS_DATA_DIR=/data
 
-EXPOSE 8080
+EXPOSE 8000
 VOLUME ["/data"]
 
-CMD ["node", "dist/server/index.cjs", "--data-dir", "/data"]
+CMD ["node", "dist/server/index.cjs"]

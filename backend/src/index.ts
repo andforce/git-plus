@@ -6,17 +6,29 @@ import process from 'node:process';
 import { fastify } from 'fastify';
 import fastifyStatic from '@fastify/static';
 import { fastifyConnectPlugin } from '@connectrpc/connect-fastify';
-import { constantTimeEqual, encryptToken } from './crypto';
+import { encryptToken } from './crypto';
 import { CronRuntime } from './cron-runtime';
 import { openDatabase } from './database';
 import { DownloadManager, handleDownloadRequest } from './download';
 import { EventBus } from './event-bus';
 import { createRoutes, enqueueFullSyncTask } from './routes';
+import {
+  INSECURE_NO_AUTH_PASSWORD,
+  PASSWORD_ENV,
+  applyRuntimeTokenPassphrase,
+  completeRuntimeSetup,
+  loadRuntimeSecurity,
+  publicSetupState,
+  resolveDataDir,
+  verifyRuntimeAuth,
+} from './runtime-settings';
+import { selectSystemDirectory } from './system-directory-picker';
 import { TaskManager } from './task-manager';
+import type { AppDatabase } from './types';
+import type { RuntimeDeps } from './routes';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 
-const DEFAULT_PORT = 8080;
-const INSECURE_NO_AUTH_PASSWORD = 'insecure-noauth';
+const DEFAULT_PORT = 8000;
 
 async function main(): Promise<void> {
   const rawArgs = process.argv.slice(2);
@@ -26,33 +38,133 @@ async function main(): Promise<void> {
   }
 
   const options = parseArgs(rawArgs);
-  validateStartupEnvironment();
 
-  const dataDir = resolve(options.dataDir);
-  const db = openDatabase(dataDir);
+  let dataDir = resolveDataDir(options.dataDir);
+  let security = loadRuntimeSecurity(dataDir);
+  applyRuntimeTokenPassphrase(security);
+
   const bus = new EventBus();
-  const tasks = new TaskManager(db, bus);
   const downloads = new DownloadManager();
-  const baseDeps = { dataDir, db, bus, tasks, downloads };
-  const cron = new CronRuntime(dataDir, () => {
-    enqueueFullSyncTask(baseDeps);
-  });
-  cron.reload();
+  let db: AppDatabase;
+  let tasks: TaskManager;
+  let cron: CronRuntime;
+  const syncDeps: Omit<RuntimeDeps, 'cron'> = {
+    get dataDir() {
+      return dataDir;
+    },
+    get db() {
+      return db;
+    },
+    get bus() {
+      return bus;
+    },
+    get tasks() {
+      return tasks;
+    },
+    get downloads() {
+      return downloads;
+    },
+  };
+  const runtimeDeps: RuntimeDeps = {
+    get dataDir() {
+      return dataDir;
+    },
+    get db() {
+      return db;
+    },
+    get bus() {
+      return bus;
+    },
+    get tasks() {
+      return tasks;
+    },
+    get downloads() {
+      return downloads;
+    },
+    get cron() {
+      return cron;
+    },
+  };
+  ({ db, tasks, cron } = openRuntime(dataDir, bus, syncDeps));
   const server = fastify({ logger: true });
+  warnStartupEnvironment(server, security);
+  server.log.info({ dataDir }, 'runtime data directory');
 
   server.addHook('onRequest', async (request, reply) => {
     if (!request.url.startsWith('/api')) return;
-    const password = process.env.PASSWORD ?? '';
-    if (password === INSECURE_NO_AUTH_PASSWORD) return;
+    if (isSetupRoute(request.url)) return;
+    if (security.setupState.requiresSetup) {
+      reply
+        .code(401)
+        .type('text/plain; charset=utf-8')
+        .send('setup required\n');
+      return;
+    }
     const token = requestAuthToken(request.headers.authorization);
-    if (!token || !constantTimeEqual(token, password)) {
+    if (!verifyRuntimeAuth(security, token)) {
       reply.code(401).type('text/plain; charset=utf-8').send('unauthorized\n');
+      return;
+    }
+  });
+
+  server.get('/api/setup', () => publicSetupState(security.setupState));
+  server.post('/api/setup/select-data-dir', async (_request, reply) => {
+    if (!security.setupState.requiresSetup) {
+      reply
+        .code(409)
+        .type('text/plain; charset=utf-8')
+        .send('setup is already complete\n');
+      return;
+    }
+
+    try {
+      const selectedDataDir = await selectSystemDirectory();
+      if (!selectedDataDir) {
+        reply.code(204).send();
+        return;
+      }
+
+      const normalizedDataDir = resolveDataDir(selectedDataDir);
+      if (normalizedDataDir !== dataDir) {
+        const previousRuntime = { db, tasks, cron };
+        const nextRuntime = openRuntime(normalizedDataDir, bus, syncDeps);
+        dataDir = normalizedDataDir;
+        db = nextRuntime.db;
+        tasks = nextRuntime.tasks;
+        cron = nextRuntime.cron;
+        closeRuntime(previousRuntime);
+        server.log.info({ dataDir }, 'runtime data directory changed');
+      }
+
+      security = loadRuntimeSecurity(dataDir);
+      applyRuntimeTokenPassphrase(security);
+      reply.send(publicSetupState(security.setupState));
+    } catch (error) {
+      reply
+        .code(400)
+        .type('text/plain; charset=utf-8')
+        .send(`${(error as Error).message}\n`);
+    }
+  });
+
+  server.post('/api/setup', (request, reply) => {
+    try {
+      const body = parseSetupBody(request.body);
+      const setupState = completeRuntimeSetup(dataDir, body);
+      security = loadRuntimeSecurity(dataDir);
+      applyRuntimeTokenPassphrase(security);
+      reply.send(setupState);
+    } catch (error) {
+      reply
+        .code(400)
+        .type('text/plain; charset=utf-8')
+        .send(`${(error as Error).message}\n`);
     }
   });
 
   await server.register(fastifyConnectPlugin, {
     prefix: '/api',
-    routes: createRoutes({ ...baseDeps, cron }),
+    routes: createRoutes(runtimeDeps),
   });
 
   server.get(
@@ -75,9 +187,7 @@ async function main(): Promise<void> {
   await server.listen({ host, port });
 
   const close = async () => {
-    cron.close();
-    tasks.close();
-    db.close();
+    closeRuntime({ db, tasks, cron });
     await server.close();
   };
   process.once('SIGINT', () => void close().then(() => process.exit(0)));
@@ -101,11 +211,11 @@ async function readStdin(): Promise<string> {
 }
 
 function parseArgs(args: Array<string>): {
-  dataDir: string;
+  dataDir?: string;
   port?: number;
   host?: string;
 } {
-  let dataDir = '';
+  let dataDir: string | undefined;
   let port: number | undefined;
   let host: string | undefined;
   for (let index = 0; index < args.length; index++) {
@@ -118,21 +228,41 @@ function parseArgs(args: Array<string>): {
       host = maybeHost || host;
     }
   }
-  if (!dataDir.trim()) throw new Error('--data-dir is required');
   return { dataDir, port, host };
 }
 
-function validateStartupEnvironment(): void {
-  if (!process.env.ENCRYPTION_PASSPHRASE) {
-    throw new Error('ENCRYPTION_PASSPHRASE is required');
-  }
-  if (!process.env.PASSWORD) {
-    throw new Error('PASSWORD is required');
-  }
-  if (process.env.PASSWORD === INSECURE_NO_AUTH_PASSWORD) {
-    console.warn(
-      'warning: PASSWORD="insecure-noauth" disables API authentication',
+function openRuntime(
+  dataDir: string,
+  bus: EventBus,
+  syncDeps: Omit<RuntimeDeps, 'cron'>,
+): Pick<RuntimeDeps, 'db' | 'tasks' | 'cron'> {
+  const db = openDatabase(dataDir);
+  const tasks = new TaskManager(db, bus);
+  const cron = new CronRuntime(dataDir, () => {
+    enqueueFullSyncTask(syncDeps);
+  });
+  cron.reload();
+
+  return { db, tasks, cron };
+}
+
+function closeRuntime(runtime: Pick<RuntimeDeps, 'db' | 'tasks' | 'cron'>) {
+  runtime.cron.close();
+  runtime.tasks.close();
+  runtime.db.close();
+}
+
+function warnStartupEnvironment(
+  server: FastifyInstance,
+  security: ReturnType<typeof loadRuntimeSecurity>,
+): void {
+  if (process.env[PASSWORD_ENV] === INSECURE_NO_AUTH_PASSWORD) {
+    server.log.warn(
+      `warning: ${PASSWORD_ENV}="${INSECURE_NO_AUTH_PASSWORD}" disables API authentication`,
     );
+  }
+  if (security.setupState.requiresSetup) {
+    server.log.info('first-run setup is required');
   }
 }
 
@@ -149,6 +279,20 @@ function portFromEnv(): number | undefined {
   if (!raw) return undefined;
   const value = Number.parseInt(raw, 10);
   return Number.isFinite(value) ? value : undefined;
+}
+
+function isSetupRoute(url: string): boolean {
+  const path = url.split('?')[0];
+  return path === '/api/setup' || path === '/api/setup/select-data-dir';
+}
+
+function parseSetupBody(value: unknown): { password?: string } {
+  if (value == null || typeof value !== 'object') return {};
+  const candidate = value as { password?: unknown };
+  return {
+    password:
+      typeof candidate.password === 'string' ? candidate.password : undefined,
+  };
 }
 
 async function registerStaticFrontend(server: FastifyInstance): Promise<void> {

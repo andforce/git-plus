@@ -5,24 +5,15 @@ type SourceDisplay = {
 };
 
 export function sourcePrimaryLabel(source: SourceDisplay): string {
-  return source.name;
+  return source.username || source.id;
 }
 
-export function sourceSecondaryLabel(source: SourceDisplay): string | null {
-  if (source.name === source.id) {
-    return null;
-  }
-
-  return source.id;
+export function sourceSecondaryLabel(_source: SourceDisplay): string | null {
+  return null;
 }
 
 export function sourceListLabel(source: SourceDisplay): string {
-  const secondaryLabel = sourceSecondaryLabel(source);
   const primaryLabel = sourcePrimaryLabel(source);
 
-  if (secondaryLabel) {
-    return `${primaryLabel} (${secondaryLabel}) — @${source.username}`;
-  }
-
-  return `${primaryLabel} — @${source.username}`;
+  return source.username ? primaryLabel : source.id;
 }

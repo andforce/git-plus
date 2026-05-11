@@ -80,6 +80,33 @@ wait_for_port_free() {
   return 1
 }
 
+find_available_port() {
+  local start="$1"
+  local host="$2"
+  local candidate
+
+  for offset in $(seq 1 100); do
+    candidate=$((10#${start} + offset))
+    if is_port_value "${candidate}" && can_listen_on_port "${candidate}" "${host}"; then
+      printf '%s\n' "${candidate}"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+use_alternate_port() {
+  local name="$1"
+  local port="$2"
+  local host="$3"
+  local candidate
+
+  candidate="$(find_available_port "${port}" "${host}")" || die "${name}=${port} is not available and no nearby free port was found"
+  log "${name}=${port} is not available; using ${name}=${candidate}"
+  printf -v "${name}" '%s' "${candidate}"
+}
+
 ensure_port_available() {
   local name="$1"
   local port="$2"
@@ -91,9 +118,17 @@ ensure_port_available() {
     return
   fi
 
+  log "${name}=${port} is not available yet; waiting briefly"
+  if wait_for_port_free "${port}" "${host}"; then
+    return
+  fi
+
   require_command lsof
   pids="$(list_port_pids "${port}")"
-  [[ -n "${pids}" ]] || die "${name}=${port} is in use, but no listener process was found"
+  if [[ -z "${pids}" ]]; then
+    use_alternate_port "${name}" "${port}" "${host}"
+    return
+  fi
 
   log "${name}=${port} is in use by PID(s): $(format_pids "${pids}"); stopping them"
   kill -TERM ${pids} 2>/dev/null || true
@@ -103,25 +138,13 @@ ensure_port_available() {
   fi
 
   pids="$(list_port_pids "${port}")"
-  [[ -n "${pids}" ]] || die "${name}=${port} did not become available"
+  if [[ -z "${pids}" ]]; then
+    use_alternate_port "${name}" "${port}" "${host}"
+    return
+  fi
   log "${name}=${port} is still in use; force killing PID(s): $(format_pids "${pids}")"
   kill -KILL ${pids} 2>/dev/null || true
-  wait_for_port_free "${port}" "${host}" || die "${name}=${port} did not become available after killing listeners"
-}
-
-prompt_secret() {
-  local name="$1"
-  local prompt="$2"
-  local value=""
-
-  if [[ ! -t 0 ]]; then
-    die "${name} is required; set it in .env or export it before running"
-  fi
-
-  read -r -s -p "${prompt}: " value
-  printf '\n' >&2
-  [[ -n "${value}" ]] || die "${name} cannot be empty"
-  printf '%s' "${value}"
+  wait_for_port_free "${port}" "${host}" || use_alternate_port "${name}" "${port}" "${host}"
 }
 
 load_env_file "${ROOT_DIR}/.env"
@@ -144,34 +167,23 @@ if [[ ! -d "${ROOT_DIR}/node_modules/.pnpm" ]]; then
   pnpm install
 fi
 
-if [[ -z "${PASSWORD:-}" ]]; then
-  PASSWORD="$(prompt_secret PASSWORD 'Dashboard password')"
-  export PASSWORD
-fi
-
-if [[ -z "${ENCRYPTION_PASSPHRASE:-}" ]]; then
-  ENCRYPTION_PASSPHRASE="$(
-    prompt_secret \
-      ENCRYPTION_PASSPHRASE \
-      'Token encryption passphrase'
-  )"
-  export ENCRYPTION_PASSPHRASE
-fi
-
-FRONTEND_PORT="${FRONTEND_PORT:-43210}"
-BACKEND_PORT="${PORT:-8080}"
+FRONTEND_PORT="${FRONTEND_PORT:-1390}"
+BACKEND_PORT="${PORT:-8000}"
+GIT_PLUS_DATA_DIR="${GIT_PLUS_DATA_DIR:-${ROOT_DIR}/tmpdata}"
 ensure_port_available FRONTEND_PORT "${FRONTEND_PORT}" 127.0.0.1
-ensure_port_available PORT "${BACKEND_PORT}" 0.0.0.0
+ensure_port_available BACKEND_PORT "${BACKEND_PORT}" 0.0.0.0
 FRONTEND_DEV_SERVER="http://127.0.0.1:${FRONTEND_PORT}"
 BACKEND_DEV_SERVER="http://127.0.0.1:${BACKEND_PORT}"
 export FRONTEND_DEV_SERVER
 export PORT="${BACKEND_PORT}"
+export GIT_PLUS_DATA_DIR
 
 log "starting frontend on ${FRONTEND_DEV_SERVER}"
 log "starting backend on http://localhost:${BACKEND_PORT}"
+log "runtime data: ${GIT_PLUS_DATA_DIR}"
 
 exec pnpm dlx concurrently@9.2.1 \
   --kill-others-on-fail \
   --names frontend,backend \
   "VITE_API_PROXY_TARGET=${BACKEND_DEV_SERVER} pnpm --filter ./frontend exec vite dev --host 127.0.0.1 --port ${FRONTEND_PORT} --strictPort" \
-  "FRONTEND_DEV_SERVER=${FRONTEND_DEV_SERVER} pnpm --filter ./backend dev -- --data-dir ../tmpdata --listen 0.0.0.0:${BACKEND_PORT}"
+  "FRONTEND_DEV_SERVER=${FRONTEND_DEV_SERVER} GIT_PLUS_DATA_DIR=${GIT_PLUS_DATA_DIR} pnpm --filter ./backend dev -- --listen 0.0.0.0:${BACKEND_PORT}"

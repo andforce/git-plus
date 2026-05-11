@@ -33,33 +33,23 @@ Local development requires:
 
 Production can run the built Node server directly, under PM2, or as the Docker image.
 
-## 必要环境变量
+## Optional Environment Variables
 
-启动服务前必须配置两个环境变量：
+Git Plus can start without environment configuration. On first launch, the web UI asks for the dashboard password, creates the token encryption key, and writes local app settings to the runtime data directory.
 
-```bash
-export PASSWORD='choose-a-strong-dashboard-password'
-export ENCRYPTION_PASSPHRASE='choose-a-stable-random-secret'
-```
+These variables are still available for operators who want explicit control:
 
-含义如下：
+- `PASSWORD`: overrides the dashboard and `/api` password.
+- `ENCRYPTION_PASSPHRASE`: overrides the token encryption key. Keep it stable if you use it; changing it makes previously encrypted GitHub tokens unreadable.
+- `GIT_PLUS_DATA_DIR`: overrides the runtime data directory.
 
-- `PASSWORD`：Git Plus 仪表盘和 `/api` 的访问密码。浏览器打开页面后，登录框里输入的就是这个值。它不是 GitHub 密码。
-- `ENCRYPTION_PASSPHRASE`：用于加密和解密 GitHub token。这个值必须长期固定保存；如果之后换了值，之前保存到 `config.yaml` 里的 token 将无法解密。
-
-可以用下面的命令生成一个随机加密密钥：
-
-```bash
-openssl rand -base64 32
-```
-
-只用于本机临时开发时，也可以关闭 API 鉴权：
+For temporary local development only, API authentication can be disabled:
 
 ```bash
 export PASSWORD='insecure-noauth'
 ```
 
-不要在真实备份或可被他人访问的环境中使用 `insecure-noauth`。
+Do not use `insecure-noauth` for real backups or network-accessible deployments.
 
 ## Local Development
 
@@ -69,14 +59,7 @@ export PASSWORD='insecure-noauth'
 pnpm install
 ```
 
-2. Configure environment variables:
-
-```bash
-export PASSWORD='abc123'
-export ENCRYPTION_PASSPHRASE="$(openssl rand -base64 32)"
-```
-
-3. Start the development servers:
+2. Start the development servers:
 
 ```bash
 pnpm dev
@@ -84,8 +67,8 @@ pnpm dev
 
 `pnpm dev` starts both processes:
 
-- Vite frontend dev server: `http://127.0.0.1:43210`
-- Node backend server: `http://localhost:8080`
+- Vite frontend dev server: `http://127.0.0.1:1390`
+- Node backend server: `http://localhost:8000`
 
 In development, the Node backend proxies non-`/api` requests to Vite. Runtime data is written to:
 
@@ -96,10 +79,10 @@ In development, the Node backend proxies non-`/api` requests to Vite. Runtime da
 打开浏览器访问：
 
 ```text
-http://localhost:8080
+http://localhost:8000
 ```
 
-The login password is the value of `PASSWORD`, for example `abc123` above.
+On first launch, open the web UI and complete the setup screen.
 
 如果你使用 `direnv`，可以把环境变量写入 `.env`：
 
@@ -124,17 +107,10 @@ frontend/dist/
 dist/server/index.cjs
 ```
 
-2. Configure stable environment variables:
+2. Start the server directly:
 
 ```bash
-export PASSWORD='choose-a-strong-dashboard-password'
-export ENCRYPTION_PASSPHRASE='paste-your-stable-secret-here'
-```
-
-3. Start the server directly:
-
-```bash
-node dist/server/index.cjs --data-dir ./data
+node dist/server/index.cjs
 ```
 
 Or run it with PM2:
@@ -143,30 +119,28 @@ Or run it with PM2:
 pnpm pm2:start
 ```
 
-Production runtime data is written to `--data-dir`. The config file is:
+Production runtime data is written to the default app data directory, or to `GIT_PLUS_DATA_DIR` when set. The config file is:
 
 ```text
 <data-dir>/config.yaml
 ```
 
-The SQLite database and archived repositories are stored in the same data directory.
+The SQLite database, local app settings, and archived repositories are stored in the same data directory.
 
 ## Docker
 
 ```bash
 docker run -d \
   --name git-plus \
-  -p 8080:8080 \
+  -p 8000:8000 \
   -v "$(pwd)/data:/data" \
-  -e PASSWORD='choose-a-strong-dashboard-password' \
-  -e ENCRYPTION_PASSPHRASE='paste-your-stable-secret-here' \
   ghcr.io/imsingee/git-plus:latest
 ```
 
 然后访问：
 
 ```text
-http://localhost:8080
+http://localhost:8000
 ```
 
 ## 如何配置 GitHub 仓库备份
@@ -195,7 +169,7 @@ https://github.com/settings/tokens
 启动 Git Plus 后，打开：
 
 ```text
-http://localhost:8080/config/sources
+http://localhost:8000/config/sources
 ```
 
 点击 `Add Source`，填写：
@@ -205,7 +179,7 @@ http://localhost:8080/config/sources
 - `Username`：你的 GitHub 用户名
 - `Personal Access Token (classic)`：刚刚创建的 GitHub token
 
-保存后，token 会使用 `ENCRYPTION_PASSPHRASE` 加密写入 `<data-dir>/config.yaml`。
+保存后，token 会用本地加密密钥加密写入 `<data-dir>/config.yaml`。
 
 ### 3. 选择要备份哪些仓库
 
@@ -224,7 +198,7 @@ http://localhost:8080/config/sources
 打开：
 
 ```text
-http://localhost:8080/maintenance/tasks
+http://localhost:8000/maintenance/tasks
 ```
 
 点击 `Sync All`。
@@ -240,7 +214,7 @@ http://localhost:8080/maintenance/tasks
 同步完成后，可以打开：
 
 ```text
-http://localhost:8080/repos
+http://localhost:8000/repos
 ```
 
 查看仓库列表、仓库详情、分支/tag 状态和变化历史。
@@ -250,7 +224,7 @@ http://localhost:8080/repos
 打开：
 
 ```text
-http://localhost:8080/config/cron
+http://localhost:8000/config/cron
 ```
 
 填写 5 字段 cron 表达式，例如每小时同步一次：
@@ -310,13 +284,13 @@ printf '%s' 'ghp_xxx' | ENCRYPTION_PASSPHRASE='your passphrase' node dist/server
 Start the main server:
 
 ```bash
-node dist/server/index.cjs --data-dir ./data
+node dist/server/index.cjs
 ```
 
-常用参数：
+Common runtime options:
 
-- `--data-dir string`：必填，运行数据目录。
-- `--port string` / `PORT`：监听端口，默认 `8080`。
+- `GIT_PLUS_DATA_DIR` / `--data-dir string`: optional runtime data directory override.
+- `--port string` / `PORT`: listen port, default `8000`.
 
 Start with PM2:
 
@@ -385,21 +359,13 @@ pnpm db:generate
 
 ### `PASSWORD` 是什么？从哪里获取？
 
-`PASSWORD` 是你自己设置的 Git Plus 仪表盘密码，不是 GitHub 密码，也不需要从 GitHub 获取。
-
-例如：
-
-```bash
-export PASSWORD='abc123'
-```
-
-那么浏览器登录 Git Plus 时输入 `abc123`。
+`PASSWORD` 是可选的环境变量。没有设置时，首次打开 Web UI 会让你创建 Git Plus 仪表盘密码。它不是 GitHub 密码，也不需要从 GitHub 获取。
 
 ### `ENCRYPTION_PASSPHRASE` 可以每次随机生成吗？
 
-开发时可以，但真实备份不建议。它用于解密已经保存的 GitHub token，必须长期固定保存。
+没有设置时，首次 Web 设置会自动生成并保存本地加密密钥。只有在你手动设置 `ENCRYPTION_PASSPHRASE` 时，才需要自己保证它长期固定。
 
-如果你第一次启动时用了：
+如果你手动设置并第一次启动时用了：
 
 ```bash
 export ENCRYPTION_PASSPHRASE='secret-a'
@@ -413,24 +379,24 @@ export ENCRYPTION_PASSPHRASE='secret-b'
 
 旧 token 就无法解密，需要重新添加或替换 token。
 
-### 应该访问 `localhost:8080` 还是 `127.0.0.1:8080`？
+### 应该访问 `localhost:8000` 还是 `127.0.0.1:8000`？
 
 默认访问：
 
 ```text
-http://localhost:8080
+http://localhost:8000
 ```
 
-如果本机已有其他服务占用了 `8080`，可以换端口启动：
+如果本机已有其他服务占用了 `8000`，可以换端口启动：
 
 ```bash
-PORT=8090 node dist/server/index.cjs --data-dir ./data
+PORT=8001 node dist/server/index.cjs
 ```
 
 或者开发时临时设置：
 
 ```bash
-PORT=8090 pnpm dev
+PORT=8001 pnpm dev
 ```
 
 ### 添加 source 后为什么还没有仓库？

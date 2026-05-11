@@ -25,7 +25,6 @@ import {
 } from '@tabler/icons-react';
 import type { Source } from '~rpc/gitplus/config/v1/config_pb';
 import { Platform } from '~rpc/gitplus/config/v1/config_pb';
-import { sourceSecondaryLabel } from '~lib/source-display';
 
 interface CreateData {
   source: {
@@ -65,7 +64,6 @@ interface SourceFormDrawerProps {
 }
 
 interface FormValues {
-  name: string;
   username: string;
   tokenPlaintext: string;
   onlyIncludeRepos: Array<string>;
@@ -88,7 +86,6 @@ export function SourceFormDrawer({
 
   const form = useForm<FormValues>({
     initialValues: {
-      name: '',
       username: '',
       tokenPlaintext: '',
       onlyIncludeRepos: [],
@@ -98,7 +95,7 @@ export function SourceFormDrawer({
       includeWatching: false,
     },
     validate: {
-      username: (value) => (value.trim() ? null : 'Username is required'),
+      username: (value) => (value.trim() ? null : 'GitHub account is required'),
       tokenPlaintext: (value) =>
         mode === 'create' && !value.trim() ? 'Token is required' : null,
     },
@@ -109,7 +106,6 @@ export function SourceFormDrawer({
     if (mode === 'edit' && source) {
       setPlatform(source.platform);
       form.setValues({
-        name: sourceSecondaryLabel(source) == null ? '' : source.name,
         username: source.username,
         tokenPlaintext: '',
         onlyIncludeRepos: [...source.onlyIncludeRepos],
@@ -130,7 +126,6 @@ export function SourceFormDrawer({
       setPlatform(null);
       setAdvancedOpen(false);
       form.setInitialValues({
-        name: '',
         username: '',
         tokenPlaintext: '',
         onlyIncludeRepos: [],
@@ -152,7 +147,7 @@ export function SourceFormDrawer({
     if (mode === 'create') {
       onSubmit({
         source: {
-          name: values.name.trim(),
+          name: '',
           platform,
           username: values.username.trim(),
           tokenPlaintext: values.tokenPlaintext.trim(),
@@ -167,7 +162,7 @@ export function SourceFormDrawer({
       onSubmit({
         sourceId: source!.id,
         patch: {
-          name: values.name.trim(),
+          name: '',
           platform,
           username: values.username.trim(),
           onlyIncludeRepos: { values: values.onlyIncludeRepos },
@@ -227,14 +222,8 @@ export function SourceFormDrawer({
             <Box>
               <Stack gap="sm">
                 <TextInput
-                  label="Name"
-                  description="(Optional) display name or remark for this source"
-                  placeholder="My GitHub"
-                  {...form.getInputProps('name')}
-                />
-                <TextInput
-                  label="Username"
-                  description="Your username on this platform"
+                  label="GitHub Account"
+                  description="Your GitHub username or organization account"
                   placeholder="octocat"
                   required
                   {...form.getInputProps('username')}
@@ -246,11 +235,11 @@ export function SourceFormDrawer({
                       <>
                         Create one at{' '}
                         <Anchor
-                          href="https://github.com/settings/tokens"
+                          href="https://github.com/settings/tokens/new"
                           target="_blank"
                           style={{ fontSize: 'inherit', lineHeight: 'inherit' }}
                         >
-                          https://github.com/settings/tokens
+                          https://github.com/settings/tokens/new
                         </Anchor>
                         .
                       </>
