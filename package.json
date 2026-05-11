@@ -7,36 +7,45 @@
   },
   "packageManager": "pnpm@10.12.2",
   "workspaces": [
+    "backend",
     "frontend",
     "db"
   ],
   "scripts": {
-    "dev": "pnpm dlx concurrently@9.2.1 --kill-others-on-fail --names frontend,go \"pnpm dev:frontend\" \"pnpm dev:go\"",
-    "dev:frontend": "pnpm --filter ./frontend exec vite dev --host 127.0.0.1 --port 43210 --strictPort",
-    "dev:go": "CGO_ENABLED=0 FRONTEND_DEV_SERVER=http://127.0.0.1:43210 go run . --data-dir ./tmpdata",
+    "dev": "pnpm dlx concurrently@9.2.1 --kill-others-on-fail --names frontend,backend \"pnpm dev:frontend\" \"pnpm dev:backend\"",
+    "dev:frontend": "pnpm --filter ./frontend exec vite dev --host 127.0.0.1 --port 1390 --strictPort",
+    "dev:backend": "FRONTEND_DEV_SERVER=http://127.0.0.1:1390 GIT_PLUS_DATA_DIR=../tmpdata pnpm --filter ./backend dev",
     "buf:generate": "buf generate",
     "buf:lint": "buf lint",
-    "build": "pnpm build:frontend && pnpm build:go",
+    "build": "pnpm build:frontend && pnpm build:backend",
     "build:frontend": "pnpm --filter ./frontend build",
-    "build:go": "mkdir -p dist && CGO_ENABLED=0 go build -tags embed -o ./dist/git-plus .",
-    "db:generate": "pnpm db:generate:drizzle && pnpm db:generate:schema-sql && pnpm db:generate:sqlc",
+    "build:backend": "pnpm --filter ./backend build",
+    "start": "node dist/server/index.cjs",
+    "pm2:start": "pm2 start pm2.config.cjs",
+    "pm2:restart": "pm2 restart pm2.config.cjs",
+    "pm2:stop": "pm2 stop git-plus",
+    "db:generate": "pnpm db:generate:drizzle && pnpm db:generate:schema-sql",
     "db:generate:drizzle": "pnpm --filter ./db generate",
     "db:generate:schema-sql": "pnpm --filter ./db generate:schema-sql",
-    "db:generate:sqlc": "go run github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0 generate -f db/sqlc.yaml",
-    "test": "CGO_ENABLED=0 go test ./... && pnpm --filter ./frontend test",
+    "test": "pnpm --filter ./backend test && pnpm --filter ./frontend test",
     "lint": "eslint .",
     "format": "prettier --write . && eslint --fix . && eslint .",
-    "check:types": "pnpm --filter ./frontend check:types"
+    "check:types": "pnpm --filter ./backend check:types && pnpm --filter ./frontend check:types"
   },
   "devDependencies": {
     "@tanstack/eslint-config": "^0.4.0",
     "eslint": "^9.39.4",
     "eslint-plugin-react": "^7.37.5",
     "lefthook": "^2.1.4",
+    "pm2": "^6.0.13",
     "prettier": "^3.8.1"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.5.0"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "better-sqlite3",
       "esbuild",
       "eslint",
       "lefthook",

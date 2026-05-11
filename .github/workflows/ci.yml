@@ -11,8 +11,6 @@ jobs:
   ci:
     name: CI
     runs-on: ubuntu-latest
-    env:
-      CGO_ENABLED: 0
 
     steps:
       - uses: actions/checkout@v6
@@ -24,11 +22,6 @@ jobs:
         with:
           node-version: 24.x
           cache: 'pnpm'
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
