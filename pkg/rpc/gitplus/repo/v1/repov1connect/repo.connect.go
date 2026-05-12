@@ -47,6 +47,22 @@ const (
 	// RepoServiceListRefChangesProcedure is the fully-qualified name of the RepoService's
 	// ListRefChanges RPC.
 	RepoServiceListRefChangesProcedure = "/gitplus.repo.v1.RepoService/ListRefChanges"
+	// RepoServiceListTreeProcedure is the fully-qualified name of the RepoService's ListTree RPC.
+	RepoServiceListTreeProcedure = "/gitplus.repo.v1.RepoService/ListTree"
+	// RepoServiceSearchFilesProcedure is the fully-qualified name of the RepoService's SearchFiles RPC.
+	RepoServiceSearchFilesProcedure = "/gitplus.repo.v1.RepoService/SearchFiles"
+	// RepoServiceSearchCodeProcedure is the fully-qualified name of the RepoService's SearchCode RPC.
+	RepoServiceSearchCodeProcedure = "/gitplus.repo.v1.RepoService/SearchCode"
+	// RepoServiceGetBlobProcedure is the fully-qualified name of the RepoService's GetBlob RPC.
+	RepoServiceGetBlobProcedure = "/gitplus.repo.v1.RepoService/GetBlob"
+	// RepoServiceGetBlameProcedure is the fully-qualified name of the RepoService's GetBlame RPC.
+	RepoServiceGetBlameProcedure = "/gitplus.repo.v1.RepoService/GetBlame"
+	// RepoServiceListCommitsProcedure is the fully-qualified name of the RepoService's ListCommits RPC.
+	RepoServiceListCommitsProcedure = "/gitplus.repo.v1.RepoService/ListCommits"
+	// RepoServiceGetCommitProcedure is the fully-qualified name of the RepoService's GetCommit RPC.
+	RepoServiceGetCommitProcedure = "/gitplus.repo.v1.RepoService/GetCommit"
+	// RepoServiceCompareRefsProcedure is the fully-qualified name of the RepoService's CompareRefs RPC.
+	RepoServiceCompareRefsProcedure = "/gitplus.repo.v1.RepoService/CompareRefs"
 )
 
 // RepoServiceClient is a client for the gitplus.repo.v1.RepoService service.
@@ -56,6 +72,14 @@ type RepoServiceClient interface {
 	StreamRepositoryDownload(context.Context, *connect.Request[v1.StreamRepositoryDownloadRequest]) (*connect.ServerStreamForClient[v1.StreamRepositoryDownloadResponse], error)
 	ListRefs(context.Context, *connect.Request[v1.ListRefsRequest]) (*connect.Response[v1.ListRefsResponse], error)
 	ListRefChanges(context.Context, *connect.Request[v1.ListRefChangesRequest]) (*connect.Response[v1.ListRefChangesResponse], error)
+	ListTree(context.Context, *connect.Request[v1.ListTreeRequest]) (*connect.Response[v1.ListTreeResponse], error)
+	SearchFiles(context.Context, *connect.Request[v1.SearchFilesRequest]) (*connect.Response[v1.SearchFilesResponse], error)
+	SearchCode(context.Context, *connect.Request[v1.SearchCodeRequest]) (*connect.Response[v1.SearchCodeResponse], error)
+	GetBlob(context.Context, *connect.Request[v1.GetBlobRequest]) (*connect.Response[v1.GetBlobResponse], error)
+	GetBlame(context.Context, *connect.Request[v1.GetBlameRequest]) (*connect.Response[v1.GetBlameResponse], error)
+	ListCommits(context.Context, *connect.Request[v1.ListCommitsRequest]) (*connect.Response[v1.ListCommitsResponse], error)
+	GetCommit(context.Context, *connect.Request[v1.GetCommitRequest]) (*connect.Response[v1.GetCommitResponse], error)
+	CompareRefs(context.Context, *connect.Request[v1.CompareRefsRequest]) (*connect.Response[v1.CompareRefsResponse], error)
 }
 
 // NewRepoServiceClient constructs a client for the gitplus.repo.v1.RepoService service. By default,
@@ -99,6 +123,54 @@ func NewRepoServiceClient(httpClient connect.HTTPClient, baseURL string, opts ..
 			connect.WithSchema(repoServiceMethods.ByName("ListRefChanges")),
 			connect.WithClientOptions(opts...),
 		),
+		listTree: connect.NewClient[v1.ListTreeRequest, v1.ListTreeResponse](
+			httpClient,
+			baseURL+RepoServiceListTreeProcedure,
+			connect.WithSchema(repoServiceMethods.ByName("ListTree")),
+			connect.WithClientOptions(opts...),
+		),
+		searchFiles: connect.NewClient[v1.SearchFilesRequest, v1.SearchFilesResponse](
+			httpClient,
+			baseURL+RepoServiceSearchFilesProcedure,
+			connect.WithSchema(repoServiceMethods.ByName("SearchFiles")),
+			connect.WithClientOptions(opts...),
+		),
+		searchCode: connect.NewClient[v1.SearchCodeRequest, v1.SearchCodeResponse](
+			httpClient,
+			baseURL+RepoServiceSearchCodeProcedure,
+			connect.WithSchema(repoServiceMethods.ByName("SearchCode")),
+			connect.WithClientOptions(opts...),
+		),
+		getBlob: connect.NewClient[v1.GetBlobRequest, v1.GetBlobResponse](
+			httpClient,
+			baseURL+RepoServiceGetBlobProcedure,
+			connect.WithSchema(repoServiceMethods.ByName("GetBlob")),
+			connect.WithClientOptions(opts...),
+		),
+		getBlame: connect.NewClient[v1.GetBlameRequest, v1.GetBlameResponse](
+			httpClient,
+			baseURL+RepoServiceGetBlameProcedure,
+			connect.WithSchema(repoServiceMethods.ByName("GetBlame")),
+			connect.WithClientOptions(opts...),
+		),
+		listCommits: connect.NewClient[v1.ListCommitsRequest, v1.ListCommitsResponse](
+			httpClient,
+			baseURL+RepoServiceListCommitsProcedure,
+			connect.WithSchema(repoServiceMethods.ByName("ListCommits")),
+			connect.WithClientOptions(opts...),
+		),
+		getCommit: connect.NewClient[v1.GetCommitRequest, v1.GetCommitResponse](
+			httpClient,
+			baseURL+RepoServiceGetCommitProcedure,
+			connect.WithSchema(repoServiceMethods.ByName("GetCommit")),
+			connect.WithClientOptions(opts...),
+		),
+		compareRefs: connect.NewClient[v1.CompareRefsRequest, v1.CompareRefsResponse](
+			httpClient,
+			baseURL+RepoServiceCompareRefsProcedure,
+			connect.WithSchema(repoServiceMethods.ByName("CompareRefs")),
+			connect.WithClientOptions(opts...),
+		),
 	}
 }
 
@@ -109,6 +181,14 @@ type repoServiceClient struct {
 	streamRepositoryDownload *connect.Client[v1.StreamRepositoryDownloadRequest, v1.StreamRepositoryDownloadResponse]
 	listRefs                 *connect.Client[v1.ListRefsRequest, v1.ListRefsResponse]
 	listRefChanges           *connect.Client[v1.ListRefChangesRequest, v1.ListRefChangesResponse]
+	listTree                 *connect.Client[v1.ListTreeRequest, v1.ListTreeResponse]
+	searchFiles              *connect.Client[v1.SearchFilesRequest, v1.SearchFilesResponse]
+	searchCode               *connect.Client[v1.SearchCodeRequest, v1.SearchCodeResponse]
+	getBlob                  *connect.Client[v1.GetBlobRequest, v1.GetBlobResponse]
+	getBlame                 *connect.Client[v1.GetBlameRequest, v1.GetBlameResponse]
+	listCommits              *connect.Client[v1.ListCommitsRequest, v1.ListCommitsResponse]
+	getCommit                *connect.Client[v1.GetCommitRequest, v1.GetCommitResponse]
+	compareRefs              *connect.Client[v1.CompareRefsRequest, v1.CompareRefsResponse]
 }
 
 // ListRepositories calls gitplus.repo.v1.RepoService.ListRepositories.
@@ -136,6 +216,46 @@ func (c *repoServiceClient) ListRefChanges(ctx context.Context, req *connect.Req
 	return c.listRefChanges.CallUnary(ctx, req)
 }
 
+// ListTree calls gitplus.repo.v1.RepoService.ListTree.
+func (c *repoServiceClient) ListTree(ctx context.Context, req *connect.Request[v1.ListTreeRequest]) (*connect.Response[v1.ListTreeResponse], error) {
+	return c.listTree.CallUnary(ctx, req)
+}
+
+// SearchFiles calls gitplus.repo.v1.RepoService.SearchFiles.
+func (c *repoServiceClient) SearchFiles(ctx context.Context, req *connect.Request[v1.SearchFilesRequest]) (*connect.Response[v1.SearchFilesResponse], error) {
+	return c.searchFiles.CallUnary(ctx, req)
+}
+
+// SearchCode calls gitplus.repo.v1.RepoService.SearchCode.
+func (c *repoServiceClient) SearchCode(ctx context.Context, req *connect.Request[v1.SearchCodeRequest]) (*connect.Response[v1.SearchCodeResponse], error) {
+	return c.searchCode.CallUnary(ctx, req)
+}
+
+// GetBlob calls gitplus.repo.v1.RepoService.GetBlob.
+func (c *repoServiceClient) GetBlob(ctx context.Context, req *connect.Request[v1.GetBlobRequest]) (*connect.Response[v1.GetBlobResponse], error) {
+	return c.getBlob.CallUnary(ctx, req)
+}
+
+// GetBlame calls gitplus.repo.v1.RepoService.GetBlame.
+func (c *repoServiceClient) GetBlame(ctx context.Context, req *connect.Request[v1.GetBlameRequest]) (*connect.Response[v1.GetBlameResponse], error) {
+	return c.getBlame.CallUnary(ctx, req)
+}
+
+// ListCommits calls gitplus.repo.v1.RepoService.ListCommits.
+func (c *repoServiceClient) ListCommits(ctx context.Context, req *connect.Request[v1.ListCommitsRequest]) (*connect.Response[v1.ListCommitsResponse], error) {
+	return c.listCommits.CallUnary(ctx, req)
+}
+
+// GetCommit calls gitplus.repo.v1.RepoService.GetCommit.
+func (c *repoServiceClient) GetCommit(ctx context.Context, req *connect.Request[v1.GetCommitRequest]) (*connect.Response[v1.GetCommitResponse], error) {
+	return c.getCommit.CallUnary(ctx, req)
+}
+
+// CompareRefs calls gitplus.repo.v1.RepoService.CompareRefs.
+func (c *repoServiceClient) CompareRefs(ctx context.Context, req *connect.Request[v1.CompareRefsRequest]) (*connect.Response[v1.CompareRefsResponse], error) {
+	return c.compareRefs.CallUnary(ctx, req)
+}
+
 // RepoServiceHandler is an implementation of the gitplus.repo.v1.RepoService service.
 type RepoServiceHandler interface {
 	ListRepositories(context.Context, *connect.Request[v1.ListRepositoriesRequest]) (*connect.Response[v1.ListRepositoriesResponse], error)
@@ -143,6 +263,14 @@ type RepoServiceHandler interface {
 	StreamRepositoryDownload(context.Context, *connect.Request[v1.StreamRepositoryDownloadRequest], *connect.ServerStream[v1.StreamRepositoryDownloadResponse]) error
 	ListRefs(context.Context, *connect.Request[v1.ListRefsRequest]) (*connect.Response[v1.ListRefsResponse], error)
 	ListRefChanges(context.Context, *connect.Request[v1.ListRefChangesRequest]) (*connect.Response[v1.ListRefChangesResponse], error)
+	ListTree(context.Context, *connect.Request[v1.ListTreeRequest]) (*connect.Response[v1.ListTreeResponse], error)
+	SearchFiles(context.Context, *connect.Request[v1.SearchFilesRequest]) (*connect.Response[v1.SearchFilesResponse], error)
+	SearchCode(context.Context, *connect.Request[v1.SearchCodeRequest]) (*connect.Response[v1.SearchCodeResponse], error)
+	GetBlob(context.Context, *connect.Request[v1.GetBlobRequest]) (*connect.Response[v1.GetBlobResponse], error)
+	GetBlame(context.Context, *connect.Request[v1.GetBlameRequest]) (*connect.Response[v1.GetBlameResponse], error)
+	ListCommits(context.Context, *connect.Request[v1.ListCommitsRequest]) (*connect.Response[v1.ListCommitsResponse], error)
+	GetCommit(context.Context, *connect.Request[v1.GetCommitRequest]) (*connect.Response[v1.GetCommitResponse], error)
+	CompareRefs(context.Context, *connect.Request[v1.CompareRefsRequest]) (*connect.Response[v1.CompareRefsResponse], error)
 }
 
 // NewRepoServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -182,6 +310,54 @@ func NewRepoServiceHandler(svc RepoServiceHandler, opts ...connect.HandlerOption
 		connect.WithSchema(repoServiceMethods.ByName("ListRefChanges")),
 		connect.WithHandlerOptions(opts...),
 	)
+	repoServiceListTreeHandler := connect.NewUnaryHandler(
+		RepoServiceListTreeProcedure,
+		svc.ListTree,
+		connect.WithSchema(repoServiceMethods.ByName("ListTree")),
+		connect.WithHandlerOptions(opts...),
+	)
+	repoServiceSearchFilesHandler := connect.NewUnaryHandler(
+		RepoServiceSearchFilesProcedure,
+		svc.SearchFiles,
+		connect.WithSchema(repoServiceMethods.ByName("SearchFiles")),
+		connect.WithHandlerOptions(opts...),
+	)
+	repoServiceSearchCodeHandler := connect.NewUnaryHandler(
+		RepoServiceSearchCodeProcedure,
+		svc.SearchCode,
+		connect.WithSchema(repoServiceMethods.ByName("SearchCode")),
+		connect.WithHandlerOptions(opts...),
+	)
+	repoServiceGetBlobHandler := connect.NewUnaryHandler(
+		RepoServiceGetBlobProcedure,
+		svc.GetBlob,
+		connect.WithSchema(repoServiceMethods.ByName("GetBlob")),
+		connect.WithHandlerOptions(opts...),
+	)
+	repoServiceGetBlameHandler := connect.NewUnaryHandler(
+		RepoServiceGetBlameProcedure,
+		svc.GetBlame,
+		connect.WithSchema(repoServiceMethods.ByName("GetBlame")),
+		connect.WithHandlerOptions(opts...),
+	)
+	repoServiceListCommitsHandler := connect.NewUnaryHandler(
+		RepoServiceListCommitsProcedure,
+		svc.ListCommits,
+		connect.WithSchema(repoServiceMethods.ByName("ListCommits")),
+		connect.WithHandlerOptions(opts...),
+	)
+	repoServiceGetCommitHandler := connect.NewUnaryHandler(
+		RepoServiceGetCommitProcedure,
+		svc.GetCommit,
+		connect.WithSchema(repoServiceMethods.ByName("GetCommit")),
+		connect.WithHandlerOptions(opts...),
+	)
+	repoServiceCompareRefsHandler := connect.NewUnaryHandler(
+		RepoServiceCompareRefsProcedure,
+		svc.CompareRefs,
+		connect.WithSchema(repoServiceMethods.ByName("CompareRefs")),
+		connect.WithHandlerOptions(opts...),
+	)
 	return "/gitplus.repo.v1.RepoService/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case RepoServiceListRepositoriesProcedure:
@@ -194,6 +370,22 @@ func NewRepoServiceHandler(svc RepoServiceHandler, opts ...connect.HandlerOption
 			repoServiceListRefsHandler.ServeHTTP(w, r)
 		case RepoServiceListRefChangesProcedure:
 			repoServiceListRefChangesHandler.ServeHTTP(w, r)
+		case RepoServiceListTreeProcedure:
+			repoServiceListTreeHandler.ServeHTTP(w, r)
+		case RepoServiceSearchFilesProcedure:
+			repoServiceSearchFilesHandler.ServeHTTP(w, r)
+		case RepoServiceSearchCodeProcedure:
+			repoServiceSearchCodeHandler.ServeHTTP(w, r)
+		case RepoServiceGetBlobProcedure:
+			repoServiceGetBlobHandler.ServeHTTP(w, r)
+		case RepoServiceGetBlameProcedure:
+			repoServiceGetBlameHandler.ServeHTTP(w, r)
+		case RepoServiceListCommitsProcedure:
+			repoServiceListCommitsHandler.ServeHTTP(w, r)
+		case RepoServiceGetCommitProcedure:
+			repoServiceGetCommitHandler.ServeHTTP(w, r)
+		case RepoServiceCompareRefsProcedure:
+			repoServiceCompareRefsHandler.ServeHTTP(w, r)
 		default:
 			http.NotFound(w, r)
 		}
@@ -221,4 +413,36 @@ func (UnimplementedRepoServiceHandler) ListRefs(context.Context, *connect.Reques
 
 func (UnimplementedRepoServiceHandler) ListRefChanges(context.Context, *connect.Request[v1.ListRefChangesRequest]) (*connect.Response[v1.ListRefChangesResponse], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitplus.repo.v1.RepoService.ListRefChanges is not implemented"))
+}
+
+func (UnimplementedRepoServiceHandler) ListTree(context.Context, *connect.Request[v1.ListTreeRequest]) (*connect.Response[v1.ListTreeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitplus.repo.v1.RepoService.ListTree is not implemented"))
+}
+
+func (UnimplementedRepoServiceHandler) SearchFiles(context.Context, *connect.Request[v1.SearchFilesRequest]) (*connect.Response[v1.SearchFilesResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitplus.repo.v1.RepoService.SearchFiles is not implemented"))
+}
+
+func (UnimplementedRepoServiceHandler) SearchCode(context.Context, *connect.Request[v1.SearchCodeRequest]) (*connect.Response[v1.SearchCodeResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitplus.repo.v1.RepoService.SearchCode is not implemented"))
+}
+
+func (UnimplementedRepoServiceHandler) GetBlob(context.Context, *connect.Request[v1.GetBlobRequest]) (*connect.Response[v1.GetBlobResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitplus.repo.v1.RepoService.GetBlob is not implemented"))
+}
+
+func (UnimplementedRepoServiceHandler) GetBlame(context.Context, *connect.Request[v1.GetBlameRequest]) (*connect.Response[v1.GetBlameResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitplus.repo.v1.RepoService.GetBlame is not implemented"))
+}
+
+func (UnimplementedRepoServiceHandler) ListCommits(context.Context, *connect.Request[v1.ListCommitsRequest]) (*connect.Response[v1.ListCommitsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitplus.repo.v1.RepoService.ListCommits is not implemented"))
+}
+
+func (UnimplementedRepoServiceHandler) GetCommit(context.Context, *connect.Request[v1.GetCommitRequest]) (*connect.Response[v1.GetCommitResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitplus.repo.v1.RepoService.GetCommit is not implemented"))
+}
+
+func (UnimplementedRepoServiceHandler) CompareRefs(context.Context, *connect.Request[v1.CompareRefsRequest]) (*connect.Response[v1.CompareRefsResponse], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("gitplus.repo.v1.RepoService.CompareRefs is not implemented"))
 }

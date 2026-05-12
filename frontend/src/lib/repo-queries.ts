@@ -10,6 +10,7 @@ function encodePageToken(offset: number): string {
 
 const PAGE_SIZE = 30;
 const CHANGES_PAGE_SIZE = 50;
+const COMMITS_PAGE_SIZE = 50;
 
 export function repoListQueryOptions(
   search: string,
@@ -76,6 +77,136 @@ export function repoRefChangesQueryOptions(repoId: string, refName = '') {
       }
       return undefined;
     },
+  });
+}
+
+export function repoTreeQueryOptions(
+  repoId: string,
+  refName: string,
+  path: string,
+) {
+  return queryOptions({
+    queryKey: ['repo', 'tree', repoId, { refName, path }],
+    queryFn: () =>
+      repoClient.listTree({
+        repoId: BigInt(repoId),
+        refName,
+        path,
+      }),
+  });
+}
+
+export function repoBlobQueryOptions(
+  repoId: string,
+  refName: string,
+  path: string,
+) {
+  return queryOptions({
+    queryKey: ['repo', 'blob', repoId, { refName, path }],
+    queryFn: () =>
+      repoClient.getBlob({
+        repoId: BigInt(repoId),
+        refName,
+        path,
+      }),
+  });
+}
+
+export function repoBlameQueryOptions(
+  repoId: string,
+  refName: string,
+  path: string,
+) {
+  return queryOptions({
+    queryKey: ['repo', 'blame', repoId, { refName, path }],
+    queryFn: () =>
+      repoClient.getBlame({
+        repoId: BigInt(repoId),
+        refName,
+        path,
+      }),
+  });
+}
+
+export function repoFileSearchQueryOptions(
+  repoId: string,
+  refName: string,
+  query: string,
+) {
+  return queryOptions({
+    queryKey: ['repo', 'file-search', repoId, { refName, query }],
+    queryFn: () =>
+      repoClient.searchFiles({
+        repoId: BigInt(repoId),
+        refName,
+        query,
+        pageSize: 50,
+      }),
+  });
+}
+
+export function repoCodeSearchQueryOptions(
+  repoId: string,
+  refName: string,
+  query: string,
+) {
+  return queryOptions({
+    queryKey: ['repo', 'code-search', repoId, { refName, query }],
+    queryFn: () =>
+      repoClient.searchCode({
+        repoId: BigInt(repoId),
+        refName,
+        query,
+        pageSize: 50,
+      }),
+  });
+}
+
+export function repoCommitsQueryOptions(
+  repoId: string,
+  refName: string,
+  path: string = '',
+) {
+  return infiniteQueryOptions({
+    queryKey: ['repo', 'commits', repoId, { refName, path }],
+    queryFn: ({ pageParam = '' }) =>
+      repoClient.listCommits({
+        repoId: BigInt(repoId),
+        refName,
+        pageSize: COMMITS_PAGE_SIZE,
+        pageToken: pageParam,
+        path,
+      }),
+    initialPageParam: '',
+    getNextPageParam: (lastPage) => lastPage.nextPageToken || undefined,
+  });
+}
+
+export function repoCommitQueryOptions(repoId: string, commitHash: string) {
+  return queryOptions({
+    queryKey: ['repo', 'commit', repoId, commitHash],
+    queryFn: () =>
+      repoClient.getCommit({
+        repoId: BigInt(repoId),
+        commitHash,
+      }),
+  });
+}
+
+export function repoCompareQueryOptions(
+  repoId: string,
+  baseRefName: string,
+  headRefName: string,
+) {
+  return queryOptions({
+    queryKey: ['repo', 'compare', repoId, { baseRefName, headRefName }],
+    queryFn: () =>
+      repoClient.compareRefs({
+        repoId: BigInt(repoId),
+        baseRefName,
+        headRefName,
+        pageSize: COMMITS_PAGE_SIZE,
+      }),
   });
 }
 

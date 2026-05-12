@@ -165,10 +165,221 @@ message RepoRefChange {
   CommitInfo new_commit = 9;
 }
 
+message ListTreeRequest {
+  int64 repo_id = 1;
+  // Optional ref name. Accepts full ref names such as "refs/heads/main" or
+  // short branch/tag names such as "main". Defaults to the repository default
+  // branch when available.
+  string ref_name = 2;
+  // Directory path relative to the repository root.
+  string path = 3;
+}
+
+message ListTreeResponse {
+  int64 repo_id = 1;
+  string ref_name = 2;
+  string commit_hash = 3;
+  string path = 4;
+  repeated TreeEntry entries = 5;
+  RepositoryReadme readme = 6;
+}
+
+message TreeEntry {
+  string name = 1;
+  string path = 2;
+  // "directory", "file", "symlink", or "submodule".
+  string kind = 3;
+  string mode = 4;
+  string hash = 5;
+  int64 size = 6;
+}
+
+message SearchFilesRequest {
+  int64 repo_id = 1;
+  string ref_name = 2;
+  string query = 3;
+  int32 page_size = 4 [(buf.validate.field).int32 = {
+    gte: 1
+    lte: 100
+  }];
+}
+
+message SearchFilesResponse {
+  int64 repo_id = 1;
+  string ref_name = 2;
+  string commit_hash = 3;
+  repeated TreeEntry entries = 4;
+  bool is_truncated = 5;
+}
+
+message SearchCodeRequest {
+  int64 repo_id = 1;
+  string ref_name = 2;
+  string query = 3;
+  int32 page_size = 4 [(buf.validate.field).int32 = {
+    gte: 1
+    lte: 100
+  }];
+}
+
+message SearchCodeResponse {
+  int64 repo_id = 1;
+  string ref_name = 2;
+  string commit_hash = 3;
+  repeated CodeSearchMatch matches = 4;
+  bool is_truncated = 5;
+}
+
+message CodeSearchMatch {
+  string path = 1;
+  int32 line_no = 2;
+  string line = 3;
+}
+
+message GetBlobRequest {
+  int64 repo_id = 1;
+  string ref_name = 2;
+  string path = 3;
+}
+
+message GetBlobResponse {
+  int64 repo_id = 1;
+  string ref_name = 2;
+  string commit_hash = 3;
+  string path = 4;
+  string name = 5;
+  string mode = 6;
+  string hash = 7;
+  int64 size = 8;
+  string content = 9;
+  bool is_binary = 10;
+  bool is_truncated = 11;
+}
+
+message GetBlameRequest {
+  int64 repo_id = 1;
+  string ref_name = 2;
+  string path = 3;
+}
+
+message GetBlameResponse {
+  int64 repo_id = 1;
+  string ref_name = 2;
+  string commit_hash = 3;
+  string path = 4;
+  repeated BlameLine lines = 5;
+  bool is_truncated = 6;
+}
+
+message BlameLine {
+  int32 line_no = 1;
+  string commit_hash = 2;
+  string author_name = 3;
+  string author_email = 4;
+  google.protobuf.Timestamp authored_at = 5;
+  string summary = 6;
+  string content = 7;
+}
+
+message RepositoryReadme {
+  string path = 1;
+  string name = 2;
+  string content = 3;
+  bool is_truncated = 4;
+}
+
+message ListCommitsRequest {
+  int64 repo_id = 1;
+  string ref_name = 2;
+  int32 page_size = 3 [(buf.validate.field).int32 = {
+    gte: 1
+    lte: 100
+  }];
+  string page_token = 4;
+  // Optional repository path filter. When set, only commits touching this file
+  // or directory are returned.
+  string path = 5;
+}
+
+message ListCommitsResponse {
+  repeated RepositoryCommit commits = 1;
+  string next_page_token = 2;
+}
+
+message GetCommitRequest {
+  int64 repo_id = 1;
+  string commit_hash = 2;
+}
+
+message GetCommitResponse {
+  RepositoryCommit commit = 1;
+  repeated CommitFileDiff files = 2;
+  int32 additions = 3;
+  int32 deletions = 4;
+  bool is_truncated = 5;
+}
+
+message CompareRefsRequest {
+  int64 repo_id = 1;
+  string base_ref_name = 2;
+  string head_ref_name = 3;
+  int32 page_size = 4 [(buf.validate.field).int32 = {
+    gte: 1
+    lte: 100
+  }];
+}
+
+message CompareRefsResponse {
+  string base_ref_name = 1;
+  string head_ref_name = 2;
+  string base_commit_hash = 3;
+  string head_commit_hash = 4;
+  string merge_base_hash = 5;
+  int32 ahead_count = 6;
+  int32 behind_count = 7;
+  repeated RepositoryCommit commits = 8;
+  repeated CommitFileDiff files = 9;
+  int32 additions = 10;
+  int32 deletions = 11;
+  bool is_truncated = 12;
+}
+
+message RepositoryCommit {
+  string hash = 1;
+  repeated string parent_hashes = 2;
+  google.protobuf.Timestamp authored_at = 3;
+  google.protobuf.Timestamp committed_at = 4;
+  string author_name = 5;
+  string author_email = 6;
+  string committer_name = 7;
+  string committer_email = 8;
+  string message = 9;
+}
+
+message CommitFileDiff {
+  string old_path = 1;
+  string new_path = 2;
+  // "added", "deleted", "modified", "renamed", or "copied".
+  string status = 3;
+  int32 additions = 4;
+  int32 deletions = 5;
+  string patch = 6;
+  bool is_binary = 7;
+  bool is_truncated = 8;
+}
+
 service RepoService {
   rpc ListRepositories(ListRepositoriesRequest) returns (ListRepositoriesResponse);
   rpc GetRepository(GetRepositoryRequest) returns (GetRepositoryResponse);
   rpc StreamRepositoryDownload(StreamRepositoryDownloadRequest) returns (stream StreamRepositoryDownloadResponse);
   rpc ListRefs(ListRefsRequest) returns (ListRefsResponse);
   rpc ListRefChanges(ListRefChangesRequest) returns (ListRefChangesResponse);
+  rpc ListTree(ListTreeRequest) returns (ListTreeResponse);
+  rpc SearchFiles(SearchFilesRequest) returns (SearchFilesResponse);
+  rpc SearchCode(SearchCodeRequest) returns (SearchCodeResponse);
+  rpc GetBlob(GetBlobRequest) returns (GetBlobResponse);
+  rpc GetBlame(GetBlameRequest) returns (GetBlameResponse);
+  rpc ListCommits(ListCommitsRequest) returns (ListCommitsResponse);
+  rpc GetCommit(GetCommitRequest) returns (GetCommitResponse);
+  rpc CompareRefs(CompareRefsRequest) returns (CompareRefsResponse);
 }

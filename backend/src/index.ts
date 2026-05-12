@@ -10,7 +10,11 @@ import { CronRuntime } from './cron-runtime';
 import { openDatabase } from './database';
 import { DownloadManager, handleDownloadRequest } from './download';
 import { EventBus } from './event-bus';
-import { createRoutes, enqueueFullSyncTask } from './routes';
+import {
+  createRoutes,
+  enqueueFullSyncTask,
+  handleRawBlobRequest,
+} from './routes';
 import {
   INSECURE_NO_AUTH_PASSWORD,
   PASSWORD_ENV,
@@ -169,6 +173,9 @@ async function main(): Promise<void> {
   server.get(
     '/api/repos/:repoId/downloads/:downloadId/archive',
     (request, reply) => handleDownloadRequest(downloads, request, reply),
+  );
+  server.get('/api/repos/:repoId/raw', (request, reply) =>
+    handleRawBlobRequest(runtimeDeps, request, reply),
   );
   server.get('/ready', () => 'ok\n');
   server.get('/healthz', () => 'ok\n');

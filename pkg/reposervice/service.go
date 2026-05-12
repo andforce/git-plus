@@ -47,7 +47,7 @@ func RegisterHandlers(mux *http.ServeMux, dataDir string, options ...Option) {
 		connect.WithInterceptors(mustValidateInterceptor()),
 	)
 	mux.Handle(path, handler)
-	mux.HandleFunc("/repos/", server.handleRepositoryDownload)
+	mux.HandleFunc("/repos/", server.handleRepositoryAsset)
 }
 
 func WithDatabase(db *sql.DB) Option {

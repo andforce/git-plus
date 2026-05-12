@@ -180,6 +180,44 @@ func TestDownloadEndpointRejectsRepoMismatch(t *testing.T) {
 	}
 }
 
+func TestRawBlobEndpointStreamsArchivedFile(t *testing.T) {
+	dataDir, sqliteDB := openRepoServiceDownloadTestEnv(t)
+	defer sqliteDB.Close()
+
+	repoID := seedRepoServiceRepoData(t, sqliteDB)
+	_, mainHash, devHash, tagHash := createArchiveFixture(t, dataDir, "source-a", "1", true)
+	seedActiveDownloadRefs(t, sqliteDB, repoID, mainHash, devHash, tagHash, true)
+
+	server := httptest.NewServer(NewHandler(dataDir, WithDatabase(sqliteDB)))
+	defer server.Close()
+
+	response, err := server.Client().Get(
+		server.URL + "/api/repos/1/raw?ref=main&path=README.md",
+	)
+	if err != nil {
+		t.Fatalf("request raw blob: %v", err)
+	}
+	defer response.Body.Close()
+
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("unexpected status code: %d", response.StatusCode)
+	}
+	if got := response.Header.Get("Content-Type"); !strings.Contains(got, "text/markdown") {
+		t.Fatalf("unexpected content type: %q", got)
+	}
+	if got := response.Header.Get("Content-Disposition"); !strings.Contains(got, "inline") {
+		t.Fatalf("unexpected content disposition: %q", got)
+	}
+
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		t.Fatalf("read raw blob: %v", err)
+	}
+	if got := string(body); got != "hello\n" {
+		t.Fatalf("unexpected raw blob content: %q", got)
+	}
+}
+
 func openRepoServiceDownloadTestEnv(t *testing.T) (string, *sql.DB) {
 	t.Helper()
 

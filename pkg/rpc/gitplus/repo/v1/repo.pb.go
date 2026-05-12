@@ -1283,6 +1283,1742 @@ func (x *RepoRefChange) GetNewCommit() *CommitInfo {
 	return nil
 }
 
+type ListTreeRequest struct {
+	state  protoimpl.MessageState `protogen:"open.v1"`
+	RepoId *int64                 `protobuf:"varint,1,opt,name=repo_id,json=repoId" json:"repo_id,omitempty"`
+	// Optional ref name. Accepts full ref names such as "refs/heads/main" or
+	// short branch/tag names such as "main". Defaults to the repository default
+	// branch when available.
+	RefName *string `protobuf:"bytes,2,opt,name=ref_name,json=refName" json:"ref_name,omitempty"`
+	// Directory path relative to the repository root.
+	Path          *string `protobuf:"bytes,3,opt,name=path" json:"path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListTreeRequest) Reset() {
+	*x = ListTreeRequest{}
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListTreeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListTreeRequest) ProtoMessage() {}
+
+func (x *ListTreeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListTreeRequest.ProtoReflect.Descriptor instead.
+func (*ListTreeRequest) Descriptor() ([]byte, []int) {
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *ListTreeRequest) GetRepoId() int64 {
+	if x != nil && x.RepoId != nil {
+		return *x.RepoId
+	}
+	return 0
+}
+
+func (x *ListTreeRequest) GetRefName() string {
+	if x != nil && x.RefName != nil {
+		return *x.RefName
+	}
+	return ""
+}
+
+func (x *ListTreeRequest) GetPath() string {
+	if x != nil && x.Path != nil {
+		return *x.Path
+	}
+	return ""
+}
+
+type ListTreeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RepoId        *int64                 `protobuf:"varint,1,opt,name=repo_id,json=repoId" json:"repo_id,omitempty"`
+	RefName       *string                `protobuf:"bytes,2,opt,name=ref_name,json=refName" json:"ref_name,omitempty"`
+	CommitHash    *string                `protobuf:"bytes,3,opt,name=commit_hash,json=commitHash" json:"commit_hash,omitempty"`
+	Path          *string                `protobuf:"bytes,4,opt,name=path" json:"path,omitempty"`
+	Entries       []*TreeEntry           `protobuf:"bytes,5,rep,name=entries" json:"entries,omitempty"`
+	Readme        *RepositoryReadme      `protobuf:"bytes,6,opt,name=readme" json:"readme,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListTreeResponse) Reset() {
+	*x = ListTreeResponse{}
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListTreeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListTreeResponse) ProtoMessage() {}
+
+func (x *ListTreeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListTreeResponse.ProtoReflect.Descriptor instead.
+func (*ListTreeResponse) Descriptor() ([]byte, []int) {
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *ListTreeResponse) GetRepoId() int64 {
+	if x != nil && x.RepoId != nil {
+		return *x.RepoId
+	}
+	return 0
+}
+
+func (x *ListTreeResponse) GetRefName() string {
+	if x != nil && x.RefName != nil {
+		return *x.RefName
+	}
+	return ""
+}
+
+func (x *ListTreeResponse) GetCommitHash() string {
+	if x != nil && x.CommitHash != nil {
+		return *x.CommitHash
+	}
+	return ""
+}
+
+func (x *ListTreeResponse) GetPath() string {
+	if x != nil && x.Path != nil {
+		return *x.Path
+	}
+	return ""
+}
+
+func (x *ListTreeResponse) GetEntries() []*TreeEntry {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+func (x *ListTreeResponse) GetReadme() *RepositoryReadme {
+	if x != nil {
+		return x.Readme
+	}
+	return nil
+}
+
+type TreeEntry struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Name  *string                `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Path  *string                `protobuf:"bytes,2,opt,name=path" json:"path,omitempty"`
+	// "directory", "file", "symlink", or "submodule".
+	Kind          *string `protobuf:"bytes,3,opt,name=kind" json:"kind,omitempty"`
+	Mode          *string `protobuf:"bytes,4,opt,name=mode" json:"mode,omitempty"`
+	Hash          *string `protobuf:"bytes,5,opt,name=hash" json:"hash,omitempty"`
+	Size          *int64  `protobuf:"varint,6,opt,name=size" json:"size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TreeEntry) Reset() {
+	*x = TreeEntry{}
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TreeEntry) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TreeEntry) ProtoMessage() {}
+
+func (x *TreeEntry) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TreeEntry.ProtoReflect.Descriptor instead.
+func (*TreeEntry) Descriptor() ([]byte, []int) {
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *TreeEntry) GetName() string {
+	if x != nil && x.Name != nil {
+		return *x.Name
+	}
+	return ""
+}
+
+func (x *TreeEntry) GetPath() string {
+	if x != nil && x.Path != nil {
+		return *x.Path
+	}
+	return ""
+}
+
+func (x *TreeEntry) GetKind() string {
+	if x != nil && x.Kind != nil {
+		return *x.Kind
+	}
+	return ""
+}
+
+func (x *TreeEntry) GetMode() string {
+	if x != nil && x.Mode != nil {
+		return *x.Mode
+	}
+	return ""
+}
+
+func (x *TreeEntry) GetHash() string {
+	if x != nil && x.Hash != nil {
+		return *x.Hash
+	}
+	return ""
+}
+
+func (x *TreeEntry) GetSize() int64 {
+	if x != nil && x.Size != nil {
+		return *x.Size
+	}
+	return 0
+}
+
+type SearchFilesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RepoId        *int64                 `protobuf:"varint,1,opt,name=repo_id,json=repoId" json:"repo_id,omitempty"`
+	RefName       *string                `protobuf:"bytes,2,opt,name=ref_name,json=refName" json:"ref_name,omitempty"`
+	Query         *string                `protobuf:"bytes,3,opt,name=query" json:"query,omitempty"`
+	PageSize      *int32                 `protobuf:"varint,4,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchFilesRequest) Reset() {
+	*x = SearchFilesRequest{}
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[17]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchFilesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchFilesRequest) ProtoMessage() {}
+
+func (x *SearchFilesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[17]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchFilesRequest.ProtoReflect.Descriptor instead.
+func (*SearchFilesRequest) Descriptor() ([]byte, []int) {
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{17}
+}
+
+func (x *SearchFilesRequest) GetRepoId() int64 {
+	if x != nil && x.RepoId != nil {
+		return *x.RepoId
+	}
+	return 0
+}
+
+func (x *SearchFilesRequest) GetRefName() string {
+	if x != nil && x.RefName != nil {
+		return *x.RefName
+	}
+	return ""
+}
+
+func (x *SearchFilesRequest) GetQuery() string {
+	if x != nil && x.Query != nil {
+		return *x.Query
+	}
+	return ""
+}
+
+func (x *SearchFilesRequest) GetPageSize() int32 {
+	if x != nil && x.PageSize != nil {
+		return *x.PageSize
+	}
+	return 0
+}
+
+type SearchFilesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RepoId        *int64                 `protobuf:"varint,1,opt,name=repo_id,json=repoId" json:"repo_id,omitempty"`
+	RefName       *string                `protobuf:"bytes,2,opt,name=ref_name,json=refName" json:"ref_name,omitempty"`
+	CommitHash    *string                `protobuf:"bytes,3,opt,name=commit_hash,json=commitHash" json:"commit_hash,omitempty"`
+	Entries       []*TreeEntry           `protobuf:"bytes,4,rep,name=entries" json:"entries,omitempty"`
+	IsTruncated   *bool                  `protobuf:"varint,5,opt,name=is_truncated,json=isTruncated" json:"is_truncated,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchFilesResponse) Reset() {
+	*x = SearchFilesResponse{}
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchFilesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchFilesResponse) ProtoMessage() {}
+
+func (x *SearchFilesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchFilesResponse.ProtoReflect.Descriptor instead.
+func (*SearchFilesResponse) Descriptor() ([]byte, []int) {
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *SearchFilesResponse) GetRepoId() int64 {
+	if x != nil && x.RepoId != nil {
+		return *x.RepoId
+	}
+	return 0
+}
+
+func (x *SearchFilesResponse) GetRefName() string {
+	if x != nil && x.RefName != nil {
+		return *x.RefName
+	}
+	return ""
+}
+
+func (x *SearchFilesResponse) GetCommitHash() string {
+	if x != nil && x.CommitHash != nil {
+		return *x.CommitHash
+	}
+	return ""
+}
+
+func (x *SearchFilesResponse) GetEntries() []*TreeEntry {
+	if x != nil {
+		return x.Entries
+	}
+	return nil
+}
+
+func (x *SearchFilesResponse) GetIsTruncated() bool {
+	if x != nil && x.IsTruncated != nil {
+		return *x.IsTruncated
+	}
+	return false
+}
+
+type SearchCodeRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RepoId        *int64                 `protobuf:"varint,1,opt,name=repo_id,json=repoId" json:"repo_id,omitempty"`
+	RefName       *string                `protobuf:"bytes,2,opt,name=ref_name,json=refName" json:"ref_name,omitempty"`
+	Query         *string                `protobuf:"bytes,3,opt,name=query" json:"query,omitempty"`
+	PageSize      *int32                 `protobuf:"varint,4,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchCodeRequest) Reset() {
+	*x = SearchCodeRequest{}
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchCodeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchCodeRequest) ProtoMessage() {}
+
+func (x *SearchCodeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchCodeRequest.ProtoReflect.Descriptor instead.
+func (*SearchCodeRequest) Descriptor() ([]byte, []int) {
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *SearchCodeRequest) GetRepoId() int64 {
+	if x != nil && x.RepoId != nil {
+		return *x.RepoId
+	}
+	return 0
+}
+
+func (x *SearchCodeRequest) GetRefName() string {
+	if x != nil && x.RefName != nil {
+		return *x.RefName
+	}
+	return ""
+}
+
+func (x *SearchCodeRequest) GetQuery() string {
+	if x != nil && x.Query != nil {
+		return *x.Query
+	}
+	return ""
+}
+
+func (x *SearchCodeRequest) GetPageSize() int32 {
+	if x != nil && x.PageSize != nil {
+		return *x.PageSize
+	}
+	return 0
+}
+
+type SearchCodeResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RepoId        *int64                 `protobuf:"varint,1,opt,name=repo_id,json=repoId" json:"repo_id,omitempty"`
+	RefName       *string                `protobuf:"bytes,2,opt,name=ref_name,json=refName" json:"ref_name,omitempty"`
+	CommitHash    *string                `protobuf:"bytes,3,opt,name=commit_hash,json=commitHash" json:"commit_hash,omitempty"`
+	Matches       []*CodeSearchMatch     `protobuf:"bytes,4,rep,name=matches" json:"matches,omitempty"`
+	IsTruncated   *bool                  `protobuf:"varint,5,opt,name=is_truncated,json=isTruncated" json:"is_truncated,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchCodeResponse) Reset() {
+	*x = SearchCodeResponse{}
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchCodeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchCodeResponse) ProtoMessage() {}
+
+func (x *SearchCodeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchCodeResponse.ProtoReflect.Descriptor instead.
+func (*SearchCodeResponse) Descriptor() ([]byte, []int) {
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *SearchCodeResponse) GetRepoId() int64 {
+	if x != nil && x.RepoId != nil {
+		return *x.RepoId
+	}
+	return 0
+}
+
+func (x *SearchCodeResponse) GetRefName() string {
+	if x != nil && x.RefName != nil {
+		return *x.RefName
+	}
+	return ""
+}
+
+func (x *SearchCodeResponse) GetCommitHash() string {
+	if x != nil && x.CommitHash != nil {
+		return *x.CommitHash
+	}
+	return ""
+}
+
+func (x *SearchCodeResponse) GetMatches() []*CodeSearchMatch {
+	if x != nil {
+		return x.Matches
+	}
+	return nil
+}
+
+func (x *SearchCodeResponse) GetIsTruncated() bool {
+	if x != nil && x.IsTruncated != nil {
+		return *x.IsTruncated
+	}
+	return false
+}
+
+type CodeSearchMatch struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Path          *string                `protobuf:"bytes,1,opt,name=path" json:"path,omitempty"`
+	LineNo        *int32                 `protobuf:"varint,2,opt,name=line_no,json=lineNo" json:"line_no,omitempty"`
+	Line          *string                `protobuf:"bytes,3,opt,name=line" json:"line,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CodeSearchMatch) Reset() {
+	*x = CodeSearchMatch{}
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CodeSearchMatch) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CodeSearchMatch) ProtoMessage() {}
+
+func (x *CodeSearchMatch) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CodeSearchMatch.ProtoReflect.Descriptor instead.
+func (*CodeSearchMatch) Descriptor() ([]byte, []int) {
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *CodeSearchMatch) GetPath() string {
+	if x != nil && x.Path != nil {
+		return *x.Path
+	}
+	return ""
+}
+
+func (x *CodeSearchMatch) GetLineNo() int32 {
+	if x != nil && x.LineNo != nil {
+		return *x.LineNo
+	}
+	return 0
+}
+
+func (x *CodeSearchMatch) GetLine() string {
+	if x != nil && x.Line != nil {
+		return *x.Line
+	}
+	return ""
+}
+
+type GetBlobRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RepoId        *int64                 `protobuf:"varint,1,opt,name=repo_id,json=repoId" json:"repo_id,omitempty"`
+	RefName       *string                `protobuf:"bytes,2,opt,name=ref_name,json=refName" json:"ref_name,omitempty"`
+	Path          *string                `protobuf:"bytes,3,opt,name=path" json:"path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetBlobRequest) Reset() {
+	*x = GetBlobRequest{}
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetBlobRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetBlobRequest) ProtoMessage() {}
+
+func (x *GetBlobRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetBlobRequest.ProtoReflect.Descriptor instead.
+func (*GetBlobRequest) Descriptor() ([]byte, []int) {
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *GetBlobRequest) GetRepoId() int64 {
+	if x != nil && x.RepoId != nil {
+		return *x.RepoId
+	}
+	return 0
+}
+
+func (x *GetBlobRequest) GetRefName() string {
+	if x != nil && x.RefName != nil {
+		return *x.RefName
+	}
+	return ""
+}
+
+func (x *GetBlobRequest) GetPath() string {
+	if x != nil && x.Path != nil {
+		return *x.Path
+	}
+	return ""
+}
+
+type GetBlobResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RepoId        *int64                 `protobuf:"varint,1,opt,name=repo_id,json=repoId" json:"repo_id,omitempty"`
+	RefName       *string                `protobuf:"bytes,2,opt,name=ref_name,json=refName" json:"ref_name,omitempty"`
+	CommitHash    *string                `protobuf:"bytes,3,opt,name=commit_hash,json=commitHash" json:"commit_hash,omitempty"`
+	Path          *string                `protobuf:"bytes,4,opt,name=path" json:"path,omitempty"`
+	Name          *string                `protobuf:"bytes,5,opt,name=name" json:"name,omitempty"`
+	Mode          *string                `protobuf:"bytes,6,opt,name=mode" json:"mode,omitempty"`
+	Hash          *string                `protobuf:"bytes,7,opt,name=hash" json:"hash,omitempty"`
+	Size          *int64                 `protobuf:"varint,8,opt,name=size" json:"size,omitempty"`
+	Content       *string                `protobuf:"bytes,9,opt,name=content" json:"content,omitempty"`
+	IsBinary      *bool                  `protobuf:"varint,10,opt,name=is_binary,json=isBinary" json:"is_binary,omitempty"`
+	IsTruncated   *bool                  `protobuf:"varint,11,opt,name=is_truncated,json=isTruncated" json:"is_truncated,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetBlobResponse) Reset() {
+	*x = GetBlobResponse{}
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetBlobResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetBlobResponse) ProtoMessage() {}
+
+func (x *GetBlobResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetBlobResponse.ProtoReflect.Descriptor instead.
+func (*GetBlobResponse) Descriptor() ([]byte, []int) {
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *GetBlobResponse) GetRepoId() int64 {
+	if x != nil && x.RepoId != nil {
+		return *x.RepoId
+	}
+	return 0
+}
+
+func (x *GetBlobResponse) GetRefName() string {
+	if x != nil && x.RefName != nil {
+		return *x.RefName
+	}
+	return ""
+}
+
+func (x *GetBlobResponse) GetCommitHash() string {
+	if x != nil && x.CommitHash != nil {
+		return *x.CommitHash
+	}
+	return ""
+}
+
+func (x *GetBlobResponse) GetPath() string {
+	if x != nil && x.Path != nil {
+		return *x.Path
+	}
+	return ""
+}
+
+func (x *GetBlobResponse) GetName() string {
+	if x != nil && x.Name != nil {
+		return *x.Name
+	}
+	return ""
+}
+
+func (x *GetBlobResponse) GetMode() string {
+	if x != nil && x.Mode != nil {
+		return *x.Mode
+	}
+	return ""
+}
+
+func (x *GetBlobResponse) GetHash() string {
+	if x != nil && x.Hash != nil {
+		return *x.Hash
+	}
+	return ""
+}
+
+func (x *GetBlobResponse) GetSize() int64 {
+	if x != nil && x.Size != nil {
+		return *x.Size
+	}
+	return 0
+}
+
+func (x *GetBlobResponse) GetContent() string {
+	if x != nil && x.Content != nil {
+		return *x.Content
+	}
+	return ""
+}
+
+func (x *GetBlobResponse) GetIsBinary() bool {
+	if x != nil && x.IsBinary != nil {
+		return *x.IsBinary
+	}
+	return false
+}
+
+func (x *GetBlobResponse) GetIsTruncated() bool {
+	if x != nil && x.IsTruncated != nil {
+		return *x.IsTruncated
+	}
+	return false
+}
+
+type GetBlameRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RepoId        *int64                 `protobuf:"varint,1,opt,name=repo_id,json=repoId" json:"repo_id,omitempty"`
+	RefName       *string                `protobuf:"bytes,2,opt,name=ref_name,json=refName" json:"ref_name,omitempty"`
+	Path          *string                `protobuf:"bytes,3,opt,name=path" json:"path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetBlameRequest) Reset() {
+	*x = GetBlameRequest{}
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetBlameRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetBlameRequest) ProtoMessage() {}
+
+func (x *GetBlameRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetBlameRequest.ProtoReflect.Descriptor instead.
+func (*GetBlameRequest) Descriptor() ([]byte, []int) {
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *GetBlameRequest) GetRepoId() int64 {
+	if x != nil && x.RepoId != nil {
+		return *x.RepoId
+	}
+	return 0
+}
+
+func (x *GetBlameRequest) GetRefName() string {
+	if x != nil && x.RefName != nil {
+		return *x.RefName
+	}
+	return ""
+}
+
+func (x *GetBlameRequest) GetPath() string {
+	if x != nil && x.Path != nil {
+		return *x.Path
+	}
+	return ""
+}
+
+type GetBlameResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RepoId        *int64                 `protobuf:"varint,1,opt,name=repo_id,json=repoId" json:"repo_id,omitempty"`
+	RefName       *string                `protobuf:"bytes,2,opt,name=ref_name,json=refName" json:"ref_name,omitempty"`
+	CommitHash    *string                `protobuf:"bytes,3,opt,name=commit_hash,json=commitHash" json:"commit_hash,omitempty"`
+	Path          *string                `protobuf:"bytes,4,opt,name=path" json:"path,omitempty"`
+	Lines         []*BlameLine           `protobuf:"bytes,5,rep,name=lines" json:"lines,omitempty"`
+	IsTruncated   *bool                  `protobuf:"varint,6,opt,name=is_truncated,json=isTruncated" json:"is_truncated,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetBlameResponse) Reset() {
+	*x = GetBlameResponse{}
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetBlameResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetBlameResponse) ProtoMessage() {}
+
+func (x *GetBlameResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetBlameResponse.ProtoReflect.Descriptor instead.
+func (*GetBlameResponse) Descriptor() ([]byte, []int) {
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *GetBlameResponse) GetRepoId() int64 {
+	if x != nil && x.RepoId != nil {
+		return *x.RepoId
+	}
+	return 0
+}
+
+func (x *GetBlameResponse) GetRefName() string {
+	if x != nil && x.RefName != nil {
+		return *x.RefName
+	}
+	return ""
+}
+
+func (x *GetBlameResponse) GetCommitHash() string {
+	if x != nil && x.CommitHash != nil {
+		return *x.CommitHash
+	}
+	return ""
+}
+
+func (x *GetBlameResponse) GetPath() string {
+	if x != nil && x.Path != nil {
+		return *x.Path
+	}
+	return ""
+}
+
+func (x *GetBlameResponse) GetLines() []*BlameLine {
+	if x != nil {
+		return x.Lines
+	}
+	return nil
+}
+
+func (x *GetBlameResponse) GetIsTruncated() bool {
+	if x != nil && x.IsTruncated != nil {
+		return *x.IsTruncated
+	}
+	return false
+}
+
+type BlameLine struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	LineNo        *int32                 `protobuf:"varint,1,opt,name=line_no,json=lineNo" json:"line_no,omitempty"`
+	CommitHash    *string                `protobuf:"bytes,2,opt,name=commit_hash,json=commitHash" json:"commit_hash,omitempty"`
+	AuthorName    *string                `protobuf:"bytes,3,opt,name=author_name,json=authorName" json:"author_name,omitempty"`
+	AuthorEmail   *string                `protobuf:"bytes,4,opt,name=author_email,json=authorEmail" json:"author_email,omitempty"`
+	AuthoredAt    *timestamppb.Timestamp `protobuf:"bytes,5,opt,name=authored_at,json=authoredAt" json:"authored_at,omitempty"`
+	Summary       *string                `protobuf:"bytes,6,opt,name=summary" json:"summary,omitempty"`
+	Content       *string                `protobuf:"bytes,7,opt,name=content" json:"content,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BlameLine) Reset() {
+	*x = BlameLine{}
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BlameLine) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BlameLine) ProtoMessage() {}
+
+func (x *BlameLine) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BlameLine.ProtoReflect.Descriptor instead.
+func (*BlameLine) Descriptor() ([]byte, []int) {
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *BlameLine) GetLineNo() int32 {
+	if x != nil && x.LineNo != nil {
+		return *x.LineNo
+	}
+	return 0
+}
+
+func (x *BlameLine) GetCommitHash() string {
+	if x != nil && x.CommitHash != nil {
+		return *x.CommitHash
+	}
+	return ""
+}
+
+func (x *BlameLine) GetAuthorName() string {
+	if x != nil && x.AuthorName != nil {
+		return *x.AuthorName
+	}
+	return ""
+}
+
+func (x *BlameLine) GetAuthorEmail() string {
+	if x != nil && x.AuthorEmail != nil {
+		return *x.AuthorEmail
+	}
+	return ""
+}
+
+func (x *BlameLine) GetAuthoredAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.AuthoredAt
+	}
+	return nil
+}
+
+func (x *BlameLine) GetSummary() string {
+	if x != nil && x.Summary != nil {
+		return *x.Summary
+	}
+	return ""
+}
+
+func (x *BlameLine) GetContent() string {
+	if x != nil && x.Content != nil {
+		return *x.Content
+	}
+	return ""
+}
+
+type RepositoryReadme struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Path          *string                `protobuf:"bytes,1,opt,name=path" json:"path,omitempty"`
+	Name          *string                `protobuf:"bytes,2,opt,name=name" json:"name,omitempty"`
+	Content       *string                `protobuf:"bytes,3,opt,name=content" json:"content,omitempty"`
+	IsTruncated   *bool                  `protobuf:"varint,4,opt,name=is_truncated,json=isTruncated" json:"is_truncated,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RepositoryReadme) Reset() {
+	*x = RepositoryReadme{}
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RepositoryReadme) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RepositoryReadme) ProtoMessage() {}
+
+func (x *RepositoryReadme) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RepositoryReadme.ProtoReflect.Descriptor instead.
+func (*RepositoryReadme) Descriptor() ([]byte, []int) {
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *RepositoryReadme) GetPath() string {
+	if x != nil && x.Path != nil {
+		return *x.Path
+	}
+	return ""
+}
+
+func (x *RepositoryReadme) GetName() string {
+	if x != nil && x.Name != nil {
+		return *x.Name
+	}
+	return ""
+}
+
+func (x *RepositoryReadme) GetContent() string {
+	if x != nil && x.Content != nil {
+		return *x.Content
+	}
+	return ""
+}
+
+func (x *RepositoryReadme) GetIsTruncated() bool {
+	if x != nil && x.IsTruncated != nil {
+		return *x.IsTruncated
+	}
+	return false
+}
+
+type ListCommitsRequest struct {
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	RepoId    *int64                 `protobuf:"varint,1,opt,name=repo_id,json=repoId" json:"repo_id,omitempty"`
+	RefName   *string                `protobuf:"bytes,2,opt,name=ref_name,json=refName" json:"ref_name,omitempty"`
+	PageSize  *int32                 `protobuf:"varint,3,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	PageToken *string                `protobuf:"bytes,4,opt,name=page_token,json=pageToken" json:"page_token,omitempty"`
+	// Optional repository path filter. When set, only commits touching this file
+	// or directory are returned.
+	Path          *string `protobuf:"bytes,5,opt,name=path" json:"path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListCommitsRequest) Reset() {
+	*x = ListCommitsRequest{}
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListCommitsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListCommitsRequest) ProtoMessage() {}
+
+func (x *ListCommitsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListCommitsRequest.ProtoReflect.Descriptor instead.
+func (*ListCommitsRequest) Descriptor() ([]byte, []int) {
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *ListCommitsRequest) GetRepoId() int64 {
+	if x != nil && x.RepoId != nil {
+		return *x.RepoId
+	}
+	return 0
+}
+
+func (x *ListCommitsRequest) GetRefName() string {
+	if x != nil && x.RefName != nil {
+		return *x.RefName
+	}
+	return ""
+}
+
+func (x *ListCommitsRequest) GetPageSize() int32 {
+	if x != nil && x.PageSize != nil {
+		return *x.PageSize
+	}
+	return 0
+}
+
+func (x *ListCommitsRequest) GetPageToken() string {
+	if x != nil && x.PageToken != nil {
+		return *x.PageToken
+	}
+	return ""
+}
+
+func (x *ListCommitsRequest) GetPath() string {
+	if x != nil && x.Path != nil {
+		return *x.Path
+	}
+	return ""
+}
+
+type ListCommitsResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Commits       []*RepositoryCommit    `protobuf:"bytes,1,rep,name=commits" json:"commits,omitempty"`
+	NextPageToken *string                `protobuf:"bytes,2,opt,name=next_page_token,json=nextPageToken" json:"next_page_token,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListCommitsResponse) Reset() {
+	*x = ListCommitsResponse{}
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListCommitsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListCommitsResponse) ProtoMessage() {}
+
+func (x *ListCommitsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListCommitsResponse.ProtoReflect.Descriptor instead.
+func (*ListCommitsResponse) Descriptor() ([]byte, []int) {
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *ListCommitsResponse) GetCommits() []*RepositoryCommit {
+	if x != nil {
+		return x.Commits
+	}
+	return nil
+}
+
+func (x *ListCommitsResponse) GetNextPageToken() string {
+	if x != nil && x.NextPageToken != nil {
+		return *x.NextPageToken
+	}
+	return ""
+}
+
+type GetCommitRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RepoId        *int64                 `protobuf:"varint,1,opt,name=repo_id,json=repoId" json:"repo_id,omitempty"`
+	CommitHash    *string                `protobuf:"bytes,2,opt,name=commit_hash,json=commitHash" json:"commit_hash,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetCommitRequest) Reset() {
+	*x = GetCommitRequest{}
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCommitRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCommitRequest) ProtoMessage() {}
+
+func (x *GetCommitRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCommitRequest.ProtoReflect.Descriptor instead.
+func (*GetCommitRequest) Descriptor() ([]byte, []int) {
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *GetCommitRequest) GetRepoId() int64 {
+	if x != nil && x.RepoId != nil {
+		return *x.RepoId
+	}
+	return 0
+}
+
+func (x *GetCommitRequest) GetCommitHash() string {
+	if x != nil && x.CommitHash != nil {
+		return *x.CommitHash
+	}
+	return ""
+}
+
+type GetCommitResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Commit        *RepositoryCommit      `protobuf:"bytes,1,opt,name=commit" json:"commit,omitempty"`
+	Files         []*CommitFileDiff      `protobuf:"bytes,2,rep,name=files" json:"files,omitempty"`
+	Additions     *int32                 `protobuf:"varint,3,opt,name=additions" json:"additions,omitempty"`
+	Deletions     *int32                 `protobuf:"varint,4,opt,name=deletions" json:"deletions,omitempty"`
+	IsTruncated   *bool                  `protobuf:"varint,5,opt,name=is_truncated,json=isTruncated" json:"is_truncated,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetCommitResponse) Reset() {
+	*x = GetCommitResponse{}
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetCommitResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetCommitResponse) ProtoMessage() {}
+
+func (x *GetCommitResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetCommitResponse.ProtoReflect.Descriptor instead.
+func (*GetCommitResponse) Descriptor() ([]byte, []int) {
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *GetCommitResponse) GetCommit() *RepositoryCommit {
+	if x != nil {
+		return x.Commit
+	}
+	return nil
+}
+
+func (x *GetCommitResponse) GetFiles() []*CommitFileDiff {
+	if x != nil {
+		return x.Files
+	}
+	return nil
+}
+
+func (x *GetCommitResponse) GetAdditions() int32 {
+	if x != nil && x.Additions != nil {
+		return *x.Additions
+	}
+	return 0
+}
+
+func (x *GetCommitResponse) GetDeletions() int32 {
+	if x != nil && x.Deletions != nil {
+		return *x.Deletions
+	}
+	return 0
+}
+
+func (x *GetCommitResponse) GetIsTruncated() bool {
+	if x != nil && x.IsTruncated != nil {
+		return *x.IsTruncated
+	}
+	return false
+}
+
+type CompareRefsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	RepoId        *int64                 `protobuf:"varint,1,opt,name=repo_id,json=repoId" json:"repo_id,omitempty"`
+	BaseRefName   *string                `protobuf:"bytes,2,opt,name=base_ref_name,json=baseRefName" json:"base_ref_name,omitempty"`
+	HeadRefName   *string                `protobuf:"bytes,3,opt,name=head_ref_name,json=headRefName" json:"head_ref_name,omitempty"`
+	PageSize      *int32                 `protobuf:"varint,4,opt,name=page_size,json=pageSize" json:"page_size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CompareRefsRequest) Reset() {
+	*x = CompareRefsRequest{}
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[32]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompareRefsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompareRefsRequest) ProtoMessage() {}
+
+func (x *CompareRefsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[32]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CompareRefsRequest.ProtoReflect.Descriptor instead.
+func (*CompareRefsRequest) Descriptor() ([]byte, []int) {
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{32}
+}
+
+func (x *CompareRefsRequest) GetRepoId() int64 {
+	if x != nil && x.RepoId != nil {
+		return *x.RepoId
+	}
+	return 0
+}
+
+func (x *CompareRefsRequest) GetBaseRefName() string {
+	if x != nil && x.BaseRefName != nil {
+		return *x.BaseRefName
+	}
+	return ""
+}
+
+func (x *CompareRefsRequest) GetHeadRefName() string {
+	if x != nil && x.HeadRefName != nil {
+		return *x.HeadRefName
+	}
+	return ""
+}
+
+func (x *CompareRefsRequest) GetPageSize() int32 {
+	if x != nil && x.PageSize != nil {
+		return *x.PageSize
+	}
+	return 0
+}
+
+type CompareRefsResponse struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	BaseRefName    *string                `protobuf:"bytes,1,opt,name=base_ref_name,json=baseRefName" json:"base_ref_name,omitempty"`
+	HeadRefName    *string                `protobuf:"bytes,2,opt,name=head_ref_name,json=headRefName" json:"head_ref_name,omitempty"`
+	BaseCommitHash *string                `protobuf:"bytes,3,opt,name=base_commit_hash,json=baseCommitHash" json:"base_commit_hash,omitempty"`
+	HeadCommitHash *string                `protobuf:"bytes,4,opt,name=head_commit_hash,json=headCommitHash" json:"head_commit_hash,omitempty"`
+	MergeBaseHash  *string                `protobuf:"bytes,5,opt,name=merge_base_hash,json=mergeBaseHash" json:"merge_base_hash,omitempty"`
+	AheadCount     *int32                 `protobuf:"varint,6,opt,name=ahead_count,json=aheadCount" json:"ahead_count,omitempty"`
+	BehindCount    *int32                 `protobuf:"varint,7,opt,name=behind_count,json=behindCount" json:"behind_count,omitempty"`
+	Commits        []*RepositoryCommit    `protobuf:"bytes,8,rep,name=commits" json:"commits,omitempty"`
+	Files          []*CommitFileDiff      `protobuf:"bytes,9,rep,name=files" json:"files,omitempty"`
+	Additions      *int32                 `protobuf:"varint,10,opt,name=additions" json:"additions,omitempty"`
+	Deletions      *int32                 `protobuf:"varint,11,opt,name=deletions" json:"deletions,omitempty"`
+	IsTruncated    *bool                  `protobuf:"varint,12,opt,name=is_truncated,json=isTruncated" json:"is_truncated,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *CompareRefsResponse) Reset() {
+	*x = CompareRefsResponse{}
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[33]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CompareRefsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CompareRefsResponse) ProtoMessage() {}
+
+func (x *CompareRefsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[33]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CompareRefsResponse.ProtoReflect.Descriptor instead.
+func (*CompareRefsResponse) Descriptor() ([]byte, []int) {
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{33}
+}
+
+func (x *CompareRefsResponse) GetBaseRefName() string {
+	if x != nil && x.BaseRefName != nil {
+		return *x.BaseRefName
+	}
+	return ""
+}
+
+func (x *CompareRefsResponse) GetHeadRefName() string {
+	if x != nil && x.HeadRefName != nil {
+		return *x.HeadRefName
+	}
+	return ""
+}
+
+func (x *CompareRefsResponse) GetBaseCommitHash() string {
+	if x != nil && x.BaseCommitHash != nil {
+		return *x.BaseCommitHash
+	}
+	return ""
+}
+
+func (x *CompareRefsResponse) GetHeadCommitHash() string {
+	if x != nil && x.HeadCommitHash != nil {
+		return *x.HeadCommitHash
+	}
+	return ""
+}
+
+func (x *CompareRefsResponse) GetMergeBaseHash() string {
+	if x != nil && x.MergeBaseHash != nil {
+		return *x.MergeBaseHash
+	}
+	return ""
+}
+
+func (x *CompareRefsResponse) GetAheadCount() int32 {
+	if x != nil && x.AheadCount != nil {
+		return *x.AheadCount
+	}
+	return 0
+}
+
+func (x *CompareRefsResponse) GetBehindCount() int32 {
+	if x != nil && x.BehindCount != nil {
+		return *x.BehindCount
+	}
+	return 0
+}
+
+func (x *CompareRefsResponse) GetCommits() []*RepositoryCommit {
+	if x != nil {
+		return x.Commits
+	}
+	return nil
+}
+
+func (x *CompareRefsResponse) GetFiles() []*CommitFileDiff {
+	if x != nil {
+		return x.Files
+	}
+	return nil
+}
+
+func (x *CompareRefsResponse) GetAdditions() int32 {
+	if x != nil && x.Additions != nil {
+		return *x.Additions
+	}
+	return 0
+}
+
+func (x *CompareRefsResponse) GetDeletions() int32 {
+	if x != nil && x.Deletions != nil {
+		return *x.Deletions
+	}
+	return 0
+}
+
+func (x *CompareRefsResponse) GetIsTruncated() bool {
+	if x != nil && x.IsTruncated != nil {
+		return *x.IsTruncated
+	}
+	return false
+}
+
+type RepositoryCommit struct {
+	state          protoimpl.MessageState `protogen:"open.v1"`
+	Hash           *string                `protobuf:"bytes,1,opt,name=hash" json:"hash,omitempty"`
+	ParentHashes   []string               `protobuf:"bytes,2,rep,name=parent_hashes,json=parentHashes" json:"parent_hashes,omitempty"`
+	AuthoredAt     *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=authored_at,json=authoredAt" json:"authored_at,omitempty"`
+	CommittedAt    *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=committed_at,json=committedAt" json:"committed_at,omitempty"`
+	AuthorName     *string                `protobuf:"bytes,5,opt,name=author_name,json=authorName" json:"author_name,omitempty"`
+	AuthorEmail    *string                `protobuf:"bytes,6,opt,name=author_email,json=authorEmail" json:"author_email,omitempty"`
+	CommitterName  *string                `protobuf:"bytes,7,opt,name=committer_name,json=committerName" json:"committer_name,omitempty"`
+	CommitterEmail *string                `protobuf:"bytes,8,opt,name=committer_email,json=committerEmail" json:"committer_email,omitempty"`
+	Message        *string                `protobuf:"bytes,9,opt,name=message" json:"message,omitempty"`
+	unknownFields  protoimpl.UnknownFields
+	sizeCache      protoimpl.SizeCache
+}
+
+func (x *RepositoryCommit) Reset() {
+	*x = RepositoryCommit{}
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RepositoryCommit) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RepositoryCommit) ProtoMessage() {}
+
+func (x *RepositoryCommit) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RepositoryCommit.ProtoReflect.Descriptor instead.
+func (*RepositoryCommit) Descriptor() ([]byte, []int) {
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *RepositoryCommit) GetHash() string {
+	if x != nil && x.Hash != nil {
+		return *x.Hash
+	}
+	return ""
+}
+
+func (x *RepositoryCommit) GetParentHashes() []string {
+	if x != nil {
+		return x.ParentHashes
+	}
+	return nil
+}
+
+func (x *RepositoryCommit) GetAuthoredAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.AuthoredAt
+	}
+	return nil
+}
+
+func (x *RepositoryCommit) GetCommittedAt() *timestamppb.Timestamp {
+	if x != nil {
+		return x.CommittedAt
+	}
+	return nil
+}
+
+func (x *RepositoryCommit) GetAuthorName() string {
+	if x != nil && x.AuthorName != nil {
+		return *x.AuthorName
+	}
+	return ""
+}
+
+func (x *RepositoryCommit) GetAuthorEmail() string {
+	if x != nil && x.AuthorEmail != nil {
+		return *x.AuthorEmail
+	}
+	return ""
+}
+
+func (x *RepositoryCommit) GetCommitterName() string {
+	if x != nil && x.CommitterName != nil {
+		return *x.CommitterName
+	}
+	return ""
+}
+
+func (x *RepositoryCommit) GetCommitterEmail() string {
+	if x != nil && x.CommitterEmail != nil {
+		return *x.CommitterEmail
+	}
+	return ""
+}
+
+func (x *RepositoryCommit) GetMessage() string {
+	if x != nil && x.Message != nil {
+		return *x.Message
+	}
+	return ""
+}
+
+type CommitFileDiff struct {
+	state   protoimpl.MessageState `protogen:"open.v1"`
+	OldPath *string                `protobuf:"bytes,1,opt,name=old_path,json=oldPath" json:"old_path,omitempty"`
+	NewPath *string                `protobuf:"bytes,2,opt,name=new_path,json=newPath" json:"new_path,omitempty"`
+	// "added", "deleted", "modified", "renamed", or "copied".
+	Status        *string `protobuf:"bytes,3,opt,name=status" json:"status,omitempty"`
+	Additions     *int32  `protobuf:"varint,4,opt,name=additions" json:"additions,omitempty"`
+	Deletions     *int32  `protobuf:"varint,5,opt,name=deletions" json:"deletions,omitempty"`
+	Patch         *string `protobuf:"bytes,6,opt,name=patch" json:"patch,omitempty"`
+	IsBinary      *bool   `protobuf:"varint,7,opt,name=is_binary,json=isBinary" json:"is_binary,omitempty"`
+	IsTruncated   *bool   `protobuf:"varint,8,opt,name=is_truncated,json=isTruncated" json:"is_truncated,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CommitFileDiff) Reset() {
+	*x = CommitFileDiff{}
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CommitFileDiff) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CommitFileDiff) ProtoMessage() {}
+
+func (x *CommitFileDiff) ProtoReflect() protoreflect.Message {
+	mi := &file_gitplus_repo_v1_repo_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CommitFileDiff.ProtoReflect.Descriptor instead.
+func (*CommitFileDiff) Descriptor() ([]byte, []int) {
+	return file_gitplus_repo_v1_repo_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *CommitFileDiff) GetOldPath() string {
+	if x != nil && x.OldPath != nil {
+		return *x.OldPath
+	}
+	return ""
+}
+
+func (x *CommitFileDiff) GetNewPath() string {
+	if x != nil && x.NewPath != nil {
+		return *x.NewPath
+	}
+	return ""
+}
+
+func (x *CommitFileDiff) GetStatus() string {
+	if x != nil && x.Status != nil {
+		return *x.Status
+	}
+	return ""
+}
+
+func (x *CommitFileDiff) GetAdditions() int32 {
+	if x != nil && x.Additions != nil {
+		return *x.Additions
+	}
+	return 0
+}
+
+func (x *CommitFileDiff) GetDeletions() int32 {
+	if x != nil && x.Deletions != nil {
+		return *x.Deletions
+	}
+	return 0
+}
+
+func (x *CommitFileDiff) GetPatch() string {
+	if x != nil && x.Patch != nil {
+		return *x.Patch
+	}
+	return ""
+}
+
+func (x *CommitFileDiff) GetIsBinary() bool {
+	if x != nil && x.IsBinary != nil {
+		return *x.IsBinary
+	}
+	return false
+}
+
+func (x *CommitFileDiff) GetIsTruncated() bool {
+	if x != nil && x.IsTruncated != nil {
+		return *x.IsTruncated
+	}
+	return false
+}
+
 var File_gitplus_repo_v1_repo_proto protoreflect.FileDescriptor
 
 const file_gitplus_repo_v1_repo_proto_rawDesc = "" +
@@ -1406,7 +3142,161 @@ const file_gitplus_repo_v1_repo_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\b \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12:\n" +
 	"\n" +
-	"new_commit\x18\t \x01(\v2\x1b.gitplus.repo.v1.CommitInfoR\tnewCommit*\x80\x01\n" +
+	"new_commit\x18\t \x01(\v2\x1b.gitplus.repo.v1.CommitInfoR\tnewCommit\"Y\n" +
+	"\x0fListTreeRequest\x12\x17\n" +
+	"\arepo_id\x18\x01 \x01(\x03R\x06repoId\x12\x19\n" +
+	"\bref_name\x18\x02 \x01(\tR\arefName\x12\x12\n" +
+	"\x04path\x18\x03 \x01(\tR\x04path\"\xec\x01\n" +
+	"\x10ListTreeResponse\x12\x17\n" +
+	"\arepo_id\x18\x01 \x01(\x03R\x06repoId\x12\x19\n" +
+	"\bref_name\x18\x02 \x01(\tR\arefName\x12\x1f\n" +
+	"\vcommit_hash\x18\x03 \x01(\tR\n" +
+	"commitHash\x12\x12\n" +
+	"\x04path\x18\x04 \x01(\tR\x04path\x124\n" +
+	"\aentries\x18\x05 \x03(\v2\x1a.gitplus.repo.v1.TreeEntryR\aentries\x129\n" +
+	"\x06readme\x18\x06 \x01(\v2!.gitplus.repo.v1.RepositoryReadmeR\x06readme\"\x83\x01\n" +
+	"\tTreeEntry\x12\x12\n" +
+	"\x04name\x18\x01 \x01(\tR\x04name\x12\x12\n" +
+	"\x04path\x18\x02 \x01(\tR\x04path\x12\x12\n" +
+	"\x04kind\x18\x03 \x01(\tR\x04kind\x12\x12\n" +
+	"\x04mode\x18\x04 \x01(\tR\x04mode\x12\x12\n" +
+	"\x04hash\x18\x05 \x01(\tR\x04hash\x12\x12\n" +
+	"\x04size\x18\x06 \x01(\x03R\x04size\"\x86\x01\n" +
+	"\x12SearchFilesRequest\x12\x17\n" +
+	"\arepo_id\x18\x01 \x01(\x03R\x06repoId\x12\x19\n" +
+	"\bref_name\x18\x02 \x01(\tR\arefName\x12\x14\n" +
+	"\x05query\x18\x03 \x01(\tR\x05query\x12&\n" +
+	"\tpage_size\x18\x04 \x01(\x05B\t\xbaH\x06\x1a\x04\x18d(\x01R\bpageSize\"\xc3\x01\n" +
+	"\x13SearchFilesResponse\x12\x17\n" +
+	"\arepo_id\x18\x01 \x01(\x03R\x06repoId\x12\x19\n" +
+	"\bref_name\x18\x02 \x01(\tR\arefName\x12\x1f\n" +
+	"\vcommit_hash\x18\x03 \x01(\tR\n" +
+	"commitHash\x124\n" +
+	"\aentries\x18\x04 \x03(\v2\x1a.gitplus.repo.v1.TreeEntryR\aentries\x12!\n" +
+	"\fis_truncated\x18\x05 \x01(\bR\visTruncated\"\x85\x01\n" +
+	"\x11SearchCodeRequest\x12\x17\n" +
+	"\arepo_id\x18\x01 \x01(\x03R\x06repoId\x12\x19\n" +
+	"\bref_name\x18\x02 \x01(\tR\arefName\x12\x14\n" +
+	"\x05query\x18\x03 \x01(\tR\x05query\x12&\n" +
+	"\tpage_size\x18\x04 \x01(\x05B\t\xbaH\x06\x1a\x04\x18d(\x01R\bpageSize\"\xc8\x01\n" +
+	"\x12SearchCodeResponse\x12\x17\n" +
+	"\arepo_id\x18\x01 \x01(\x03R\x06repoId\x12\x19\n" +
+	"\bref_name\x18\x02 \x01(\tR\arefName\x12\x1f\n" +
+	"\vcommit_hash\x18\x03 \x01(\tR\n" +
+	"commitHash\x12:\n" +
+	"\amatches\x18\x04 \x03(\v2 .gitplus.repo.v1.CodeSearchMatchR\amatches\x12!\n" +
+	"\fis_truncated\x18\x05 \x01(\bR\visTruncated\"R\n" +
+	"\x0fCodeSearchMatch\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x12\x17\n" +
+	"\aline_no\x18\x02 \x01(\x05R\x06lineNo\x12\x12\n" +
+	"\x04line\x18\x03 \x01(\tR\x04line\"X\n" +
+	"\x0eGetBlobRequest\x12\x17\n" +
+	"\arepo_id\x18\x01 \x01(\x03R\x06repoId\x12\x19\n" +
+	"\bref_name\x18\x02 \x01(\tR\arefName\x12\x12\n" +
+	"\x04path\x18\x03 \x01(\tR\x04path\"\xa4\x02\n" +
+	"\x0fGetBlobResponse\x12\x17\n" +
+	"\arepo_id\x18\x01 \x01(\x03R\x06repoId\x12\x19\n" +
+	"\bref_name\x18\x02 \x01(\tR\arefName\x12\x1f\n" +
+	"\vcommit_hash\x18\x03 \x01(\tR\n" +
+	"commitHash\x12\x12\n" +
+	"\x04path\x18\x04 \x01(\tR\x04path\x12\x12\n" +
+	"\x04name\x18\x05 \x01(\tR\x04name\x12\x12\n" +
+	"\x04mode\x18\x06 \x01(\tR\x04mode\x12\x12\n" +
+	"\x04hash\x18\a \x01(\tR\x04hash\x12\x12\n" +
+	"\x04size\x18\b \x01(\x03R\x04size\x12\x18\n" +
+	"\acontent\x18\t \x01(\tR\acontent\x12\x1b\n" +
+	"\tis_binary\x18\n" +
+	" \x01(\bR\bisBinary\x12!\n" +
+	"\fis_truncated\x18\v \x01(\bR\visTruncated\"Y\n" +
+	"\x0fGetBlameRequest\x12\x17\n" +
+	"\arepo_id\x18\x01 \x01(\x03R\x06repoId\x12\x19\n" +
+	"\bref_name\x18\x02 \x01(\tR\arefName\x12\x12\n" +
+	"\x04path\x18\x03 \x01(\tR\x04path\"\xd0\x01\n" +
+	"\x10GetBlameResponse\x12\x17\n" +
+	"\arepo_id\x18\x01 \x01(\x03R\x06repoId\x12\x19\n" +
+	"\bref_name\x18\x02 \x01(\tR\arefName\x12\x1f\n" +
+	"\vcommit_hash\x18\x03 \x01(\tR\n" +
+	"commitHash\x12\x12\n" +
+	"\x04path\x18\x04 \x01(\tR\x04path\x120\n" +
+	"\x05lines\x18\x05 \x03(\v2\x1a.gitplus.repo.v1.BlameLineR\x05lines\x12!\n" +
+	"\fis_truncated\x18\x06 \x01(\bR\visTruncated\"\xfa\x01\n" +
+	"\tBlameLine\x12\x17\n" +
+	"\aline_no\x18\x01 \x01(\x05R\x06lineNo\x12\x1f\n" +
+	"\vcommit_hash\x18\x02 \x01(\tR\n" +
+	"commitHash\x12\x1f\n" +
+	"\vauthor_name\x18\x03 \x01(\tR\n" +
+	"authorName\x12!\n" +
+	"\fauthor_email\x18\x04 \x01(\tR\vauthorEmail\x12;\n" +
+	"\vauthored_at\x18\x05 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"authoredAt\x12\x18\n" +
+	"\asummary\x18\x06 \x01(\tR\asummary\x12\x18\n" +
+	"\acontent\x18\a \x01(\tR\acontent\"w\n" +
+	"\x10RepositoryReadme\x12\x12\n" +
+	"\x04path\x18\x01 \x01(\tR\x04path\x12\x12\n" +
+	"\x04name\x18\x02 \x01(\tR\x04name\x12\x18\n" +
+	"\acontent\x18\x03 \x01(\tR\acontent\x12!\n" +
+	"\fis_truncated\x18\x04 \x01(\bR\visTruncated\"\xa3\x01\n" +
+	"\x12ListCommitsRequest\x12\x17\n" +
+	"\arepo_id\x18\x01 \x01(\x03R\x06repoId\x12\x19\n" +
+	"\bref_name\x18\x02 \x01(\tR\arefName\x12&\n" +
+	"\tpage_size\x18\x03 \x01(\x05B\t\xbaH\x06\x1a\x04\x18d(\x01R\bpageSize\x12\x1d\n" +
+	"\n" +
+	"page_token\x18\x04 \x01(\tR\tpageToken\x12\x12\n" +
+	"\x04path\x18\x05 \x01(\tR\x04path\"z\n" +
+	"\x13ListCommitsResponse\x12;\n" +
+	"\acommits\x18\x01 \x03(\v2!.gitplus.repo.v1.RepositoryCommitR\acommits\x12&\n" +
+	"\x0fnext_page_token\x18\x02 \x01(\tR\rnextPageToken\"L\n" +
+	"\x10GetCommitRequest\x12\x17\n" +
+	"\arepo_id\x18\x01 \x01(\x03R\x06repoId\x12\x1f\n" +
+	"\vcommit_hash\x18\x02 \x01(\tR\n" +
+	"commitHash\"\xe4\x01\n" +
+	"\x11GetCommitResponse\x129\n" +
+	"\x06commit\x18\x01 \x01(\v2!.gitplus.repo.v1.RepositoryCommitR\x06commit\x125\n" +
+	"\x05files\x18\x02 \x03(\v2\x1f.gitplus.repo.v1.CommitFileDiffR\x05files\x12\x1c\n" +
+	"\tadditions\x18\x03 \x01(\x05R\tadditions\x12\x1c\n" +
+	"\tdeletions\x18\x04 \x01(\x05R\tdeletions\x12!\n" +
+	"\fis_truncated\x18\x05 \x01(\bR\visTruncated\"\x9d\x01\n" +
+	"\x12CompareRefsRequest\x12\x17\n" +
+	"\arepo_id\x18\x01 \x01(\x03R\x06repoId\x12\"\n" +
+	"\rbase_ref_name\x18\x02 \x01(\tR\vbaseRefName\x12\"\n" +
+	"\rhead_ref_name\x18\x03 \x01(\tR\vheadRefName\x12&\n" +
+	"\tpage_size\x18\x04 \x01(\x05B\t\xbaH\x06\x1a\x04\x18d(\x01R\bpageSize\"\xf0\x03\n" +
+	"\x13CompareRefsResponse\x12\"\n" +
+	"\rbase_ref_name\x18\x01 \x01(\tR\vbaseRefName\x12\"\n" +
+	"\rhead_ref_name\x18\x02 \x01(\tR\vheadRefName\x12(\n" +
+	"\x10base_commit_hash\x18\x03 \x01(\tR\x0ebaseCommitHash\x12(\n" +
+	"\x10head_commit_hash\x18\x04 \x01(\tR\x0eheadCommitHash\x12&\n" +
+	"\x0fmerge_base_hash\x18\x05 \x01(\tR\rmergeBaseHash\x12\x1f\n" +
+	"\vahead_count\x18\x06 \x01(\x05R\n" +
+	"aheadCount\x12!\n" +
+	"\fbehind_count\x18\a \x01(\x05R\vbehindCount\x12;\n" +
+	"\acommits\x18\b \x03(\v2!.gitplus.repo.v1.RepositoryCommitR\acommits\x125\n" +
+	"\x05files\x18\t \x03(\v2\x1f.gitplus.repo.v1.CommitFileDiffR\x05files\x12\x1c\n" +
+	"\tadditions\x18\n" +
+	" \x01(\x05R\tadditions\x12\x1c\n" +
+	"\tdeletions\x18\v \x01(\x05R\tdeletions\x12!\n" +
+	"\fis_truncated\x18\f \x01(\bR\visTruncated\"\xf5\x02\n" +
+	"\x10RepositoryCommit\x12\x12\n" +
+	"\x04hash\x18\x01 \x01(\tR\x04hash\x12#\n" +
+	"\rparent_hashes\x18\x02 \x03(\tR\fparentHashes\x12;\n" +
+	"\vauthored_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\n" +
+	"authoredAt\x12=\n" +
+	"\fcommitted_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\vcommittedAt\x12\x1f\n" +
+	"\vauthor_name\x18\x05 \x01(\tR\n" +
+	"authorName\x12!\n" +
+	"\fauthor_email\x18\x06 \x01(\tR\vauthorEmail\x12%\n" +
+	"\x0ecommitter_name\x18\a \x01(\tR\rcommitterName\x12'\n" +
+	"\x0fcommitter_email\x18\b \x01(\tR\x0ecommitterEmail\x12\x18\n" +
+	"\amessage\x18\t \x01(\tR\amessage\"\xf0\x01\n" +
+	"\x0eCommitFileDiff\x12\x19\n" +
+	"\bold_path\x18\x01 \x01(\tR\aoldPath\x12\x19\n" +
+	"\bnew_path\x18\x02 \x01(\tR\anewPath\x12\x16\n" +
+	"\x06status\x18\x03 \x01(\tR\x06status\x12\x1c\n" +
+	"\tadditions\x18\x04 \x01(\x05R\tadditions\x12\x1c\n" +
+	"\tdeletions\x18\x05 \x01(\x05R\tdeletions\x12\x14\n" +
+	"\x05patch\x18\x06 \x01(\tR\x05patch\x12\x1b\n" +
+	"\tis_binary\x18\a \x01(\bR\bisBinary\x12!\n" +
+	"\fis_truncated\x18\b \x01(\bR\visTruncated*\x80\x01\n" +
 	"\rDownloadState\x12\x1e\n" +
 	"\x1aDOWNLOAD_STATE_UNSPECIFIED\x10\x00\x12\x1a\n" +
 	"\x16DOWNLOAD_STATE_RUNNING\x10\x01\x12\x18\n" +
@@ -1417,13 +3307,22 @@ const file_gitplus_repo_v1_repo_proto_rawDesc = "" +
 	"\x18DOWNLOAD_STAGE_COPY_BARE\x10\x01\x12#\n" +
 	"\x1fDOWNLOAD_STAGE_MATERIALIZE_REFS\x10\x02\x12\x1e\n" +
 	"\x1aDOWNLOAD_STAGE_PACKAGE_ZIP\x10\x03\x12\x18\n" +
-	"\x14DOWNLOAD_STAGE_READY\x10\x042\x8e\x04\n" +
+	"\x14DOWNLOAD_STAGE_READY\x10\x042\xb7\t\n" +
 	"\vRepoService\x12g\n" +
 	"\x10ListRepositories\x12(.gitplus.repo.v1.ListRepositoriesRequest\x1a).gitplus.repo.v1.ListRepositoriesResponse\x12^\n" +
 	"\rGetRepository\x12%.gitplus.repo.v1.GetRepositoryRequest\x1a&.gitplus.repo.v1.GetRepositoryResponse\x12\x81\x01\n" +
 	"\x18StreamRepositoryDownload\x120.gitplus.repo.v1.StreamRepositoryDownloadRequest\x1a1.gitplus.repo.v1.StreamRepositoryDownloadResponse0\x01\x12O\n" +
 	"\bListRefs\x12 .gitplus.repo.v1.ListRefsRequest\x1a!.gitplus.repo.v1.ListRefsResponse\x12a\n" +
-	"\x0eListRefChanges\x12&.gitplus.repo.v1.ListRefChangesRequest\x1a'.gitplus.repo.v1.ListRefChangesResponseB\xc5\x01\n" +
+	"\x0eListRefChanges\x12&.gitplus.repo.v1.ListRefChangesRequest\x1a'.gitplus.repo.v1.ListRefChangesResponse\x12O\n" +
+	"\bListTree\x12 .gitplus.repo.v1.ListTreeRequest\x1a!.gitplus.repo.v1.ListTreeResponse\x12X\n" +
+	"\vSearchFiles\x12#.gitplus.repo.v1.SearchFilesRequest\x1a$.gitplus.repo.v1.SearchFilesResponse\x12U\n" +
+	"\n" +
+	"SearchCode\x12\".gitplus.repo.v1.SearchCodeRequest\x1a#.gitplus.repo.v1.SearchCodeResponse\x12L\n" +
+	"\aGetBlob\x12\x1f.gitplus.repo.v1.GetBlobRequest\x1a .gitplus.repo.v1.GetBlobResponse\x12O\n" +
+	"\bGetBlame\x12 .gitplus.repo.v1.GetBlameRequest\x1a!.gitplus.repo.v1.GetBlameResponse\x12X\n" +
+	"\vListCommits\x12#.gitplus.repo.v1.ListCommitsRequest\x1a$.gitplus.repo.v1.ListCommitsResponse\x12R\n" +
+	"\tGetCommit\x12!.gitplus.repo.v1.GetCommitRequest\x1a\".gitplus.repo.v1.GetCommitResponse\x12X\n" +
+	"\vCompareRefs\x12#.gitplus.repo.v1.CompareRefsRequest\x1a$.gitplus.repo.v1.CompareRefsResponseB\xc5\x01\n" +
 	"\x13com.gitplus.repo.v1B\tRepoProtoP\x01Z;github.com/ImSingee/git-plus/pkg/rpc/gitplus/repo/v1;repov1\xa2\x02\x03GRX\xaa\x02\x0fGitplus.Repo.V1\xca\x02\x0fGitplus\\Repo\\V1\xe2\x02\x1bGitplus\\Repo\\V1\\GPBMetadata\xea\x02\x11Gitplus::Repo::V1\x92\x03\a\xd2>\x02\x10\x01\b\x01b\beditionsp\xe8\a"
 
 var (
@@ -1439,7 +3338,7 @@ func file_gitplus_repo_v1_repo_proto_rawDescGZIP() []byte {
 }
 
 var file_gitplus_repo_v1_repo_proto_enumTypes = make([]protoimpl.EnumInfo, 2)
-var file_gitplus_repo_v1_repo_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_gitplus_repo_v1_repo_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
 var file_gitplus_repo_v1_repo_proto_goTypes = []any{
 	(DownloadState)(0),                       // 0: gitplus.repo.v1.DownloadState
 	(DownloadStage)(0),                       // 1: gitplus.repo.v1.DownloadStage
@@ -1457,46 +3356,97 @@ var file_gitplus_repo_v1_repo_proto_goTypes = []any{
 	(*CommitInfo)(nil),                       // 13: gitplus.repo.v1.CommitInfo
 	(*RepoRef)(nil),                          // 14: gitplus.repo.v1.RepoRef
 	(*RepoRefChange)(nil),                    // 15: gitplus.repo.v1.RepoRefChange
-	(*timestamppb.Timestamp)(nil),            // 16: google.protobuf.Timestamp
-	(*structpb.Struct)(nil),                  // 17: google.protobuf.Struct
-	(*wrapperspb.Int64Value)(nil),            // 18: google.protobuf.Int64Value
+	(*ListTreeRequest)(nil),                  // 16: gitplus.repo.v1.ListTreeRequest
+	(*ListTreeResponse)(nil),                 // 17: gitplus.repo.v1.ListTreeResponse
+	(*TreeEntry)(nil),                        // 18: gitplus.repo.v1.TreeEntry
+	(*SearchFilesRequest)(nil),               // 19: gitplus.repo.v1.SearchFilesRequest
+	(*SearchFilesResponse)(nil),              // 20: gitplus.repo.v1.SearchFilesResponse
+	(*SearchCodeRequest)(nil),                // 21: gitplus.repo.v1.SearchCodeRequest
+	(*SearchCodeResponse)(nil),               // 22: gitplus.repo.v1.SearchCodeResponse
+	(*CodeSearchMatch)(nil),                  // 23: gitplus.repo.v1.CodeSearchMatch
+	(*GetBlobRequest)(nil),                   // 24: gitplus.repo.v1.GetBlobRequest
+	(*GetBlobResponse)(nil),                  // 25: gitplus.repo.v1.GetBlobResponse
+	(*GetBlameRequest)(nil),                  // 26: gitplus.repo.v1.GetBlameRequest
+	(*GetBlameResponse)(nil),                 // 27: gitplus.repo.v1.GetBlameResponse
+	(*BlameLine)(nil),                        // 28: gitplus.repo.v1.BlameLine
+	(*RepositoryReadme)(nil),                 // 29: gitplus.repo.v1.RepositoryReadme
+	(*ListCommitsRequest)(nil),               // 30: gitplus.repo.v1.ListCommitsRequest
+	(*ListCommitsResponse)(nil),              // 31: gitplus.repo.v1.ListCommitsResponse
+	(*GetCommitRequest)(nil),                 // 32: gitplus.repo.v1.GetCommitRequest
+	(*GetCommitResponse)(nil),                // 33: gitplus.repo.v1.GetCommitResponse
+	(*CompareRefsRequest)(nil),               // 34: gitplus.repo.v1.CompareRefsRequest
+	(*CompareRefsResponse)(nil),              // 35: gitplus.repo.v1.CompareRefsResponse
+	(*RepositoryCommit)(nil),                 // 36: gitplus.repo.v1.RepositoryCommit
+	(*CommitFileDiff)(nil),                   // 37: gitplus.repo.v1.CommitFileDiff
+	(*timestamppb.Timestamp)(nil),            // 38: google.protobuf.Timestamp
+	(*structpb.Struct)(nil),                  // 39: google.protobuf.Struct
+	(*wrapperspb.Int64Value)(nil),            // 40: google.protobuf.Int64Value
 }
 var file_gitplus_repo_v1_repo_proto_depIdxs = []int32{
-	16, // 0: gitplus.repo.v1.Repository.last_seen_at:type_name -> google.protobuf.Timestamp
-	16, // 1: gitplus.repo.v1.Repository.created_at:type_name -> google.protobuf.Timestamp
-	16, // 2: gitplus.repo.v1.Repository.updated_at:type_name -> google.protobuf.Timestamp
-	17, // 3: gitplus.repo.v1.Repository.meta:type_name -> google.protobuf.Struct
-	18, // 4: gitplus.repo.v1.Repository.archive_repo_size_bytes:type_name -> google.protobuf.Int64Value
+	38, // 0: gitplus.repo.v1.Repository.last_seen_at:type_name -> google.protobuf.Timestamp
+	38, // 1: gitplus.repo.v1.Repository.created_at:type_name -> google.protobuf.Timestamp
+	38, // 2: gitplus.repo.v1.Repository.updated_at:type_name -> google.protobuf.Timestamp
+	39, // 3: gitplus.repo.v1.Repository.meta:type_name -> google.protobuf.Struct
+	40, // 4: gitplus.repo.v1.Repository.archive_repo_size_bytes:type_name -> google.protobuf.Int64Value
 	2,  // 5: gitplus.repo.v1.ListRepositoriesResponse.repositories:type_name -> gitplus.repo.v1.Repository
 	2,  // 6: gitplus.repo.v1.GetRepositoryResponse.repository:type_name -> gitplus.repo.v1.Repository
 	0,  // 7: gitplus.repo.v1.StreamRepositoryDownloadResponse.state:type_name -> gitplus.repo.v1.DownloadState
 	1,  // 8: gitplus.repo.v1.StreamRepositoryDownloadResponse.stage:type_name -> gitplus.repo.v1.DownloadStage
 	14, // 9: gitplus.repo.v1.ListRefsResponse.refs:type_name -> gitplus.repo.v1.RepoRef
 	15, // 10: gitplus.repo.v1.ListRefChangesResponse.changes:type_name -> gitplus.repo.v1.RepoRefChange
-	16, // 11: gitplus.repo.v1.CommitInfo.authored_at:type_name -> google.protobuf.Timestamp
-	16, // 12: gitplus.repo.v1.CommitInfo.committed_at:type_name -> google.protobuf.Timestamp
-	16, // 13: gitplus.repo.v1.RepoRef.first_seen_at:type_name -> google.protobuf.Timestamp
-	16, // 14: gitplus.repo.v1.RepoRef.last_seen_at:type_name -> google.protobuf.Timestamp
-	16, // 15: gitplus.repo.v1.RepoRef.deleted_at:type_name -> google.protobuf.Timestamp
-	16, // 16: gitplus.repo.v1.RepoRef.last_hash_updated_at:type_name -> google.protobuf.Timestamp
+	38, // 11: gitplus.repo.v1.CommitInfo.authored_at:type_name -> google.protobuf.Timestamp
+	38, // 12: gitplus.repo.v1.CommitInfo.committed_at:type_name -> google.protobuf.Timestamp
+	38, // 13: gitplus.repo.v1.RepoRef.first_seen_at:type_name -> google.protobuf.Timestamp
+	38, // 14: gitplus.repo.v1.RepoRef.last_seen_at:type_name -> google.protobuf.Timestamp
+	38, // 15: gitplus.repo.v1.RepoRef.deleted_at:type_name -> google.protobuf.Timestamp
+	38, // 16: gitplus.repo.v1.RepoRef.last_hash_updated_at:type_name -> google.protobuf.Timestamp
 	13, // 17: gitplus.repo.v1.RepoRef.current_commit:type_name -> gitplus.repo.v1.CommitInfo
-	16, // 18: gitplus.repo.v1.RepoRefChange.created_at:type_name -> google.protobuf.Timestamp
+	38, // 18: gitplus.repo.v1.RepoRefChange.created_at:type_name -> google.protobuf.Timestamp
 	13, // 19: gitplus.repo.v1.RepoRefChange.new_commit:type_name -> gitplus.repo.v1.CommitInfo
-	3,  // 20: gitplus.repo.v1.RepoService.ListRepositories:input_type -> gitplus.repo.v1.ListRepositoriesRequest
-	5,  // 21: gitplus.repo.v1.RepoService.GetRepository:input_type -> gitplus.repo.v1.GetRepositoryRequest
-	7,  // 22: gitplus.repo.v1.RepoService.StreamRepositoryDownload:input_type -> gitplus.repo.v1.StreamRepositoryDownloadRequest
-	9,  // 23: gitplus.repo.v1.RepoService.ListRefs:input_type -> gitplus.repo.v1.ListRefsRequest
-	11, // 24: gitplus.repo.v1.RepoService.ListRefChanges:input_type -> gitplus.repo.v1.ListRefChangesRequest
-	4,  // 25: gitplus.repo.v1.RepoService.ListRepositories:output_type -> gitplus.repo.v1.ListRepositoriesResponse
-	6,  // 26: gitplus.repo.v1.RepoService.GetRepository:output_type -> gitplus.repo.v1.GetRepositoryResponse
-	8,  // 27: gitplus.repo.v1.RepoService.StreamRepositoryDownload:output_type -> gitplus.repo.v1.StreamRepositoryDownloadResponse
-	10, // 28: gitplus.repo.v1.RepoService.ListRefs:output_type -> gitplus.repo.v1.ListRefsResponse
-	12, // 29: gitplus.repo.v1.RepoService.ListRefChanges:output_type -> gitplus.repo.v1.ListRefChangesResponse
-	25, // [25:30] is the sub-list for method output_type
-	20, // [20:25] is the sub-list for method input_type
-	20, // [20:20] is the sub-list for extension type_name
-	20, // [20:20] is the sub-list for extension extendee
-	0,  // [0:20] is the sub-list for field type_name
+	18, // 20: gitplus.repo.v1.ListTreeResponse.entries:type_name -> gitplus.repo.v1.TreeEntry
+	29, // 21: gitplus.repo.v1.ListTreeResponse.readme:type_name -> gitplus.repo.v1.RepositoryReadme
+	18, // 22: gitplus.repo.v1.SearchFilesResponse.entries:type_name -> gitplus.repo.v1.TreeEntry
+	23, // 23: gitplus.repo.v1.SearchCodeResponse.matches:type_name -> gitplus.repo.v1.CodeSearchMatch
+	28, // 24: gitplus.repo.v1.GetBlameResponse.lines:type_name -> gitplus.repo.v1.BlameLine
+	38, // 25: gitplus.repo.v1.BlameLine.authored_at:type_name -> google.protobuf.Timestamp
+	36, // 26: gitplus.repo.v1.ListCommitsResponse.commits:type_name -> gitplus.repo.v1.RepositoryCommit
+	36, // 27: gitplus.repo.v1.GetCommitResponse.commit:type_name -> gitplus.repo.v1.RepositoryCommit
+	37, // 28: gitplus.repo.v1.GetCommitResponse.files:type_name -> gitplus.repo.v1.CommitFileDiff
+	36, // 29: gitplus.repo.v1.CompareRefsResponse.commits:type_name -> gitplus.repo.v1.RepositoryCommit
+	37, // 30: gitplus.repo.v1.CompareRefsResponse.files:type_name -> gitplus.repo.v1.CommitFileDiff
+	38, // 31: gitplus.repo.v1.RepositoryCommit.authored_at:type_name -> google.protobuf.Timestamp
+	38, // 32: gitplus.repo.v1.RepositoryCommit.committed_at:type_name -> google.protobuf.Timestamp
+	3,  // 33: gitplus.repo.v1.RepoService.ListRepositories:input_type -> gitplus.repo.v1.ListRepositoriesRequest
+	5,  // 34: gitplus.repo.v1.RepoService.GetRepository:input_type -> gitplus.repo.v1.GetRepositoryRequest
+	7,  // 35: gitplus.repo.v1.RepoService.StreamRepositoryDownload:input_type -> gitplus.repo.v1.StreamRepositoryDownloadRequest
+	9,  // 36: gitplus.repo.v1.RepoService.ListRefs:input_type -> gitplus.repo.v1.ListRefsRequest
+	11, // 37: gitplus.repo.v1.RepoService.ListRefChanges:input_type -> gitplus.repo.v1.ListRefChangesRequest
+	16, // 38: gitplus.repo.v1.RepoService.ListTree:input_type -> gitplus.repo.v1.ListTreeRequest
+	19, // 39: gitplus.repo.v1.RepoService.SearchFiles:input_type -> gitplus.repo.v1.SearchFilesRequest
+	21, // 40: gitplus.repo.v1.RepoService.SearchCode:input_type -> gitplus.repo.v1.SearchCodeRequest
+	24, // 41: gitplus.repo.v1.RepoService.GetBlob:input_type -> gitplus.repo.v1.GetBlobRequest
+	26, // 42: gitplus.repo.v1.RepoService.GetBlame:input_type -> gitplus.repo.v1.GetBlameRequest
+	30, // 43: gitplus.repo.v1.RepoService.ListCommits:input_type -> gitplus.repo.v1.ListCommitsRequest
+	32, // 44: gitplus.repo.v1.RepoService.GetCommit:input_type -> gitplus.repo.v1.GetCommitRequest
+	34, // 45: gitplus.repo.v1.RepoService.CompareRefs:input_type -> gitplus.repo.v1.CompareRefsRequest
+	4,  // 46: gitplus.repo.v1.RepoService.ListRepositories:output_type -> gitplus.repo.v1.ListRepositoriesResponse
+	6,  // 47: gitplus.repo.v1.RepoService.GetRepository:output_type -> gitplus.repo.v1.GetRepositoryResponse
+	8,  // 48: gitplus.repo.v1.RepoService.StreamRepositoryDownload:output_type -> gitplus.repo.v1.StreamRepositoryDownloadResponse
+	10, // 49: gitplus.repo.v1.RepoService.ListRefs:output_type -> gitplus.repo.v1.ListRefsResponse
+	12, // 50: gitplus.repo.v1.RepoService.ListRefChanges:output_type -> gitplus.repo.v1.ListRefChangesResponse
+	17, // 51: gitplus.repo.v1.RepoService.ListTree:output_type -> gitplus.repo.v1.ListTreeResponse
+	20, // 52: gitplus.repo.v1.RepoService.SearchFiles:output_type -> gitplus.repo.v1.SearchFilesResponse
+	22, // 53: gitplus.repo.v1.RepoService.SearchCode:output_type -> gitplus.repo.v1.SearchCodeResponse
+	25, // 54: gitplus.repo.v1.RepoService.GetBlob:output_type -> gitplus.repo.v1.GetBlobResponse
+	27, // 55: gitplus.repo.v1.RepoService.GetBlame:output_type -> gitplus.repo.v1.GetBlameResponse
+	31, // 56: gitplus.repo.v1.RepoService.ListCommits:output_type -> gitplus.repo.v1.ListCommitsResponse
+	33, // 57: gitplus.repo.v1.RepoService.GetCommit:output_type -> gitplus.repo.v1.GetCommitResponse
+	35, // 58: gitplus.repo.v1.RepoService.CompareRefs:output_type -> gitplus.repo.v1.CompareRefsResponse
+	46, // [46:59] is the sub-list for method output_type
+	33, // [33:46] is the sub-list for method input_type
+	33, // [33:33] is the sub-list for extension type_name
+	33, // [33:33] is the sub-list for extension extendee
+	0,  // [0:33] is the sub-list for field type_name
 }
 
 func init() { file_gitplus_repo_v1_repo_proto_init() }
@@ -1510,7 +3460,7 @@ func file_gitplus_repo_v1_repo_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_gitplus_repo_v1_repo_proto_rawDesc), len(file_gitplus_repo_v1_repo_proto_rawDesc)),
 			NumEnums:      2,
-			NumMessages:   14,
+			NumMessages:   36,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

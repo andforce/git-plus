@@ -43,3 +43,165 @@ code,
 .font-mono {
   font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
 }
+
+.repo-code-view {
+  min-width: max-content;
+  padding: 8px 0;
+  background: #ffffff;
+  font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.repo-code-line {
+  display: grid;
+  grid-template-columns: 56px 1fr;
+}
+
+.repo-code-line-number {
+  user-select: none;
+  color: #6e7781;
+  text-align: right;
+  padding: 0 14px 0 10px;
+  border-right: 1px solid #d8dee4;
+}
+
+.repo-code-line-content {
+  display: block;
+  white-space: pre;
+  padding: 0 16px;
+  color: #1f2328;
+}
+
+.repo-blame-view {
+  min-width: max-content;
+  padding: 8px 0;
+  background: #ffffff;
+  font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.repo-blame-line {
+  display: grid;
+  grid-template-columns: 250px 56px 1fr;
+}
+
+.repo-blame-line:hover {
+  background: #f6f8fa;
+}
+
+.repo-blame-meta {
+  display: grid;
+  grid-template-columns: 72px 96px 72px;
+  align-items: center;
+  gap: 8px;
+  color: #57606a;
+  padding: 0 12px;
+  border-right: 1px solid #d8dee4;
+}
+
+.repo-code-search-line {
+  white-space: pre;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.repo-diff-view {
+  min-width: max-content;
+  padding: 8px 0;
+  background: #ffffff;
+  font-family: 'Geist Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.repo-diff-line {
+  white-space: pre;
+  padding: 0 16px;
+  color: #1f2328;
+}
+
+.repo-diff-line-add {
+  background: #dafbe1;
+}
+
+.repo-diff-line-delete {
+  background: #ffebe9;
+}
+
+.repo-diff-line-meta {
+  color: #57606a;
+  background: #f6f8fa;
+}
+
+.repo-markdown-body {
+  color: #1f2328;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.repo-markdown-body > :first-child {
+  margin-top: 0;
+}
+
+.repo-markdown-body > :last-child {
+  margin-bottom: 0;
+}
+
+.repo-markdown-body h1,
+.repo-markdown-body h2 {
+  border-bottom: 1px solid #d8dee4;
+  padding-bottom: 0.3em;
+}
+
+.repo-markdown-body h1 {
+  font-size: 1.8em;
+}
+
+.repo-markdown-body h2 {
+  font-size: 1.45em;
+}
+
+.repo-markdown-body h3 {
+  font-size: 1.2em;
+}
+
+.repo-markdown-body pre {
+  overflow: auto;
+  padding: 12px;
+  background: #f6f8fa;
+  border-radius: 6px;
+}
+
+.repo-markdown-body code {
+  background: #eff1f3;
+  border-radius: 4px;
+  padding: 0.15em 0.35em;
+  font-size: 0.9em;
+}
+
+.repo-markdown-body pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.repo-markdown-body table {
+  display: block;
+  max-width: 100%;
+  overflow: auto;
+  border-collapse: collapse;
+}
+
+.repo-markdown-body th,
+.repo-markdown-body td {
+  padding: 6px 12px;
+  border: 1px solid #d8dee4;
+}
+
+.repo-markdown-body blockquote {
+  color: #57606a;
+  border-left: 0.25em solid #d0d7de;
+  padding-left: 1em;
+  margin-left: 0;
+}
